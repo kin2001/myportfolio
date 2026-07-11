@@ -1,0 +1,523 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AI SYSTEMS LABORATORY | Portfolio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-bright": "#faf9f7",
+                    "outline": "#757684",
+                    "surface-container": "#efeeec",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "primary-fixed-dim": "#bac3ff",
+                    "secondary": "#5f5e5e",
+                    "on-secondary-fixed": "#1c1b1b",
+                    "tertiary-fixed": "#e3e2e2",
+                    "surface-variant": "#e3e2e0",
+                    "on-primary-fixed": "#00105c",
+                    "on-secondary-fixed-variant": "#474746",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed": "#e5e2e1",
+                    "tertiary": "#424343",
+                    "secondary-container": "#e2dfde",
+                    "tertiary-container": "#5a5a5a",
+                    "on-surface": "#1a1c1b",
+                    "primary-fixed": "#dee0ff",
+                    "inverse-primary": "#bac3ff",
+                    "on-tertiary-fixed": "#1b1c1c",
+                    "on-tertiary-fixed-variant": "#464747",
+                    "on-primary-fixed-variant": "#293ca0",
+                    "on-background": "#1a1c1b",
+                    "on-secondary-container": "#636262",
+                    "surface-container-highest": "#e3e2e0",
+                    "tertiary-fixed-dim": "#c7c6c6",
+                    "inverse-on-surface": "#f1f1ef",
+                    "on-error": "#ffffff",
+                    "metadata-text": "#737373",
+                    "primary-container": "#3f51b5",
+                    "surface": "#faf9f7",
+                    "inverse-surface": "#2f3130",
+                    "error-container": "#ffdad6",
+                    "on-surface-variant": "#454652",
+                    "surface-tint": "#4355b9",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#dadad8",
+                    "on-tertiary-container": "#d2d2d1",
+                    "surface-border": "#E5E5E5",
+                    "primary": "#24389c",
+                    "surface-container-high": "#e9e8e6",
+                    "code-bg": "#F1F0EE",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#cacfff",
+                    "surface-container-low": "#f4f3f1",
+                    "background": "#faf9f7",
+                    "outline-variant": "#c5c5d4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "32px",
+                    "unit": "8px",
+                    "container-max": "1100px",
+                    "sidebar-width": "280px",
+                    "margin-mobile": "20px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Geist"],
+                    "label-caps": ["JetBrains Mono"],
+                    "body-lg": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "body-md": ["Geist"],
+                    "headline-md": ["Geist"],
+                    "metadata": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-caps": ["10px", {"lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "metadata": ["12px", {"lineHeight": "1.5", "letterSpacing": "0.05em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #faf9f7;
+            background-image: radial-gradient(#E5E5E5 0.5px, transparent 0.5px);
+            background-size: 16px 16px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E5E5; }
+    </style>
+</head>
+<body class="font-body-md text-on-surface antialiased" data-mode="connect">
+<!-- TopAppBar (Mobile Only) -->
+<header class="md:hidden sticky top-0 w-full z-50 bg-surface-bright/80 backdrop-blur-sm flex items-center justify-between px-5 py-4 border-b-[0.5px] border-surface-border">
+<h1 class="font-headline-md text-headline-md font-semibold text-on-surface">AI SYSTEMS LAB</h1>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-primary">settings</span>
+<span class="material-symbols-outlined text-primary">power_settings_new</span>
+</div>
+</header>
+<!-- SideNavBar (Desktop Only) -->
+<aside class="fixed left-0 top-0 h-screen w-sidebar-width hidden md:flex flex-col justify-between py-8 px-8 border-r-[0.5px] border-surface-border bg-surface-container-lowest z-40">
+<div class="space-y-12">
+<div class="space-y-1">
+<div class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">SYSTEMS LABORATORY</div>
+<div class="font-metadata text-metadata text-metadata-text uppercase tracking-widest">AI Automation Engineer</div>
+</div>
+<nav class="flex flex-col gap-1">
+<!-- active nav determined by page content -->
+<a class="flex items-center gap-3 py-3 px-2 text-primary border-r-2 border-primary font-bold group" href="#">
+<span class="material-symbols-outlined text-[18px]">folder_open</span>
+<span class="font-label-caps text-label-caps">01 Work</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-2 hover:text-primary transition-colors duration-200 text-primary border-r-2 border-primary font-bold" href="#">
+<span class="material-symbols-outlined text-[18px]">hub</span>
+<span class="font-label-caps text-label-caps">02 Systems</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-2 hover:text-primary transition-colors duration-200 text-primary border-r-2 border-primary font-bold" href="#">
+<span class="material-symbols-outlined text-[18px]">history_edu</span>
+<span class="font-label-caps text-label-caps">03 Experience</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-2 hover:text-primary transition-colors duration-200 text-primary border-r-2 border-primary font-bold" href="#">
+<span class="material-symbols-outlined text-[18px]">sensors</span>
+<span class="font-label-caps text-label-caps">04 AI Signal</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-2 hover:text-primary transition-colors duration-200 text-primary border-r-2 border-primary font-bold" href="#">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span class="font-label-caps text-label-caps">05 Credentials</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-2 text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span class="font-label-caps text-label-caps">06 About</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-2 text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+<span class="font-label-caps text-label-caps">07 Contact</span>
+</a>
+</nav>
+</div>
+<div class="space-y-8">
+<button class="w-full border border-on-surface bg-on-surface text-surface py-3 font-label-caps text-label-caps tracking-widest active:scale-95 transition-transform">
+                DOWNLOAD CV
+            </button>
+<div class="space-y-4">
+<div class="font-metadata text-metadata text-metadata-text flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                    SYSTEMS READY
+                </div>
+<div class="flex gap-4">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined text-[18px]">link</span></a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined text-[18px]">terminal</span></a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined text-[18px]">share</span></a>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="md:ml-sidebar-width min-h-screen">
+<div class="max-w-container-max mx-auto px-6 md:px-gutter py-12 space-y-24">
+<!-- Hero Section -->
+<section class="grid md:grid-cols-2 gap-12 items-center min-h-[60vh]">
+<div class="space-y-8 order-2 md:order-1">
+<div class="space-y-4">
+<span class="font-metadata text-metadata text-primary uppercase tracking-[0.2em]">[ SYSTEM_BUILDER_INIT ]</span>
+<h2 class="font-headline-lg text-headline-lg md:text-[56px] leading-[1.05] tracking-tight">ARTKIN CARREON <br><span class="text-on-surface-variant">AI Automation Specialist</span></h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-lg">
+                            I build AI-powered workflows, automation systems, and digital tools that transform repetitive processes into intelligent operations.
+                        </p>
+</div>
+<div class="flex flex-wrap gap-x-8 gap-y-4">
+<a class="flex items-center gap-2 font-label-caps text-label-caps group" href="#">
+                            GITHUB <span class="material-symbols-outlined text-[14px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+<a class="flex items-center gap-2 font-label-caps text-label-caps group" href="#">
+                            LINKEDIN <span class="material-symbols-outlined text-[14px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+<a class="flex items-center gap-2 font-label-caps text-label-caps group" href="#">
+                            EMAIL <span class="material-symbols-outlined text-[14px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+<a class="flex items-center gap-2 font-label-caps text-label-caps group text-primary" href="#">
+                            RESUME <span class="material-symbols-outlined text-[14px] transition-transform group-hover:translate-x-1">arrow_forward</span>
+</a>
+</div>
+</div>
+<div class="order-1 md:order-2 flex justify-center">
+<img alt="Isometric technical diagram representing AI systems and node connections" class="w-full max-w-md aspect-square object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAq0wPV15QSBbCYhe7eRwEBrV2Rgzhvwj2A308PPoq6k9rAGLpi40zW70KJb5qRaBy3oGJBT8zLCJs3GioVm7pf6_3ePXPUx4NbicRuWf_FyIpsYBCOvqbaUzmXRs06pe-5IZgDNl5-PBv8JadPfzlaLPNZf4eYELJY43Lk9oT1A1BBo0GuszMzZi7UVy3t2lVCJwhU47132tXzbBaZwXVYBGmLPw9_Ro9VGbtCld63cs-qooBylyI">
+</div>
+</section>
+<!-- Metrics Section -->
+<section class="border-y-[0.5px] border-surface-border py-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+<div class="flex flex-col md:border-r-[0.5px] border-surface-border">
+<span class="font-headline-md text-headline-md font-bold">10+</span>
+<span class="font-label-caps text-label-caps text-metadata-text">Automation Workflows</span>
+</div>
+<div class="flex flex-col md:border-r-[0.5px] border-surface-border md:pl-8">
+<span class="font-headline-md text-headline-md font-bold">20+</span>
+<span class="font-label-caps text-label-caps text-metadata-text">API Integrations</span>
+</div>
+<div class="flex flex-col md:border-r-[0.5px] border-surface-border md:pl-8">
+<span class="font-headline-md text-headline-md font-bold">15+</span>
+<span class="font-label-caps text-label-caps text-metadata-text">AI Experiments</span>
+</div>
+<div class="flex flex-col md:pl-8">
+<span class="font-headline-md text-headline-md font-bold">24/7</span>
+<span class="font-label-caps text-label-caps text-metadata-text">Continuous Learning</span>
+</div>
+</section>
+<!-- 01 — SELECTED SYSTEMS -->
+<section class="space-y-12" id="work">
+<div class="flex justify-between items-end border-b-[0.5px] border-surface-border pb-4">
+<h3 class="font-label-caps text-label-caps tracking-[0.2em] uppercase">01 — SELECTED SYSTEMS</h3>
+<span class="font-metadata text-metadata text-metadata-text">VIEW ALL_08 PROJECTS</span>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Project Card 1 -->
+<div class="border-[0.5px] border-surface-border p-6 bg-surface-container-lowest flex flex-col justify-between h-[450px] relative overflow-hidden group">
+<div class="space-y-6 relative z-10">
+<div class="flex justify-between items-start">
+<span class="font-metadata text-metadata py-1 px-2 border border-surface-border bg-surface-bright">PROJECT_001</span>
+<span class="font-metadata text-metadata text-primary flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> PRODUCTION
+                                </span>
+</div>
+<h4 class="font-headline-md text-headline-md leading-tight">AI Knowledge Automation Platform</h4>
+<div class="space-y-4 pt-4 border-t-[0.5px] border-surface-border">
+<div>
+<span class="font-label-caps text-[9px] text-metadata-text uppercase block mb-1">Problem</span>
+<p class="text-sm">Fragmented internal documentation leading to 40% efficiency loss in onboarding.</p>
+</div>
+<div>
+<span class="font-label-caps text-[9px] text-metadata-text uppercase block mb-1">Solution</span>
+<p class="text-sm">RAG-based vector database with Slack/Teams integration for instant query resolution.</p>
+</div>
+</div>
+</div>
+<div class="space-y-4 relative z-10">
+<div class="flex flex-wrap gap-2">
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">OPENAI</span>
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">PINECONE</span>
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">LANGCHAIN</span>
+</div>
+<button class="w-full border border-on-surface py-2 font-label-caps text-label-caps hover:bg-on-surface hover:text-surface transition-colors">EXPLORE SCHEMATICS</button>
+</div>
+</div>
+<!-- Project Card 2 -->
+<div class="border-[0.5px] border-surface-border p-6 bg-surface-container-lowest flex flex-col justify-between h-[450px] relative overflow-hidden group">
+<div class="space-y-6 relative z-10">
+<div class="flex justify-between items-start">
+<span class="font-metadata text-metadata py-1 px-2 border border-surface-border bg-surface-bright">PROJECT_002</span>
+<span class="font-metadata text-metadata text-secondary-container bg-secondary px-2 py-0.5">ARCHIVED</span>
+</div>
+<h4 class="font-headline-md text-headline-md leading-tight">Autonomous Supply Chain Agent</h4>
+<div class="space-y-4 pt-4 border-t-[0.5px] border-surface-border">
+<div>
+<span class="font-label-caps text-[9px] text-metadata-text uppercase block mb-1">Problem</span>
+<p class="text-sm">Manual tracking of global logistics causing 12-hour reaction delays to disruptions.</p>
+</div>
+<div>
+<span class="font-label-caps text-[9px] text-metadata-text uppercase block mb-1">Solution</span>
+<p class="text-sm">Multi-agent system monitoring weather/geopolitical feeds to reroute shipments.</p>
+</div>
+</div>
+</div>
+<div class="space-y-4 relative z-10">
+<div class="flex flex-wrap gap-2">
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">AUTO-GPT</span>
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">FASTAPI</span>
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">DOCKER</span>
+</div>
+<button class="w-full border border-on-surface py-2 font-label-caps text-label-caps hover:bg-on-surface hover:text-surface transition-colors">EXPLORE SCHEMATICS</button>
+</div>
+</div>
+<!-- Project Card 3 -->
+<div class="border-[0.5px] border-surface-border p-6 bg-surface-container-lowest flex flex-col justify-between h-[450px] relative overflow-hidden group">
+<div class="space-y-6 relative z-10">
+<div class="flex justify-between items-start">
+<span class="font-metadata text-metadata py-1 px-2 border border-surface-border bg-surface-bright">PROJECT_003</span>
+<span class="font-metadata text-metadata text-primary flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span> LIVE
+                                </span>
+</div>
+<h4 class="font-headline-md text-headline-md leading-tight">Predictive Resource Scheduler</h4>
+<div class="space-y-4 pt-4 border-t-[0.5px] border-surface-border">
+<div>
+<span class="font-label-caps text-[9px] text-metadata-text uppercase block mb-1">Problem</span>
+<p class="text-sm">Over-allocation of compute resources in cloud-native applications.</p>
+</div>
+<div>
+<span class="font-label-caps text-[9px] text-metadata-text uppercase block mb-1">Solution</span>
+<p class="text-sm">ML-driven scaling policy reducing monthly cloud spend by 22% on average.</p>
+</div>
+</div>
+</div>
+<div class="space-y-4 relative z-10">
+<div class="flex flex-wrap gap-2">
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">PYTORCH</span>
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">AWS</span>
+<span class="font-metadata text-[10px] bg-code-bg px-2 py-0.5">K8S</span>
+</div>
+<button class="w-full border border-on-surface py-2 font-label-caps text-label-caps hover:bg-on-surface hover:text-surface transition-colors">EXPLORE SCHEMATICS</button>
+</div>
+</div>
+</div>
+</section>
+<!-- 02 — EXPERIENCE -->
+<section class="space-y-12" id="experience">
+<div class="flex items-end border-b-[0.5px] border-surface-border pb-4">
+<h3 class="font-label-caps text-label-caps tracking-[0.2em] uppercase">02 — EXPERIENCE</h3>
+</div>
+<div class="space-y-8">
+<div class="grid md:grid-cols-[1fr_3fr] gap-4 md:gap-12 items-start relative pb-8 border-b-[0.5px] border-surface-border">
+<div class="font-metadata text-metadata text-on-surface-variant flex items-center gap-2">
+<span class="">2026</span> <span class="material-symbols-outlined text-[16px]">arrow_forward</span> <span class="">PRESENT</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md font-semibold mb-2">Senior AI Automation Engineer</h4>
+<p class="text-metadata-text mb-4">CYBERNECTICS CORP / TORONTO, CA</p>
+<p class="text-on-surface-variant max-w-2xl">Pioneering the development of autonomous agent swarms for enterprise workflow optimization. Architected a centralized AI gateway handling 1M+ requests daily.</p>
+</div>
+</div>
+<div class="grid md:grid-cols-[1fr_3fr] gap-4 md:gap-12 items-start relative pb-8 border-b-[0.5px] border-surface-border">
+<div class="font-metadata text-metadata text-on-surface-variant flex items-center gap-2">
+<span class="">2024</span> <span class="material-symbols-outlined text-[16px]">arrow_forward</span> <span class="">2026</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md font-semibold mb-2">Lead Systems Architect</h4>
+<p class="text-metadata-text mb-4">NEURAL FLUX LABS / LONDON, UK</p>
+<p class="text-on-surface-variant max-w-2xl">Redesigned legacy manufacturing workflows using computer vision and real-time LLM feedback loops. Reduced operational errors by 35%.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 03 — TECHNOLOGY STACK -->
+<section class="space-y-12" id="systems">
+<div class="flex items-end border-b-[0.5px] border-surface-border pb-4">
+<h3 class="font-label-caps text-label-caps tracking-[0.2em] uppercase">03 — TECHNOLOGY STACK</h3>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="p-8 border-[0.5px] border-surface-border bg-surface-container-low space-y-6">
+<h4 class="font-label-caps text-label-caps border-b border-surface-border pb-2 inline-block">AI / MACHINE LEARNING</h4>
+<ul class="font-metadata text-metadata space-y-4 text-on-surface-variant">
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Large Language Models</span> <span class="">GPT-4 / Claude / Llama</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Vector Databases</span> <span class="">Pinecone / Weaviate</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Frameworks</span> <span class="">LangChain / PyTorch</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Agent Orchestration</span> <span class="">AutoGPT / CrewAI</span></li>
+</ul>
+</div>
+<div class="p-8 border-[0.5px] border-surface-border bg-surface-container-low space-y-6">
+<h4 class="font-label-caps text-label-caps border-b border-surface-border pb-2 inline-block">AUTOMATION / OPS</h4>
+<ul class="font-metadata text-metadata space-y-4 text-on-surface-variant">
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Orchestration</span> <span class="">n8n / Zapier / Make</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Infrastructure</span> <span class="">Terraform / AWS CD</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Containers</span> <span class="">Docker / Kubernetes</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Monitoring</span> <span class="">Grafana / Datadog</span></li>
+</ul>
+</div>
+<div class="p-8 border-[0.5px] border-surface-border bg-surface-container-low space-y-6">
+<h4 class="font-label-caps text-label-caps border-b border-surface-border pb-2 inline-block">DEVELOPMENT</h4>
+<ul class="font-metadata text-metadata space-y-4 text-on-surface-variant">
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Languages</span> <span class="">Python / TypeScript</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Backend</span> <span class="">FastAPI / Node.js</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">API Standards</span> <span class="">REST / GraphQL / gRPC</span></li>
+<li class="flex justify-between border-b border-surface-border/50 pb-2"><span class="">Version Control</span> <span class="">Git / CI/CD Pipelines</span></li>
+</ul>
+</div>
+</div>
+</section>
+<!-- 04 — AI SIGNAL -->
+<section class="space-y-12" id="signal">
+<div class="flex items-end border-b-[0.5px] border-surface-border pb-4">
+<h3 class="font-label-caps text-label-caps tracking-[0.2em] uppercase">04 — AI SIGNAL</h3>
+<span class="ml-4 font-metadata text-metadata text-primary animate-pulse uppercase">[ RECEIVING DATA ]</span>
+</div>
+<div class="grid md:grid-cols-2 gap-8">
+<div class="p-6 border-[0.5px] border-surface-border bg-surface-container-lowest">
+<div class="flex gap-4 mb-4">
+<span class="font-metadata text-metadata bg-primary text-surface px-2 py-1">LATEST_INTEL</span>
+<span class="font-metadata text-metadata text-metadata-text">APR 12, 2024</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-4">The Shift to Multi-Modal Agent Architectures</h4>
+<p class="text-sm text-on-surface-variant mb-6">Agents are moving beyond text to process visual and audio streams concurrently, enabling true physical-world automation.</p>
+<div class="pt-4 border-t border-surface-border">
+<span class="font-label-caps text-[9px] text-primary uppercase block mb-2">Why It Matters</span>
+<p class="text-xs italic">"This eliminates the 'latency bottleneck' in industrial automation, allowing AI to supervise assembly lines in real-time."</p>
+</div>
+</div>
+<div class="p-6 border-[0.5px] border-surface-border bg-surface-container-lowest">
+<div class="flex gap-4 mb-4">
+<span class="font-metadata text-metadata bg-primary text-surface px-2 py-1">TREND_WATCH</span>
+<span class="font-metadata text-metadata text-metadata-text">MAR 28, 2024</span>
+</div>
+<h4 class="font-headline-md text-headline-md mb-4">Edge AI and the Sovereignty of Data</h4>
+<p class="text-sm text-on-surface-variant mb-6">Decentralized models running locally on M-series chips or high-end NVIDIA edge hardware for maximum security.</p>
+<div class="pt-4 border-t border-surface-border">
+<span class="font-label-caps text-[9px] text-primary uppercase block mb-2">Why It Matters</span>
+<p class="text-xs italic">"Ensures data privacy for high-compliance industries like healthcare while reducing cloud operational costs by 90%."</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 05 — CREDENTIALS -->
+<section class="space-y-12" id="credentials">
+<div class="flex items-end border-b-[0.5px] border-surface-border pb-4">
+<h3 class="font-label-caps text-label-caps tracking-[0.2em] uppercase">05 — CREDENTIALS</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="border-[0.5px] border-surface-border p-4 flex flex-col justify-between hover:bg-surface-container transition-colors cursor-default">
+<div class="font-label-caps text-[10px] text-metadata-text mb-4">ID: CERT_082</div>
+<h5 class="font-metadata text-metadata font-bold">AWS Certified Solutions Architect</h5>
+<p class="font-metadata text-[10px] text-primary mt-2">LINKED TO PROJECT_003</p>
+</div>
+<div class="border-[0.5px] border-surface-border p-4 flex flex-col justify-between hover:bg-surface-container transition-colors cursor-default">
+<div class="font-label-caps text-[10px] text-metadata-text mb-4">ID: CERT_015</div>
+<h5 class="font-metadata text-metadata font-bold">DeepLearning.AI - AI For Medicine</h5>
+<p class="font-metadata text-[10px] text-primary mt-2">LINKED TO EXPERIMENT_02</p>
+</div>
+<div class="border-[0.5px] border-surface-border p-4 flex flex-col justify-between hover:bg-surface-container transition-colors cursor-default">
+<div class="font-label-caps text-[10px] text-metadata-text mb-4">ID: CERT_099</div>
+<h5 class="font-metadata text-metadata font-bold">N8N Certified Workflow Creator</h5>
+<p class="font-metadata text-[10px] text-primary mt-2">LINKED TO PROJECT_001</p>
+</div>
+<div class="border-[0.5px] border-surface-border p-4 flex flex-col justify-between hover:bg-surface-container transition-colors cursor-default">
+<div class="font-label-caps text-[10px] text-metadata-text mb-4">ID: CERT_003</div>
+<h5 class="font-metadata text-metadata font-bold">Google Cloud Professional Data Engineer</h5>
+<p class="font-metadata text-[10px] text-primary mt-2">CORE INFRASTRUCTURE</p>
+</div>
+</div>
+</section>
+<!-- 07 — CONTACT -->
+<section class="pt-12 pb-24 border-t-[0.5px] border-surface-border flex flex-col items-center text-center space-y-10" id="contact">
+<div class="space-y-4 max-w-2xl">
+<h3 class="font-label-caps text-label-caps tracking-[0.3em] uppercase text-primary">07 — SYSTEM ACCESS</h3>
+<h4 class="font-headline-lg text-headline-lg leading-tight">Have a process worth automating? Let's discuss building a smarter system.</h4>
+</div>
+<div class="flex flex-col md:flex-row gap-6 w-full max-w-md">
+<button class="flex-1 border border-on-surface bg-on-surface text-surface py-4 font-label-caps text-label-caps tracking-widest hover:bg-on-surface/90 transition-colors">
+                        CONTACT ME
+                    </button>
+<button class="flex-1 border border-on-surface py-4 font-label-caps text-label-caps tracking-widest hover:bg-surface-container transition-colors">
+                        START A PROJECT
+                    </button>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer -->
+<footer class="md:ml-sidebar-width bg-surface-bright border-t-[0.5px] border-surface-border">
+<div class="max-w-container-max mx-auto px-gutter py-12 flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="space-y-4 flex flex-col items-center md:items-start">
+<div class="font-label-caps text-label-caps text-on-surface tracking-widest">AI SYSTEMS LABORATORY</div>
+<p class="font-metadata text-metadata text-metadata-text">© 2024 AI SYSTEMS LABORATORY / ALL RIGHTS RESERVED</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8">
+<a class="font-metadata text-metadata text-metadata-text hover:text-on-surface underline transition-all duration-300" href="#">Privacy Policy</a>
+<a class="font-metadata text-metadata text-metadata-text hover:text-on-surface underline transition-all duration-300" href="#">Terminal Access</a>
+<a class="font-metadata text-metadata text-metadata-text hover:text-on-surface underline transition-all duration-300" href="#">System Status</a>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interaction for sidebar links
+        document.querySelectorAll('aside nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                document.querySelectorAll('aside nav a').forEach(l => {
+                    l.classList.remove('text-primary', 'border-r-2', 'border-primary', 'font-bold');
+                    l.classList.add('text-on-surface-variant', 'font-medium');
+                });
+                link.classList.add('text-primary', 'border-r-2', 'border-primary', 'font-bold');
+                link.classList.remove('text-on-surface-variant', 'font-medium');
+            });
+        });
+
+        // Simple visibility observer for active state tracking
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('aside nav a');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= (sectionTop - 150)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                const label = link.querySelector('span:last-child').textContent.toLowerCase();
+                if (label.includes(current) && current !== '') {
+                    link.classList.add('text-primary', 'border-r-2', 'border-primary', 'font-bold');
+                    link.classList.remove('text-on-surface-variant', 'font-medium');
+                } else {
+                    // Only remove if it's not the manual "Work" default for landing
+                }
+            });
+        });
+    </script>
+
+
+</body></html>
