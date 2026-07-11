@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 
 const navigation = [
@@ -16,10 +16,19 @@ const navigation = [
 
 function NavLinks({ close }: { close?: () => void }) {
   const pathname = usePathname();
+  const [hash, setHash] = useState("#projects");
+
+  useEffect(() => {
+    const syncHash = () => setHash(window.location.hash || "#projects");
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, [pathname]);
+
   return (
     <nav aria-label="Primary navigation" className="flex flex-col gap-1">
-      {navigation.map(([index, label, href, icon], itemIndex) => {
-        const active = href === "/credentials" ? pathname === href : href === "/about" || href === "/contact" ? pathname === href : pathname === "/" && itemIndex < 5;
+      {navigation.map(([index, label, href, icon]) => {
+        const active = href.startsWith("/#") ? pathname === "/" && href === `/${hash}` : pathname === href;
         return (
           <Link
             key={href}
