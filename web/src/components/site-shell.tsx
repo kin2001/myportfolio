@@ -42,7 +42,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <a href="#main-content" className="skip-link">Skip to content</a>
-      <header className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-5 backdrop-blur md:hidden">
+      <header className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-4 backdrop-blur sm:px-5 lg:hidden">
         <Link href="/" className="font-[family-name:var(--font-geist-mono)] text-lg font-semibold tracking-normal">Artkin Carreon</Link>
         <div className="flex items-center gap-4 text-[var(--accent)]">
           <Icon name="systems" className="h-5 w-5" />
@@ -57,7 +57,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         ) : null}
       </header>
 
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
         <div className="space-y-12">
           <Link href="/" className="block">
             <div className="whitespace-nowrap font-[family-name:var(--font-geist-mono)] text-lg font-semibold leading-none tracking-normal">Artkin Carreon</div>

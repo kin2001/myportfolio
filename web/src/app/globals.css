@@ -71,7 +71,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   letter-spacing: .04em;
 }
 
-.site-main { min-height: 100vh; margin-left: var(--sidebar); }
+.site-main { min-height: 100vh; margin-left: 0; }
 .content-canvas { max-width: var(--content); margin: 0 auto; padding: 48px 32px 96px; }
 .section-space { margin-top: 112px; }
 .hairline { border-color: var(--line); border-width: .5px; }
@@ -143,10 +143,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .field::placeholder { color: var(--muted); }
 
 @media (max-width: 767px) {
-  .site-main { margin-left: 0; }
   .content-canvas { padding: 40px 20px 72px; }
   .section-space { margin-top: 80px; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+}
+
+@media (min-width: 1024px) {
+  .site-main { margin-left: var(--sidebar); }
 }
 
 @media (prefers-reduced-motion: reduce) {
