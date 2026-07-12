@@ -31,7 +31,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="order-1 mx-auto flex w-full max-w-[280px] justify-center sm:max-w-[360px] md:order-2 md:max-w-md">
-          <Image src="/artkin-hero.webp" alt="Portrait of Artkin Carreon" width={1024} height={1024} sizes="(max-width: 639px) 280px, (max-width: 1023px) 360px, 436px" priority className="aspect-square h-auto w-full object-cover object-center" />
+          <Image src="/artkin-hero.webp" alt="Portrait of Artkin Carreon" width={1024} height={1024} sizes="(max-width: 639px) 280px, (max-width: 1023px) 360px, 436px" priority className="hero-portrait aspect-square h-auto w-full object-cover object-center" />
         </div>
       </section>
 
