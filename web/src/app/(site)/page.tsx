@@ -27,7 +27,7 @@ export default function HomePage() {
             <Link href="/work" className="hero-link">Projects <Icon name="arrow" /></Link>
             <Link href="/about" className="hero-link">About <Icon name="arrow" /></Link>
             <Link href="/contact" className="hero-link">Email <Icon name="arrow" /></Link>
-            <Link href="/about" className="hero-link text-[var(--accent)]">Resume <Icon name="arrow" /></Link>
+            <Link href="/about" className="hero-link hero-link-accent">Resume <Icon name="arrow" /></Link>
           </div>
         </div>
         <div className="order-1 mx-auto flex w-full max-w-[280px] justify-center sm:max-w-[360px] md:order-2 md:max-w-md">
