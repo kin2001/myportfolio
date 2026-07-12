@@ -28,12 +28,17 @@ function NavLinks({ close }: { close?: () => void }) {
   return (
     <nav aria-label="Primary navigation" className="flex flex-col gap-1">
       {navigation.map(([index, label, href, icon]) => {
-        const active = href.startsWith("/#") ? pathname === "/" && href === `/${hash}` : pathname === href;
+        const active = href.startsWith("/#")
+          ? (href === "/#projects" && pathname.startsWith("/work")) || (pathname === "/" && href === `/${hash}`)
+          : pathname === href;
         return (
           <Link
             key={href}
             href={href}
-            onClick={close}
+            onClick={() => {
+              if (href.startsWith("/#")) setHash(href.slice(1));
+              close?.();
+            }}
             aria-current={active ? "page" : undefined}
             className={`flex min-h-11 items-center gap-3 border-r-2 px-2 py-3 transition-colors ${active ? "border-[var(--accent)] font-bold text-[var(--accent)]" : "border-transparent font-medium text-[var(--ink-soft)] hover:text-[var(--accent)]"}`}
           >
