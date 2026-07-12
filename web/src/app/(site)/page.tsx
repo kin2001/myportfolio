@@ -30,8 +30,8 @@ export default function HomePage() {
             <Link href="/about" className="hero-link text-[var(--accent)]">Resume <Icon name="arrow" /></Link>
           </div>
         </div>
-        <div className="order-1 flex justify-center md:order-2">
-          <Image src="/system-network.png" alt="Isometric technical diagram representing connected AI and automation systems" width={512} height={512} priority className="aspect-square w-full max-w-md object-contain" />
+        <div className="order-1 mx-auto flex w-full max-w-[280px] justify-center sm:max-w-[360px] md:order-2 md:max-w-md">
+          <Image src="/artkin-hero.webp" alt="Portrait of Artkin Carreon" width={1024} height={1024} sizes="(max-width: 639px) 280px, (max-width: 1023px) 360px, 436px" priority className="aspect-square h-auto w-full object-cover object-center" />
         </div>
       </section>
 
