@@ -16,10 +16,10 @@ const navigation = [
 
 function NavLinks({ close }: { close?: () => void }) {
   const pathname = usePathname();
-  const [hash, setHash] = useState("");
+  const [hash, setHash] = useState("#projects");
 
   useEffect(() => {
-    const syncHash = () => setHash(window.location.hash);
+    const syncHash = () => setHash(window.location.hash || "#projects");
     syncHash();
     window.addEventListener("hashchange", syncHash);
     return () => window.removeEventListener("hashchange", syncHash);
