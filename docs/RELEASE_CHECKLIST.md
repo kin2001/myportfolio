@@ -26,6 +26,7 @@
 
 ## SEO and semantic structure
 
+- [ ] `NEXT_PUBLIC_SITE_URL` is set to the final public HTTPS domain.
 - [ ] Every public page has unique metadata and one clear H1.
 - [ ] Heading order is logical without changing the approved typography.
 - [ ] Canonical URLs, Open Graph metadata, sitemap, and robots are verified.

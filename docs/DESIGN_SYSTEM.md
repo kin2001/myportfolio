@@ -78,6 +78,16 @@ Do not introduce another font without explicit approval.
 - Under `prefers-reduced-motion: reduce`, smooth scrolling and transitions are
   effectively disabled.
 
+## About page contract
+
+- Reuse the approved portrait, `SystemDiagram`, and existing line icons rather
+  than adding decorative generated artwork.
+- Keep the profile record, engineering approach, clinic system, toolkit, method,
+  and freelance CTA in the current editorial module language.
+- Preserve truthful metadata and semantic heading order without changing the
+  visible typography.
+- Do not add reveal, parallax, or automatic illustration motion.
+
 ## Review gate
 
 For visual or interaction changes, compare the affected route at 360px, 768px,
