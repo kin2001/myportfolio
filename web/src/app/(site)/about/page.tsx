@@ -36,15 +36,15 @@ const personStructuredData = {
 };
 
 const focusAreas = [
-  ["/about/inquiries.webp", "Inquiries and appointments", "Respond to questions and manage appointment actions."],
-  ["/about/reminders.webp", "Reminders and follow-ups", "Send useful messages at the right point in a workflow."],
-  ["/about/integrations.webp", "APIs and webhooks", "Move data between tools with reliable connections."],
+  ["contact", "Inquiries and appointments", "Respond to questions and manage appointment actions."],
+  ["signal", "Reminders and follow-ups", "Send useful messages at the right point in a workflow."],
+  ["link", "APIs and webhooks", "Move data between tools with reliable connections."],
 ] as const;
 
 const clinicFunctions = [
-  ["/about/page-inquiries.webp", "Facebook Page inquiries", "Reply to questions and collect appointment details."],
-  ["/about/appointments.webp", "Appointment management", "Book, cancel, reschedule, or update information."],
-  ["/about/email-reminders.webp", "Email reminders", "Notify the client 24 hours before the appointment."],
+  ["contact", "Facebook Page inquiries", "Reply to questions and collect appointment details."],
+  ["experience", "Appointment management", "Book, cancel, reschedule, or update information."],
+  ["signal", "Email reminders", "Notify the client 24 hours before the appointment."],
 ] as const;
 
 const toolGroups = [
@@ -88,9 +88,9 @@ export default function AboutPage() {
         <div className="mt-8 grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)]">
           <p className="text-2xl font-medium leading-9">My Computer Engineering background helps me see automation as one connected system. I map the process and data flow first, then use n8n, APIs, or custom code where each one fits. I also check failure points and keep human review for important decisions.</p>
           <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-            {focusAreas.map(([image, title, body]) => (
-              <li className="grid grid-cols-[56px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <Image src={image} alt="" width={56} height={56} sizes="56px" aria-hidden="true" className="h-14 w-14 object-contain" />
+            {focusAreas.map(([icon, title, body]) => (
+              <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
+                <span className="flex h-11 w-11 items-center justify-center border border-[var(--line)] bg-[var(--paper-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
                 <div className="min-w-0"><h3 className="font-medium">{title}</h3><p className="mt-1 text-sm leading-6 ink-soft">{body}</p></div>
               </li>
             ))}
@@ -107,9 +107,9 @@ export default function AboutPage() {
             <p className="mt-5 leading-8 ink-soft">I built an agent that handles Facebook Page inquiries, appointment changes, and email reminders for a clinic workflow.</p>
           </div>
           <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-            {clinicFunctions.map(([image, title, body]) => (
-              <li className="grid grid-cols-[56px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <Image src={image} alt="" width={56} height={56} sizes="56px" aria-hidden="true" className="h-14 w-14 object-contain" />
+            {clinicFunctions.map(([icon, title, body]) => (
+              <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
+                <span className="flex h-11 w-11 items-center justify-center border border-[var(--line)] bg-[var(--paper-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
                 <div className="min-w-0"><h4 className="font-medium">{title}</h4><p className="mt-1 text-sm leading-6 ink-soft">{body}</p></div>
               </li>
             ))}

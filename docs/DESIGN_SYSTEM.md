@@ -82,8 +82,7 @@ Do not introduce another font without explicit approval.
 
 - Use `artkin-about.webp` in the compact profile hero with the same high-key
   monochrome technical treatment as the Home portrait.
-- Use the generated graphite-and-indigo micro-illustrations only in the Approach
-  and Selected system rows; keep them decorative beside visible text.
+- Use the existing line-icon tiles in the Approach and Selected system rows.
 - Keep the Toolkit in its approved responsive card grid with existing line icons.
 - Keep the page concise: profile hero, facts strip, engineering approach,
   selected clinic system, toolkit, and one freelance CTA.
