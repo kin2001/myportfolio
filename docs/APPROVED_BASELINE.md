@@ -1,11 +1,11 @@
 # Approved visual and motion baseline
 
-- Commit: `1e864321612308b524d61d50a0371b87ceb87fa2`
-- Label: `Refine responsive About presentation`
+- Commit: `f2e0c932bbe1cdb3afe9fdba7a0223ecf522489b`
+- Label: `Integrate Cloudflare Turnstile widget`
 - Approved: 2026-07-15
-- Reason: Preserve the compact About and Contact page starts, refine the About
-  type hierarchy, right-align its compact CTA, and use borderless sidebar-style
-  icons while preserving accessibility and the approved desktop layout.
+- Reason: Add the responsive Contact security-check module, explicit Turnstile
+  lifecycle, accessible failure states, and fail-closed production configuration
+  while preserving the approved visual system and mobile behavior.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.
