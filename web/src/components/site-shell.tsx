@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 
 const navigation = [
@@ -19,11 +19,16 @@ const homeSections = ["projects", "systems", "signal", "credentials", "contact"]
 function NavLinks({ close }: { close?: () => void }) {
   const pathname = usePathname();
   const [hash, setHash] = useState("");
+  const targetHash = useRef("");
 
   useEffect(() => {
     if (pathname !== "/") return setHash("");
 
     const syncSection = () => {
+      const target = document.getElementById(targetHash.current.slice(1));
+      if (target && Math.abs(target.getBoundingClientRect().top) > window.innerHeight * 0.1) return;
+      targetHash.current = "";
+
       let current = "";
       for (const id of homeSections) {
         const element = document.getElementById(id);
@@ -32,7 +37,12 @@ function NavLinks({ close }: { close?: () => void }) {
       setHash(current);
     };
     const syncHash = () => {
-      setHash(homeSections.some((id) => `#${id}` === window.location.hash) ? window.location.hash : "");
+      targetHash.current = homeSections.some((id) => `#${id}` === window.location.hash) ? window.location.hash : "";
+      setHash(targetHash.current);
+    };
+    const finishScroll = () => {
+      targetHash.current = "";
+      syncSection();
     };
 
     syncHash();
@@ -43,10 +53,12 @@ function NavLinks({ close }: { close?: () => void }) {
       if (element) observer.observe(element);
     }
     window.addEventListener("hashchange", syncHash);
+    window.addEventListener("scrollend", finishScroll);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("scrollend", finishScroll);
     };
   }, [pathname]);
 
@@ -62,7 +74,10 @@ function NavLinks({ close }: { close?: () => void }) {
             key={href}
             href={href}
             onClick={() => {
-              if (href.startsWith("/#")) setHash(href.slice(1));
+              if (href.startsWith("/#")) {
+                targetHash.current = href.slice(1);
+                setHash(targetHash.current);
+              }
               close?.();
             }}
             aria-current={active ? "page" : undefined}
