@@ -63,7 +63,7 @@ export default function AboutPage() {
       <header className="grid min-w-0 items-start gap-10 pb-12 md:grid-cols-[minmax(0,1.1fr)_minmax(240px,.9fr)] lg:items-center lg:py-20">
         <div className="min-w-0">
           <p className="mono-meta accent" aria-hidden="true">[ ABOUT_ARTKIN / 001 ]</p>
-          <h1 className="mt-5 text-[42px] font-semibold leading-[1.08] tracking-tight sm:text-5xl xl:text-6xl">I build practical automation.</h1>
+          <h1 className="mt-5 text-[42px] font-semibold leading-[1.08] tracking-tight sm:text-5xl md:text-[56px] xl:text-6xl">I build practical automation.</h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 ink-soft">I am Artkin Carreon, a Computer Engineering graduate from Jose Rizal Memorial State University. I build workflow automations, API integrations, and custom tools for small businesses.</p>
         </div>
 
@@ -86,11 +86,11 @@ export default function AboutPage() {
       <section className="section-space">
         <SectionHeader index="01" title="Approach" meta="PROCESS FIRST" />
         <div className="mt-8 grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)]">
-          <p className="text-2xl font-medium leading-9">My Computer Engineering background helps me see automation as one connected system. I map the process and data flow first, then use n8n, APIs, or custom code where each one fits. I also check failure points and keep human review for important decisions.</p>
+          <p className="text-xl font-medium leading-8 sm:text-2xl sm:leading-9">My Computer Engineering background helps me see automation as one connected system. I map the process and data flow first, then use n8n, APIs, or custom code where each one fits. I also check failure points and keep human review for important decisions.</p>
           <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
             {focusAreas.map(([icon, title, body]) => (
               <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <span className="flex h-11 w-11 items-center justify-center border border-[var(--line)] bg-[var(--paper-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
+                <span className="flex h-11 w-11 items-center justify-center text-[var(--ink-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
                 <div className="min-w-0"><h3 className="font-medium">{title}</h3><p className="mt-1 text-sm leading-6 ink-soft">{body}</p></div>
               </li>
             ))}
@@ -103,13 +103,13 @@ export default function AboutPage() {
         <div className="module mt-8 grid min-w-0 gap-8 p-6 sm:p-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)]">
           <div className="min-w-0">
             <p className="mono-meta accent">SYSTEM_RECORD / 001</p>
-            <h3 className="mt-5 text-3xl font-medium">Clinic receptionist agent</h3>
+            <h3 className="mt-5 text-2xl font-medium leading-8 sm:text-3xl sm:leading-9">Clinic receptionist agent</h3>
             <p className="mt-5 leading-8 ink-soft">I built an agent that handles Facebook Page inquiries, appointment changes, and email reminders for a clinic workflow.</p>
           </div>
           <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
             {clinicFunctions.map(([icon, title, body]) => (
               <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <span className="flex h-11 w-11 items-center justify-center border border-[var(--line)] bg-[var(--paper-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
+                <span className="flex h-11 w-11 items-center justify-center text-[var(--ink-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
                 <div className="min-w-0"><h4 className="font-medium">{title}</h4><p className="mt-1 text-sm leading-6 ink-soft">{body}</p></div>
               </li>
             ))}
@@ -135,10 +135,10 @@ export default function AboutPage() {
         <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div className="max-w-3xl">
             <p className="mono-label accent">[ CURRENT_DIRECTION ]</p>
-            <h2 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl">Better data flow. Less repetitive work.</h2>
+            <h2 className="mt-5 text-4xl font-semibold leading-tight md:text-5xl">Better data flow. Less repetitive work.</h2>
             <p className="mt-5 text-lg leading-8 ink-soft">I am improving my data preparation skills and building smoother data flows between connected tools. I am available for freelance automation projects.</p>
           </div>
-          <Link href="/contact" className="button-primary whitespace-nowrap">Discuss your workflow</Link>
+          <Link href="/contact" className="button-primary justify-self-end whitespace-nowrap">Discuss your workflow</Link>
         </div>
       </section>
     </div>

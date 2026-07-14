@@ -84,10 +84,14 @@ Do not introduce another font without explicit approval.
 
 - Use `artkin-about.webp` in the compact profile hero with the same high-key
   monochrome technical treatment as the Home portrait.
-- Use the existing line-icon tiles in the Approach and Selected system rows.
+- Use bare line icons without outlined tiles in the Approach and Selected system
+  rows, matching the sidebar icon treatment.
 - Keep the Toolkit in its approved responsive card grid with existing line icons.
 - Keep the page concise: profile hero, facts strip, engineering approach,
   selected clinic system, toolkit, and one freelance CTA.
+- Keep the freelance CTA content-width and right-aligned on compact screens.
+- Keep the responsive type hierarchy clear: the H1 remains larger than the
+  final CTA, while long feature copy and titles step down on phones.
 - Do not add `SystemDiagram`, a separate method section, or decorative modules
   unless they add new verified information.
 - Preserve truthful metadata and semantic heading order without changing the
