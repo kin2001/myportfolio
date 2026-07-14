@@ -24,10 +24,9 @@ export default function HomePage() {
             <p className="max-w-lg text-lg leading-[1.6] text-[var(--ink-soft)]">{profile.shortPositioning}</p>
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-4">
-            <Link href="/work" className="hero-link">Projects <Icon name="arrow" /></Link>
-            <Link href="/about" className="hero-link">About <Icon name="arrow" /></Link>
             <Link href="/contact" className="hero-link">Email <Icon name="arrow" /></Link>
-            <Link href="/about" className="hero-link hero-link-accent">Resume <Icon name="arrow" /></Link>
+            <a href="https://github.com/kin2001" className="hero-link" target="_blank" rel="noreferrer">GitHub <Icon name="arrow" /><span className="sr-only"> (opens in a new tab)</span></a>
+            <a href="https://www.linkedin.com/in/artkin-carreon-8809b8421" className="hero-link" target="_blank" rel="noreferrer">LinkedIn <Icon name="arrow" /><span className="sr-only"> (opens in a new tab)</span></a>
           </div>
         </div>
         <div className="order-1 mx-auto flex w-full max-w-[280px] justify-center sm:max-w-[360px] md:order-2 md:max-w-md">

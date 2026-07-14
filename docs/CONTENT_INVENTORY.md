@@ -7,6 +7,8 @@
 - Audience: small businesses and decision-makers.
 - Positioning and working method in `web/src/lib/content.ts`.
 - Portrait asset: `web/public/artkin-hero.webp`.
+- GitHub: `https://github.com/kin2001`.
+- LinkedIn: `https://www.linkedin.com/in/artkin-carreon-8809b8421`.
 
 ## Current structured content
 
@@ -24,7 +26,7 @@
   each project.
 - Permission for client names, logos, screenshots, quotes, and metrics.
 - Verified credentials and verification URLs.
-- Resume file and confirmed external profile links.
+- Resume file and confirmed contact details.
 
 ## Publishing rules
 

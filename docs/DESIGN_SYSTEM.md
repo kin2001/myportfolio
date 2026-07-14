@@ -57,6 +57,8 @@ Do not introduce another font without explicit approval.
 - Modules/cards: flat surfaces defined by borders.
 - Inputs: transparent with a bottom border and indigo focus state.
 - Hero portrait: keep the current responsive square crop and soft lower mask.
+- Hero links: Email, GitHub, LinkedIn in that sequence, using the same
+  `.hero-link` styling; external profiles open safely in a new tab.
 - Sidebar: numbered items, indigo active text/icon/right border.
 
 ## Motion contract
