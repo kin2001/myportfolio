@@ -14,23 +14,49 @@ const navigation = [
   ["06", "Contact", "/contact", "contact"],
 ] as const;
 
+const homeSections = ["projects", "systems", "signal", "credentials", "contact"] as const;
+
 function NavLinks({ close }: { close?: () => void }) {
   const pathname = usePathname();
-  const [hash, setHash] = useState("#projects");
+  const [hash, setHash] = useState("");
 
   useEffect(() => {
-    const syncHash = () => setHash(window.location.hash || "#projects");
+    if (pathname !== "/") return setHash("");
+
+    const syncSection = () => {
+      let current = "";
+      for (const id of homeSections) {
+        const element = document.getElementById(id);
+        if (element && element.getBoundingClientRect().top <= window.innerHeight * 0.1) current = `#${id}`;
+      }
+      setHash(current);
+    };
+    const syncHash = () => {
+      setHash(homeSections.some((id) => `#${id}` === window.location.hash) ? window.location.hash : "");
+    };
+
     syncHash();
+    const frame = requestAnimationFrame(syncHash);
+    const observer = new IntersectionObserver(syncSection, { rootMargin: "0px 0px -90%" });
+    for (const id of homeSections) {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    }
     window.addEventListener("hashchange", syncHash);
-    return () => window.removeEventListener("hashchange", syncHash);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("hashchange", syncHash);
+    };
   }, [pathname]);
 
   return (
     <nav aria-label="Primary navigation" className="flex flex-col gap-1">
       {navigation.map(([index, label, href, icon]) => {
-        const active = href.startsWith("/#")
-          ? (href === "/#projects" && pathname.startsWith("/work")) || (pathname === "/" && href === `/${hash}`)
-          : pathname === href;
+        const section = href.startsWith("/#") ? href.slice(2) : href.slice(1);
+        const active = pathname === "/"
+          ? hash === `#${section}`
+          : href === "/#projects" ? pathname.startsWith("/work") : pathname === href;
         return (
           <Link
             key={href}
