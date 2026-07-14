@@ -54,4 +54,7 @@ From `web/`:
 - Only published, verified projects are public.
 - No fabricated metrics or credentials.
 - With no API configured, Contact clearly states that nothing was sent.
+- Contact renders one Turnstile widget after direct load and client navigation.
+- Missing, failed, expired, and duplicate Turnstile tokens cannot reach the
+  protected inquiry action; successful tokens are reset after each API attempt.
 - No secrets appear in source, browser bundles, documentation, or Git history.

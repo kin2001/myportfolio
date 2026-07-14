@@ -17,8 +17,10 @@
 - Local baseline runtime: Node 24.15.0 and npm 11.12.1
 - Netlify configuration in `netlify.toml`
 
-There is no backend or database. The contact form validates locally and fails
-safely when `NEXT_PUBLIC_API_URL` is absent.
+There is no backend or database. The contact form validates locally, renders an
+explicit Cloudflare Turnstile widget, and fails safely when the production
+site key or `NEXT_PUBLIC_API_URL` is absent. Turnstile protection is not
+complete until the future inquiry API validates every token with Siteverify.
 
 ## Public routes
 
@@ -43,7 +45,8 @@ safely when `NEXT_PUBLIC_API_URL` is absent.
 ## Shared components
 
 - `site-shell.tsx`: desktop/mobile navigation and active-section tracking.
-- `contact-form.tsx`: client validation and optional API request.
+- `contact-form.tsx`: client validation, explicit Turnstile widget, and optional
+  API request.
 - `section-header.tsx`: numbered section-heading pattern.
 - `icons.tsx`: shared inline icon system.
 - `admin-shell.tsx`: admin layout and navigation.
@@ -55,7 +58,8 @@ and credential data. Project and credential arrays are intentionally empty
 until evidence is supplied.
 
 No `/resume.pdf` exists; current Resume and Download CV links lead to About.
-The README mentions `.env.example`, but that file is not currently present.
+`docs/TURNSTILE_SETUP.md` documents the public site-key configuration and keeps
+the future server secret out of the frontend.
 
 ## Rendering and discoverability
 

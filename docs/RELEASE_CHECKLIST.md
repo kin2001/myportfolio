@@ -22,6 +22,9 @@
 - [ ] Keyboard navigation and focus states work.
 - [ ] Images have accurate alternative text.
 - [ ] Forms expose labels, errors, and honest delivery status.
+- [ ] Production Turnstile hostnames and site key are configured.
+- [ ] The inquiry API validates Turnstile `success`, hostname, and
+      `contact_inquiry` action before processing data.
 - [ ] Admin and draft paths are not indexed.
 
 ## SEO and semantic structure

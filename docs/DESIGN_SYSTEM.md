@@ -106,6 +106,8 @@ Do not introduce another font without explicit approval.
 - Keep the three supporting modules focused on workflow automation, API
   integration, and AI-assisted systems.
 - Keep consent explicit, readable, and linked to the detailed Privacy Notice.
+- Keep the Turnstile security check in the existing square, dashed module; use
+  the compact interaction-only widget so it cannot overflow narrow forms.
 - Do not add decorative motion or change the inquiry form fields without an
   approved content requirement.
 

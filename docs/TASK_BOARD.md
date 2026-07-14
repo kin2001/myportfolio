@@ -32,6 +32,10 @@ Status values: Backlog, Ready, In progress, Review, Blocked, Done, Deferred.
 - Status: Deferred
 - Reason: backend and database work are explicitly outside the current frontend
   phase.
+- Frontend checkpoint: Turnstile rendering, token requirement, reset behavior,
+  and production-key instructions are complete.
+- Remaining gate: the future inquiry endpoint must validate Siteverify before
+  storing or delivering any submission.
 
 ## TASK-006 — SEO and discoverability
 

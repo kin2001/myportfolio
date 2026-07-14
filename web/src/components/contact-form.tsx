@@ -1,13 +1,94 @@
 "use client";
 
-import { FormEvent, useState } from "react";
 import Link from "next/link";
+import Script from "next/script";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type FormStatus = "idle" | "sending" | "success" | "error";
+type TurnstileApi = {
+  render: (container: HTMLElement, options: {
+    sitekey: string;
+    action: string;
+    appearance: "interaction-only";
+    size: "compact";
+    theme: "light";
+    callback: (token: string) => void;
+    "expired-callback": () => void;
+    "timeout-callback": () => void;
+    "error-callback": () => void;
+    "unsupported-callback": () => void;
+  }) => string;
+  remove: (widgetId: string) => void;
+  reset: (widgetId: string) => void;
+};
+
+declare global {
+  interface Window { turnstile?: TurnstileApi }
+}
+
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  || (process.env.NODE_ENV === "development" ? "1x00000000000000000000AA" : "");
 
 export function ContactForm() {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [message, setMessage] = useState("");
+  const [scriptReady, setScriptReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState(false);
+  const [turnstileMessage, setTurnstileMessage] = useState(turnstileSiteKey ? "Loading security check..." : "Security check is not configured.");
+  const turnstileContainer = useRef<HTMLDivElement>(null);
+  const turnstileRegion = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!scriptReady || !turnstileSiteKey || !turnstileContainer.current || !window.turnstile || widgetId.current) return;
+    const id = window.turnstile.render(turnstileContainer.current, {
+      sitekey: turnstileSiteKey,
+      action: "contact_inquiry",
+      appearance: "interaction-only",
+      size: "compact",
+      theme: "light",
+      callback: (token) => {
+        setTurnstileToken(token);
+        setTurnstileError(false);
+        setTurnstileMessage("Security check complete.");
+      },
+      "expired-callback": () => {
+        setTurnstileToken("");
+        setTurnstileError(true);
+        setTurnstileMessage("Security check expired and is refreshing. Please try again.");
+      },
+      "timeout-callback": () => {
+        setTurnstileToken("");
+        setTurnstileError(true);
+        setTurnstileMessage("Security check timed out and is refreshing. Please try again.");
+      },
+      "error-callback": () => {
+        setTurnstileToken("");
+        setTurnstileError(true);
+        setTurnstileMessage("Security check could not load. Check your connection or refresh the page.");
+      },
+      "unsupported-callback": () => {
+        setTurnstileToken("");
+        setTurnstileError(true);
+        setTurnstileMessage("This browser cannot complete the security check. Try a supported browser.");
+      },
+    });
+    widgetId.current = id;
+  }, [scriptReady]);
+
+  useEffect(() => () => {
+    if (!widgetId.current) return;
+    window.turnstile?.remove(widgetId.current);
+    widgetId.current = null;
+  }, []);
+
+  function resetTurnstile() {
+    setTurnstileToken("");
+    setTurnstileError(false);
+    setTurnstileMessage("Refreshing security check...");
+    if (widgetId.current) window.turnstile?.reset(widgetId.current);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,11 +102,23 @@ export function ContactForm() {
       project_type: String(data.get("project_type") ?? ""),
       message: String(data.get("message") ?? ""),
       consent: data.get("consent") === "on",
-      turnstile_token: String(data.get("cf-turnstile-response") ?? ""),
+      turnstile_token: turnstileToken,
     };
     if (!payload.name || !payload.email || !payload.project_type || payload.message.length < 30 || !payload.consent) {
       setStatus("error");
       setMessage("Complete the required fields and describe the workflow in at least 30 characters.");
+      return;
+    }
+    if (!turnstileSiteKey) {
+      setStatus("error");
+      setMessage("The security check is not configured, so your message has not been sent.");
+      turnstileRegion.current?.focus();
+      return;
+    }
+    if (!payload.turnstile_token) {
+      setStatus("error");
+      setMessage("Complete the security check, then try again.");
+      turnstileRegion.current?.focus();
       return;
     }
     const api = process.env.NEXT_PUBLIC_API_URL;
@@ -48,6 +141,8 @@ export function ContactForm() {
     } catch {
       setStatus("error");
       setMessage("The inquiry could not be delivered. Please try again later.");
+    } finally {
+      resetTurnstile();
     }
   }
 
@@ -61,9 +156,18 @@ export function ContactForm() {
       </div>
       <label className="mt-8 block"><span className="mono-label">What would you like to automate? *</span><textarea className="field mt-2 min-h-36 resize-y" name="message" minLength={30} required placeholder="Describe the current process, the tools involved, and where it gets stuck." /></label>
       <label className="absolute -left-[9999px]" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
-      <div className="mt-8 min-h-16 border border-dashed border-[var(--line)] p-4 mono-meta muted">
-        CLOUDFLARE TURNSTILE / ENABLED AFTER PRODUCTION KEYS ARE CONFIGURED
-      </div>
+      {turnstileSiteKey ? <>
+        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={() => setScriptReady(true)} onError={() => {
+          setTurnstileError(true);
+          setTurnstileMessage("Security check could not load. Check your connection or refresh the page.");
+        }} />
+        <div ref={turnstileRegion} className="mt-8 border border-dashed border-[var(--line)] p-4" tabIndex={-1} aria-label="Security check">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0"><p className="mono-label">Security check</p><p className={"mono-meta mt-2 " + (turnstileError ? "text-[var(--danger)]" : turnstileToken ? "accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p></div>
+            <div ref={turnstileContainer} className="shrink-0" />
+          </div>
+        </div>
+      </> : <div ref={turnstileRegion} className="mt-8 min-h-16 border border-dashed border-[var(--line)] p-4 mono-meta text-[var(--danger)]" tabIndex={-1} role="alert">TURNSTILE / NOT CONFIGURED</div>}
       <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3">
         <input id="inquiry-consent" className="mt-1 h-5 w-5 accent-[var(--accent)]" type="checkbox" name="consent" required />
         <div className="min-w-0">
@@ -71,7 +175,7 @@ export function ContactForm() {
         </div>
       </div>
       <div className="mt-8 flex flex-wrap items-center gap-5">
-        <button className="button-primary" type="submit" disabled={status === "sending"}>{status === "sending" ? "Recording inquiry…" : "Send inquiry"}</button>
+        <button className="button-primary" type="submit" disabled={status === "sending"}>{status === "sending" ? "Recording inquiry..." : "Send inquiry"}</button>
         <p className={"mono-meta max-w-xl " + (status === "error" ? "text-[var(--danger)]" : status === "success" ? "accent" : "muted")} role="status" aria-live="polite">{message}</p>
       </div>
     </form>
