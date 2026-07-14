@@ -92,6 +92,16 @@ Do not introduce another font without explicit approval.
   visible typography.
 - Do not add reveal, parallax, or automatic illustration motion.
 
+## Contact page contract
+
+- Place `system-network1.png` in the left side of the inquiry hero while keeping
+  the heading and explanation in the wider right column.
+- Keep the three supporting modules focused on workflow automation, API
+  integration, and AI-assisted systems.
+- Keep consent explicit, readable, and linked to the detailed Privacy Notice.
+- Do not add decorative motion or change the inquiry form fields without an
+  approved content requirement.
+
 ## Review gate
 
 For visual or interaction changes, compare the affected route at 360px, 768px,
