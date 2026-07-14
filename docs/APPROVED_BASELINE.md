@@ -1,12 +1,11 @@
 # Approved visual and motion baseline
 
-- Commit: `fee82980a71223bb16cf071bcbf82a5bdc85d4d8`
-- Label: `Complete Contact inquiry experience`
+- Commit: `cbb7b672d8bbb841cd11de58ce9838e0c3d97b83`
+- Label: `Modernize Privacy Terms page`
 - Approved: 2026-07-14
-- Reason: Add the approved network illustration, portfolio capability cards,
-  concise linked Privacy Terms and Conditions, and detailed inquiry-data policy
-  while preserving responsive behavior, accessibility, SEO, typography, and
-  motion.
+- Reason: Modernize the Privacy Terms and Conditions with a policy summary,
+  anchored sections, and a data-request CTA, and hide the Contact illustration
+  on mobile while preserving accessibility, SEO, typography, and motion.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.
