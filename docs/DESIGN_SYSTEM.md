@@ -95,12 +95,21 @@ Do not introduce another font without explicit approval.
 ## Contact page contract
 
 - Place `system-network1.png` in the left side of the inquiry hero while keeping
-  the heading and explanation in the wider right column.
+  the heading and explanation in the wider right column; hide the illustration
+  below the 768px breakpoint.
 - Keep the three supporting modules focused on workflow automation, API
   integration, and AI-assisted systems.
 - Keep consent explicit, readable, and linked to the detailed Privacy Notice.
 - Do not add decorative motion or change the inquiry form fields without an
   approved content requirement.
+
+## Privacy page contract
+
+- Keep the policy modern and scannable with a summary, native anchored section
+  navigation, visible policy modules, and a final data-request CTA.
+- Preserve the full policy text in the page rather than hiding it in accordions.
+- Use existing paper surfaces, square borders, typography, and indigo accents;
+  do not add a new component library or decorative motion.
 
 ## Review gate
 
