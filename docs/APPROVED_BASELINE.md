@@ -1,10 +1,11 @@
 # Approved visual and motion baseline
 
-- Commit: `8f485956b8a0083af0ebce5b483b5cd2c115aa2f`
-- Label: `Update hero social links`
+- Commit: `1c604fde439373135c1477dade1ff5db03a7b923`
+- Label: `Redesign About page with verified profile`
 - Approved: 2026-07-14
-- Reason: Replace the hero action row with Email, GitHub, and LinkedIn while
-  preserving its existing visual and responsive behavior.
+- Reason: Add the verified education, clinic automation project, engineering
+  approach, toolkit, responsive visual modules, and About-page SEO while
+  preserving the approved typography and motion system.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.
