@@ -60,7 +60,7 @@ export default function AboutPage() {
     <div className="content-canvas">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personStructuredData).replace(/</g, "\\u003c") }} />
 
-      <header className="grid min-w-0 items-center gap-10 py-12 md:grid-cols-[minmax(0,1.1fr)_minmax(240px,.9fr)] md:py-20">
+      <header className="grid min-w-0 items-start gap-10 pb-12 md:grid-cols-[minmax(0,1.1fr)_minmax(240px,.9fr)] lg:items-center lg:py-20">
         <div className="min-w-0">
           <p className="mono-meta accent" aria-hidden="true">[ ABOUT_ARTKIN / 001 ]</p>
           <h1 className="mt-5 text-[42px] font-semibold leading-[1.08] tracking-tight sm:text-5xl xl:text-6xl">I build practical automation.</h1>

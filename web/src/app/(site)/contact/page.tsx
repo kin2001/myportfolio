@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Contact", description: "Discuss a wo
 export default function ContactPage() {
   return (
     <div className="content-canvas">
-      <header className="grid gap-10 py-16 md:grid-cols-[minmax(200px,1fr)_2fr] md:grid-rows-[auto_1fr] md:py-24">
+      <header className="grid gap-10 pb-16 md:grid-cols-[minmax(200px,1fr)_2fr] md:grid-rows-[auto_1fr] lg:py-24">
         <p className="mono-meta accent md:col-start-1 md:row-start-1">[ INQUIRY_TERMINAL ]</p>
         <div className="md:col-start-2 md:row-span-2 md:row-start-1"><h1 className="text-5xl font-semibold tracking-tight md:text-7xl">Start with the process.</h1><p className="mt-7 max-w-2xl text-lg leading-8 ink-soft">Describe the repetitive work, the tools involved, and what a better outcome would look like. You do not need to know the technical solution.</p></div>
         <Image src="/system-network1.png" alt="Connected automation workflow diagram" width={512} height={286} sizes="(max-width: 767px) 1px, 320px" className="hidden h-auto w-full max-w-[320px] md:col-start-1 md:row-start-2 md:block md:self-end" />

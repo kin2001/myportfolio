@@ -47,6 +47,8 @@ Do not introduce another font without explicit approval.
   same width.
 - Below 1024px: 64px sticky header and drawer navigation.
 - Content max-width is 1100px with 32px desktop and 20px mobile gutters.
+- Below 1024px, interior page heroes rely on the content-canvas top padding
+  instead of stacking an additional top gap below the compact header.
 - Section spacing is 112px desktop and 80px mobile.
 - Cards and grids collapse without horizontal overflow.
 - Interactive targets remain at least 44px.
