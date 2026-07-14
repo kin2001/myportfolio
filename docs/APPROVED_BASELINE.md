@@ -1,11 +1,11 @@
 # Approved visual and motion baseline
 
-- Commit: `cbb7b672d8bbb841cd11de58ce9838e0c3d97b83`
-- Label: `Modernize Privacy Terms page`
-- Approved: 2026-07-14
-- Reason: Modernize the Privacy Terms and Conditions with a policy summary,
-  anchored sections, and a data-request CTA, and hide the Contact illustration
-  on mobile while preserving accessibility, SEO, typography, and motion.
+- Commit: `1e864321612308b524d61d50a0371b87ceb87fa2`
+- Label: `Refine responsive About presentation`
+- Approved: 2026-07-15
+- Reason: Preserve the compact About and Contact page starts, refine the About
+  type hierarchy, right-align its compact CTA, and use borderless sidebar-style
+  icons while preserving accessibility and the approved desktop layout.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.
