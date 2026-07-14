@@ -1,11 +1,11 @@
 # Approved visual and motion baseline
 
-- Commit: `1c604fde439373135c1477dade1ff5db03a7b923`
-- Label: `Redesign About page with verified profile`
+- Commit: `f0dfee8e333263aaa6c18201a562d0293b6e8e9b`
+- Label: `Shorten About page and update portrait`
 - Approved: 2026-07-14
-- Reason: Add the verified education, clinic automation project, engineering
-  approach, toolkit, responsive visual modules, and About-page SEO while
-  preserving the approved typography and motion system.
+- Reason: Keep the About page concise and add the identity-preserving graduation
+  portrait adaptation while retaining verified content, responsive behavior,
+  SEO, typography, and motion.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.
