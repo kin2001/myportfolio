@@ -7,8 +7,9 @@
 - Audience: small businesses and decision-makers.
 - Positioning and working method in `web/src/lib/content.ts`.
 - Home portrait asset: `web/public/artkin-hero.webp`.
-- About portrait asset: `web/public/artkin-graduation.webp`, adapted from the
-  user-provided graduation photo without replacing the source file.
+- About portrait asset: `web/public/artkin-about.webp`, adapted from the
+  user-provided graduation photo to match the Home portrait treatment without
+  replacing the source file.
 - Computer Engineering graduate from Jose Rizal Memorial State University in
   Dapitan City on June 25, 2026.
 - GitHub: `https://github.com/kin2001`.
@@ -26,9 +27,10 @@
 - `projects`: intentionally empty.
 - `credentials`: intentionally empty.
 - Confirmed tools: n8n, webhooks, scheduled and cron triggers, Google Drive,
-  Docs, Sheets, Gmail, Calendar, AI agents, OpenAI, Gemini, JSON, data mapping,
-  Facebook Pages, Messenger, Airtable, Notion, Supabase, HTTP requests, REST
-  APIs, custom code, and API implementation.
+  Docs, Sheets, Gmail, Calendar, AI agents, retrieval-augmented generation
+  (RAG), OpenAI, Gemini, JSON, data mapping, Facebook Pages, Messenger,
+  Airtable, Notion, Supabase, HTTP requests, REST APIs, custom code, and API
+  implementation.
 
 ## Evidence still required
 

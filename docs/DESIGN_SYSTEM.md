@@ -80,8 +80,11 @@ Do not introduce another font without explicit approval.
 
 ## About page contract
 
-- Use `artkin-graduation.webp` in the compact profile hero and reuse the existing
-  line icons for supporting modules.
+- Use `artkin-about.webp` in the compact profile hero with the same high-key
+  monochrome technical treatment as the Home portrait.
+- Use the generated graphite-and-indigo micro-illustrations only in the Approach
+  and Selected system rows; keep them decorative beside visible text.
+- Keep the Toolkit in its approved responsive card grid with existing line icons.
 - Keep the page concise: profile hero, facts strip, engineering approach,
   selected clinic system, toolkit, and one freelance CTA.
 - Do not add `SystemDiagram`, a separate method section, or decorative modules

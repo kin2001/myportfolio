@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title: "About Artkin Carreon | AI Automation Specialist",
     description,
     url: "/about",
-    images: [{ url: "/artkin-graduation.webp", width: 1024, height: 1024, alt: "Artkin Carreon in graduation attire" }],
+    images: [{ url: "/artkin-about.webp", width: 1024, height: 1024, alt: "Artkin Carreon in graduation attire" }],
   },
 };
 
@@ -28,31 +28,31 @@ const personStructuredData = {
   "@id": `${siteUrl}/#person`,
   name: "Artkin Carreon",
   url: `${siteUrl}/about`,
-  image: `${siteUrl}/artkin-graduation.webp`,
+  image: `${siteUrl}/artkin-about.webp`,
   jobTitle: "AI Automation Specialist",
   alumniOf: { "@type": "CollegeOrUniversity", name: "Jose Rizal Memorial State University" },
   sameAs: ["https://github.com/kin2001", "https://www.linkedin.com/in/artkin-carreon-8809b8421"],
-  knowsAbout: ["Workflow automation", "n8n", "AI agents", "Webhooks", "REST APIs", "Custom code", "Data preparation"],
+  knowsAbout: ["Workflow automation", "n8n", "AI agents", "Retrieval-augmented generation", "Webhooks", "REST APIs", "Custom code", "Data preparation"],
 };
 
 const focusAreas = [
-  ["contact", "Inquiries and appointments", "Respond to questions and manage appointment actions."],
-  ["signal", "Reminders and follow-ups", "Send useful messages at the right point in a workflow."],
-  ["link", "APIs and webhooks", "Move data between tools with reliable connections."],
+  ["/about/inquiries.webp", "Inquiries and appointments", "Respond to questions and manage appointment actions."],
+  ["/about/reminders.webp", "Reminders and follow-ups", "Send useful messages at the right point in a workflow."],
+  ["/about/integrations.webp", "APIs and webhooks", "Move data between tools with reliable connections."],
 ] as const;
 
 const clinicFunctions = [
-  ["contact", "Facebook Page inquiries", "Reply to questions and collect appointment details."],
-  ["experience", "Appointment management", "Book, cancel, reschedule, or update information."],
-  ["signal", "Email reminders", "Notify the client 24 hours before the appointment."],
+  ["/about/page-inquiries.webp", "Facebook Page inquiries", "Reply to questions and collect appointment details."],
+  ["/about/appointments.webp", "Appointment management", "Book, cancel, reschedule, or update information."],
+  ["/about/email-reminders.webp", "Email reminders", "Notify the client 24 hours before the appointment."],
 ] as const;
 
 const toolGroups = [
-  ["Automation", ["n8n", "Webhooks", "Scheduled triggers", "Cron triggers"]],
-  ["Google Workspace", ["Drive", "Docs", "Sheets", "Gmail", "Calendar"]],
-  ["AI and data", ["AI agents", "OpenAI", "Gemini", "JSON", "Data mapping", "Data preparation"]],
-  ["Platforms", ["Facebook Pages", "Messenger", "Airtable", "Notion", "Supabase"]],
-  ["Development", ["HTTP requests", "REST APIs", "Custom code", "API implementation"]],
+  ["systems", "Workflow automation", ["n8n", "Webhooks", "Scheduled triggers", "Cron triggers"]],
+  ["work", "Google Workspace", ["Google Drive", "Google Docs", "Google Sheets", "Gmail", "Google Calendar"]],
+  ["signal", "AI and data", ["AI agents", "RAG", "OpenAI", "Gemini", "JSON", "Data mapping", "Data preparation"]],
+  ["link", "Connected platforms", ["Facebook Pages", "Messenger", "Airtable", "Notion", "Supabase"]],
+  ["terminal", "Development", ["HTTP requests", "REST APIs", "Custom code", "API implementation"]],
 ] as const;
 
 export default function AboutPage() {
@@ -68,7 +68,7 @@ export default function AboutPage() {
         </div>
 
         <figure className="module mx-auto w-full max-w-[320px] p-4 sm:p-6 md:max-w-[380px]">
-          <Image src="/artkin-graduation.webp" alt="Artkin Carreon in graduation attire" width={1024} height={1024} sizes="(max-width: 767px) 288px, 340px" priority className="hero-portrait aspect-square h-auto w-full object-cover object-center" />
+          <Image src="/artkin-about.webp" alt="Artkin Carreon in graduation attire" width={1024} height={1024} sizes="(max-width: 767px) 288px, 340px" priority className="hero-portrait aspect-square h-auto w-full object-cover object-center" />
           <figcaption className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
             <span className="mono-meta">PROFILE / 001</span>
             <span className="mono-meta accent flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-hidden="true" />OPEN TO FREELANCE</span>
@@ -88,9 +88,9 @@ export default function AboutPage() {
         <div className="mt-8 grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)]">
           <p className="text-2xl font-medium leading-9">My Computer Engineering background helps me see automation as one connected system. I map the process and data flow first, then use n8n, APIs, or custom code where each one fits. I also check failure points and keep human review for important decisions.</p>
           <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-            {focusAreas.map(([icon, title, body]) => (
-              <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <span className="flex h-11 w-11 items-center justify-center border border-[var(--line)] bg-[var(--paper-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
+            {focusAreas.map(([image, title, body]) => (
+              <li className="grid grid-cols-[56px_minmax(0,1fr)] gap-4 py-4" key={title}>
+                <Image src={image} alt="" width={56} height={56} sizes="56px" aria-hidden="true" className="h-14 w-14 object-contain" />
                 <div className="min-w-0"><h3 className="font-medium">{title}</h3><p className="mt-1 text-sm leading-6 ink-soft">{body}</p></div>
               </li>
             ))}
@@ -107,9 +107,9 @@ export default function AboutPage() {
             <p className="mt-5 leading-8 ink-soft">I built an agent that handles Facebook Page inquiries, appointment changes, and email reminders for a clinic workflow.</p>
           </div>
           <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-            {clinicFunctions.map(([icon, title, body]) => (
-              <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <span className="flex h-11 w-11 items-center justify-center border border-[var(--line)] bg-[var(--paper-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
+            {clinicFunctions.map(([image, title, body]) => (
+              <li className="grid grid-cols-[56px_minmax(0,1fr)] gap-4 py-4" key={title}>
+                <Image src={image} alt="" width={56} height={56} sizes="56px" aria-hidden="true" className="h-14 w-14 object-contain" />
                 <div className="min-w-0"><h4 className="font-medium">{title}</h4><p className="mt-1 text-sm leading-6 ink-soft">{body}</p></div>
               </li>
             ))}
@@ -119,14 +119,14 @@ export default function AboutPage() {
 
       <section className="section-space">
         <SectionHeader index="03" title="Toolkit" meta="TOOLS I HAVE USED" />
-        <div className="module mt-8 divide-y divide-[var(--line)]">
-          {toolGroups.map(([title, tools]) => (
-            <div className="grid min-w-0 gap-4 p-5 sm:grid-cols-[150px_minmax(0,1fr)] sm:p-6" key={title}>
-              <h3 className="mono-label pt-2">{title}</h3>
-              <ul className="flex min-w-0 flex-wrap gap-2" aria-label={`${title} tools`}>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {toolGroups.map(([icon, title, tools]) => (
+            <article className="module min-w-0 p-6" key={title}>
+              <div className="flex items-center gap-3"><Icon name={icon} className="h-5 w-5 accent" /><h3 className="mono-label">{title}</h3></div>
+              <ul className="mt-6 flex min-w-0 flex-wrap gap-2" aria-label={`${title} tools`}>
                 {tools.map((tool) => <li className="mono-meta max-w-full break-words bg-[var(--paper-soft)] px-3 py-2" key={tool}>{tool}</li>)}
               </ul>
-            </div>
+            </article>
           ))}
         </div>
       </section>
