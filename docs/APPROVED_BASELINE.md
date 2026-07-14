@@ -1,11 +1,12 @@
 # Approved visual and motion baseline
 
-- Commit: `f0dfee8e333263aaa6c18201a562d0293b6e8e9b`
-- Label: `Shorten About page and update portrait`
+- Commit: `2f17e6567c3452c21b7c0c4047a024535b0ddb2b`
+- Label: `Refine About visuals and restore toolkit`
 - Approved: 2026-07-14
-- Reason: Keep the About page concise and add the identity-preserving graduation
-  portrait adaptation while retaining verified content, responsive behavior,
-  SEO, typography, and motion.
+- Reason: Match the About portrait to the Home treatment, add the approved
+  technical micro-illustrations, restore the Toolkit card grid, and include RAG
+  while preserving the remaining content, responsive behavior, SEO, typography,
+  and motion.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.
