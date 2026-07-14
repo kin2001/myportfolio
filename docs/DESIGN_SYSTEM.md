@@ -80,10 +80,12 @@ Do not introduce another font without explicit approval.
 
 ## About page contract
 
-- Reuse the approved portrait, `SystemDiagram`, and existing line icons rather
-  than adding decorative generated artwork.
-- Keep the profile record, engineering approach, clinic system, toolkit, method,
-  and freelance CTA in the current editorial module language.
+- Use `artkin-graduation.webp` in the compact profile hero and reuse the existing
+  line icons for supporting modules.
+- Keep the page concise: profile hero, facts strip, engineering approach,
+  selected clinic system, toolkit, and one freelance CTA.
+- Do not add `SystemDiagram`, a separate method section, or decorative modules
+  unless they add new verified information.
 - Preserve truthful metadata and semantic heading order without changing the
   visible typography.
 - Do not add reveal, parallax, or automatic illustration motion.

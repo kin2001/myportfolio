@@ -6,7 +6,9 @@
 - Role: AI Automation Specialist.
 - Audience: small businesses and decision-makers.
 - Positioning and working method in `web/src/lib/content.ts`.
-- Portrait asset: `web/public/artkin-hero.webp`.
+- Home portrait asset: `web/public/artkin-hero.webp`.
+- About portrait asset: `web/public/artkin-graduation.webp`, adapted from the
+  user-provided graduation photo without replacing the source file.
 - Computer Engineering graduate from Jose Rizal Memorial State University in
   Dapitan City on June 25, 2026.
 - GitHub: `https://github.com/kin2001`.
