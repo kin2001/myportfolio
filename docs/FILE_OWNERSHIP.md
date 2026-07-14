@@ -11,7 +11,7 @@ be explicitly assigned and non-overlapping.
 | Credentials | `web/src/app/(site)/credentials/**` | Home, Projects, shared shell/globals/content |
 | Contact | `web/src/app/(site)/contact/**`, `web/src/components/contact-form.tsx` | Backend/API work, shared shell/globals |
 | Admin UI | `web/src/app/admin/**` page files | Shared `admin-shell.tsx`, auth/database implementation, public shell |
-| SEO | `web/src/app/sitemap.ts`, `web/src/app/robots.ts`, approved public metadata | Root layout without lead approval |
+| SEO | `web/src/app/sitemap.ts`, `robots.ts`, `manifest.ts`, `web/src/lib/structured-data.ts`, `web/src/components/seo/**`, approved OG/icon assets | Root layout and feature-page files without explicit lead ownership |
 | Review agents | None | All files |
 
 `web/src/lib/content.ts` is a shared data file used by Home, Work, project

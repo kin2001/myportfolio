@@ -54,7 +54,14 @@ until writable paths do not overlap.
 - Preserve the current design and motion unless the user explicitly approves a
   change.
 
-## Phase 4 — Integration and release review
+## Phase 4 — SEO and discoverability
+
+After major public pages and verified content exist, create a separate worktree
+task using `seo_agent`. Restrict it to the SEO-owned paths in
+`docs/FILE_OWNERSHIP.md`; the lead applies any required root-layout or
+feature-page metadata patch.
+
+## Phase 5 — Integration and release review
 
 After integration, run the relevant read-only reviewers in parallel:
 

@@ -39,6 +39,16 @@ From `web/`:
 - Status messages announced by assistive technology.
 - No hover-only information.
 
+## SEO and semantic typography checks
+
+- Every public route has a unique, accurate title and description.
+- Each page has one clear H1 followed by a logical H2/H3 hierarchy.
+- Heading changes preserve the approved visual typography and reading order.
+- Canonical URLs, Open Graph metadata, sitemap, and robots output are valid.
+- Structured data contains only verified facts and matches visible content.
+- Admin, draft, preview, and API paths are not indexed.
+- Internal link text is descriptive; copy is not keyword-stuffed.
+
 ## Content and safety checks
 
 - Only published, verified projects are public.

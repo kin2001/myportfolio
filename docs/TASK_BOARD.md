@@ -33,9 +33,15 @@ Status values: Backlog, Ready, In progress, Review, Blocked, Done, Deferred.
 - Reason: backend and database work are explicitly outside the current frontend
   phase.
 
-## TASK-006 — Release review
+## TASK-006 — SEO and discoverability
+
+- Status: Ready for audit
+- Dependency for final copy: verified project and credential content.
+- Owner: SEO worktree with lead integration for shared metadata.
+
+## TASK-007 — Release review
 
 - Status: Blocked
 - Dependencies: TASK-003 and TASK-004.
-- Owner: Lead with read-only code, accessibility, performance, and browser QA
-  agents.
+- Owner: Lead with read-only code, accessibility, performance, SEO, and browser
+  QA agents.

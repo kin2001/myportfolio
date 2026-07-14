@@ -24,12 +24,20 @@
 - [ ] Forms expose labels, errors, and honest delivery status.
 - [ ] Admin and draft paths are not indexed.
 
+## SEO and semantic structure
+
+- [ ] Every public page has unique metadata and one clear H1.
+- [ ] Heading order is logical without changing the approved typography.
+- [ ] Canonical URLs, Open Graph metadata, sitemap, and robots are verified.
+- [ ] Structured data is truthful and matches visible content.
+- [ ] Internal links are descriptive and indexable routes are intentional.
+
 ## Quality
 
 - [ ] `npm run typecheck` passes.
 - [ ] `npm run build` passes.
 - [ ] Browser console has no relevant errors or warnings.
 - [ ] Responsive browser QA passes at 360px, 768px, 1024px, and 1440px.
-- [ ] Code, accessibility, and performance reviewers have no unresolved critical
-      findings.
+- [ ] Code, accessibility, performance, and SEO reviewers have no unresolved
+      critical findings.
 - [ ] Git status contains no unintended staged files or secrets.
