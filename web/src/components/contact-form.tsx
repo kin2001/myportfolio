@@ -65,10 +65,9 @@ export function ContactForm() {
         CLOUDFLARE TURNSTILE / ENABLED AFTER PRODUCTION KEYS ARE CONFIGURED
       </div>
       <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3">
-        <input id="inquiry-consent" className="mt-1 h-5 w-5 accent-[var(--accent)]" type="checkbox" name="consent" required aria-describedby="inquiry-consent-details" />
+        <input id="inquiry-consent" className="mt-1 h-5 w-5 accent-[var(--accent)]" type="checkbox" name="consent" required />
         <div className="min-w-0">
-          <p className="text-sm leading-6 ink-soft"><label htmlFor="inquiry-consent">I agree to the </label><Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link><label htmlFor="inquiry-consent"> and allow Artkin Carreon to use my contact and project details to review my inquiry, contact me, and arrange a project meeting.</label></p>
-          <p id="inquiry-consent-details" className="mt-2 text-xs leading-5 muted">The information is stored in the private inquiry system and used only for this request and related project communication. It is not sold or used for unrelated marketing.</p>
+          <p className="text-sm leading-6 ink-soft"><label htmlFor="inquiry-consent">I agree to the </label><Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link><label htmlFor="inquiry-consent">.</label></p>
         </div>
       </div>
       <div className="mt-8 flex flex-wrap items-center gap-5">
