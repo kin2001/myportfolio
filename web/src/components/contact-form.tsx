@@ -9,8 +9,8 @@ type TurnstileApi = {
   render: (container: HTMLElement, options: {
     sitekey: string;
     action: string;
-    appearance: "interaction-only";
-    size: "compact";
+    appearance: "always";
+    size: "flexible";
     theme: "light";
     callback: (token: string) => void;
     "expired-callback": () => void;
@@ -50,8 +50,8 @@ export function ContactForm() {
     const id = window.turnstile.render(turnstileContainer.current, {
       sitekey: turnstileSiteKey,
       action: "contact_inquiry",
-      appearance: "interaction-only",
-      size: "compact",
+      appearance: "always",
+      size: "flexible",
       theme: "light",
       callback: (token) => {
         setTurnstileToken(token);
@@ -80,6 +80,7 @@ export function ContactForm() {
       },
     });
     widgetId.current = id;
+    setTurnstileMessage("Complete the security check.");
   }, [scriptReady]);
 
   useEffect(() => () => {
@@ -166,11 +167,10 @@ export function ContactForm() {
           setTurnstileError(true);
           setTurnstileMessage("Security check could not load. Check your connection or refresh the page.");
         }} />
-        <div ref={turnstileRegion} className="mt-8 border border-dashed border-[var(--line)] p-4" tabIndex={-1} aria-label="Security check">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0"><p className="mono-label">Security check</p><p className={"mono-meta mt-2 " + (turnstileError ? "text-[var(--danger)]" : turnstileToken ? "accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p></div>
-            <div ref={turnstileContainer} className="shrink-0" />
-          </div>
+        <div ref={turnstileRegion} className="mt-8 w-full max-w-[420px]" tabIndex={-1} aria-label="Security check">
+          <p className="mono-label">Security check</p>
+          <div ref={turnstileContainer} className="mt-3 min-h-[65px] w-full min-w-0" />
+          <p className={"mono-meta mt-3 " + (turnstileError ? "text-[var(--danger)]" : turnstileToken ? "accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
         </div>
       </> : <div ref={turnstileRegion} className="mt-8 min-h-16 border border-dashed border-[var(--line)] p-4 mono-meta text-[var(--danger)]" tabIndex={-1} role="alert">TURNSTILE / NOT CONFIGURED</div>}
       <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3">
