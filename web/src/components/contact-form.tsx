@@ -173,7 +173,7 @@ export function ContactForm() {
           <p className={"mono-meta mt-3 " + (turnstileError ? "text-[var(--danger)]" : turnstileToken ? "accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
         </div>
       </> : <div ref={turnstileRegion} className="mt-8 min-h-16 border border-dashed border-[var(--line)] p-4 mono-meta text-[var(--danger)]" tabIndex={-1} role="alert">TURNSTILE / NOT CONFIGURED</div>}
-      <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3">
+      <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 pl-3">
         <input id="inquiry-consent" className="mt-1 h-5 w-5 accent-[var(--accent)]" type="checkbox" name="consent" required />
         <div className="min-w-0">
           <p className="text-sm leading-6 ink-soft"><label htmlFor="inquiry-consent">I agree to the </label><Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link><label htmlFor="inquiry-consent">.</label></p>
