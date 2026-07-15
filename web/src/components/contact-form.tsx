@@ -28,6 +28,11 @@ declare global {
 
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   || (process.env.NODE_ENV === "development" ? "1x00000000000000000000AA" : "");
+const initialTurnstileMessage = !turnstileSiteKey
+  ? "Security check is not configured."
+  : process.env.NODE_ENV === "development"
+    ? "Loading security check... If this remains here, allow challenges.cloudflare.com or open the page in Chrome or Edge."
+    : "Loading security check...";
 
 export function ContactForm() {
   const [status, setStatus] = useState<FormStatus>("idle");
@@ -35,7 +40,7 @@ export function ContactForm() {
   const [scriptReady, setScriptReady] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileError, setTurnstileError] = useState(false);
-  const [turnstileMessage, setTurnstileMessage] = useState(turnstileSiteKey ? "Loading security check..." : "Security check is not configured.");
+  const [turnstileMessage, setTurnstileMessage] = useState(initialTurnstileMessage);
   const turnstileContainer = useRef<HTMLDivElement>(null);
   const turnstileRegion = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
