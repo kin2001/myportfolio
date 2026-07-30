@@ -2,35 +2,107 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Icon } from "@/components/icons";
 
 const links = [
   ["Dashboard", "/admin"],
   ["Projects", "/admin/projects"],
+  ["CV", "/admin/cv"],
   ["Credentials", "/admin/credentials"],
-  ["Inquiries", "/admin/inquiries"],
-  ["Settings", "/admin/settings"],
+  ["Activity & Export", "/admin/activity"],
 ] as const;
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+function AdminNav({ close }: { close?: () => void }) {
   const pathname = usePathname();
   return (
+    <nav className="flex flex-col gap-1" aria-label="Admin navigation">
+      {links.map(([label, href]) => {
+        const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            onClick={close}
+            aria-current={active ? "page" : undefined}
+            className={`flex min-h-11 items-center border-r-2 px-3 py-3 transition-colors ${
+              active
+                ? "border-[var(--accent)] font-bold text-[var(--accent)]"
+                : "border-transparent font-medium text-[var(--ink-soft)] hover:text-[var(--accent)]"
+            }`}
+          >
+            <span className="mono-label">{label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function AdminShell({
+  accountLabel,
+  children,
+}: {
+  accountLabel: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  return (
     <div className="min-h-screen bg-[var(--paper)]">
-      <header className="surface sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-5 md:px-8">
-        <div><Link href="/admin" className="font-semibold">ARTKIN / CONTROL</Link><span className="mono-meta muted ml-4 hidden sm:inline">PRIVATE OPERATIONS</span></div>
-        <Link href="/" className="mono-label accent">View public site →</Link>
+      <a href="#admin-main" className="skip-link">Skip to admin content</a>
+      <header className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-4 lg:hidden">
+        <Link href="/admin" className="font-[family-name:var(--font-geist-mono)] text-lg font-semibold">ARTKIN / CONTROL</Link>
+        <button
+          className="flex h-11 w-11 items-center justify-center border border-[var(--line)] text-[var(--accent)]"
+          type="button"
+          aria-controls="admin-mobile-navigation"
+          aria-expanded={open}
+          aria-label={open ? "Close admin navigation" : "Open admin navigation"}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <Icon name={open ? "close" : "menu"} className="h-5 w-5" />
+        </button>
+        {open ? (
+          <div id="admin-mobile-navigation" className="surface absolute left-0 right-0 top-16 border-b border-[var(--line)] p-5">
+            <AdminNav close={() => setOpen(false)} />
+            <div className="mt-5 border-t border-[var(--line)] pt-5">
+              <p className="mono-meta muted break-all">{accountLabel}</p>
+              <div className="mt-4 flex flex-wrap gap-5">
+                <Link href="/" className="mono-label accent" onClick={() => setOpen(false)}>Public site</Link>
+                <form action="/auth/logout" method="post"><button className="mono-label accent" type="submit">Log out</button></form>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </header>
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] md:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="surface min-w-0 max-w-full overflow-hidden border-b border-[var(--line)] p-4 md:min-h-[calc(100vh-64px)] md:border-b-0 md:border-r md:p-6">
-          <nav className="flex w-full max-w-full gap-2 overflow-x-auto md:flex-col" aria-label="Admin navigation">
-            {links.map(([label, href]) => {
-              const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
-              return <Link key={href} href={href} className={"mono-label min-h-11 whitespace-nowrap border-l-2 px-4 py-4 " + (active ? "border-[var(--accent)] text-[var(--accent)]" : "border-transparent ink-soft hover:text-[var(--accent)]")}>{label}</Link>;
-            })}
-          </nav>
-          <div className="mono-meta muted mt-10 hidden md:block">AUTH STATUS<br /><span className="accent">UI MODE / NOT CONNECTED</span></div>
-        </aside>
-        <main className="min-w-0 p-5 md:p-10">{children}</main>
-      </div>
+
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
+        <div className="space-y-12">
+          <Link href="/admin" className="block font-[family-name:var(--font-geist-mono)] text-lg font-semibold">ARTKIN / CONTROL</Link>
+          <AdminNav />
+        </div>
+        <div className="space-y-5 border-t border-[var(--line)] pt-6">
+          <p className="mono-meta muted break-all">{accountLabel}</p>
+          <Link href="/" className="mono-label accent block min-h-11 py-3">View public site</Link>
+          <form action="/auth/logout" method="post">
+            <button className="button-secondary w-full" type="submit">Log out</button>
+          </form>
+        </div>
+      </aside>
+
+      <main id="admin-main" className="min-h-screen min-w-0 p-5 sm:p-8 lg:ml-[var(--sidebar)] lg:p-10" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   );
 }

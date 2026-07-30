@@ -132,6 +132,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .button-primary:hover { opacity: .9; }
 .button-secondary:hover { background: var(--paper-soft); }
 .button-primary:active, .button-secondary:active { transform: translateY(1px); }
+.button-primary:disabled,
+.button-secondary:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+  transform: none;
+}
 
 .section-heading {
   display: flex;
@@ -157,6 +163,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border-radius: 0;
 }
 .field:focus { outline: 0; border-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+.field[aria-invalid="true"] { border-color: var(--danger); }
 .field::placeholder { color: var(--muted); }
 
 @media (max-width: 767px) {

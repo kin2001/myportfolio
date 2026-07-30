@@ -1,4 +1,4 @@
-const sectionTypes = ["Overview", "Problem", "Context", "Previous workflow", "Solution", "Process", "Implementation", "Outcome", "Reflection"];
+const sectionTypes = ["Documentation"];
 
 export default function ProjectEditorPage() {
   return (

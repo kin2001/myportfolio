@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-const stats = [["00", "Published projects"], ["00", "Draft projects"], ["00", "New inquiries"], ["00", "Failed AI runs"]];
+const stats = [
+  ["00", "Published projects"],
+  ["00", "Draft projects"],
+  ["00", "Credentials"],
+  ["00", "CV versions"],
+] as const;
 
 export default function AdminDashboard() {
   return (
