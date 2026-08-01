@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 
 const links = [
@@ -47,11 +47,14 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      menuButton.current?.focus();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
@@ -63,6 +66,7 @@ export function AdminShell({
       <header className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-4 lg:hidden">
         <Link href="/admin" className="font-[family-name:var(--font-geist-mono)] text-lg font-semibold">ARTKIN / CONTROL</Link>
         <button
+          ref={menuButton}
           className="flex h-11 w-11 items-center justify-center border border-[var(--line)] text-[var(--accent)]"
           type="button"
           aria-controls="admin-mobile-navigation"
@@ -73,13 +77,13 @@ export function AdminShell({
           <Icon name={open ? "close" : "menu"} className="h-5 w-5" />
         </button>
         {open ? (
-          <div id="admin-mobile-navigation" className="surface absolute left-0 right-0 top-16 border-b border-[var(--line)] p-5">
+          <div id="admin-mobile-navigation" className="surface absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[var(--line)] p-5">
             <AdminNav close={() => setOpen(false)} />
             <div className="mt-5 border-t border-[var(--line)] pt-5">
               <p className="mono-meta muted break-all">{accountLabel}</p>
               <div className="mt-4 flex flex-wrap gap-5">
-                <Link href="/" className="mono-label accent" onClick={() => setOpen(false)}>Public site</Link>
-                <form action="/auth/logout" method="post"><button className="mono-label accent" type="submit">Log out</button></form>
+                <Link href="/" className="mono-label accent inline-flex min-h-11 items-center" onClick={() => setOpen(false)}>Public site</Link>
+                <form action="/auth/logout" method="post"><button className="mono-label accent inline-flex min-h-11 items-center" type="submit">Log out</button></form>
               </div>
             </div>
           </div>

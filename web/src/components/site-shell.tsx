@@ -94,6 +94,23 @@ function NavLinks({ close }: { close?: () => void }) {
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      menuButton.current?.focus();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  function closeMenu() {
+    setOpen(false);
+  }
+
   return (
     <>
       <a href="#main-content" className="skip-link">Skip to content</a>
@@ -101,13 +118,13 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         <Link href="/" className="font-[family-name:var(--font-geist-mono)] text-lg font-semibold tracking-normal">Artkin Carreon</Link>
         <div className="flex items-center gap-4 text-[var(--accent)]">
           <Icon name="systems" className="h-5 w-5" />
-          <button onClick={() => setOpen(!open)} className="flex h-11 w-11 items-center justify-center border border-[var(--line)]" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open}>
+          <button ref={menuButton} onClick={() => setOpen(!open)} className="flex h-11 w-11 items-center justify-center border border-[var(--line)]" aria-label={open ? "Close navigation" : "Open navigation"} aria-controls="site-mobile-navigation" aria-expanded={open}>
             <Icon name={open ? "close" : "menu"} className="h-5 w-5" />
           </button>
         </div>
         {open ? (
-          <div className="surface absolute left-0 right-0 top-16 border-b border-[var(--line)] p-5 shadow-none">
-            <NavLinks close={() => setOpen(false)} />
+          <div id="site-mobile-navigation" className="surface absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[var(--line)] p-5 shadow-none">
+            <NavLinks close={closeMenu} />
           </div>
         ) : null}
       </header>
@@ -120,7 +137,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <NavLinks />
         </div>
         <div className="space-y-8">
-          <Link className="button-primary sidebar-download w-full" href="/about">Download CV</Link>
+          <a className="button-primary sidebar-download w-full" href="/resume.pdf">Download CV</a>
           <div className="space-y-4">
             <div className="mono-meta muted flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />

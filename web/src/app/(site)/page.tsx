@@ -1,19 +1,39 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { capabilities, profile, projects } from "@/lib/content";
+import { capabilities, profile } from "@/lib/content";
+import { getSiteUrl } from "@/lib/env";
+import { getPublishedCredentials, getPublishedProjects } from "@/lib/public-content";
 
-const systemFacts = [
-  ["04", "Delivery Phases"],
-  ["03", "Core Capabilities"],
-  ["02+", "Case Studies"],
-  ["100%", "Human Approval"],
-] as const;
-
-export default function HomePage() {
-  const published = projects.filter((project) => project.status === "published");
+export default async function HomePage() {
+  const [published, credentials] = await Promise.all([
+    getPublishedProjects(),
+    getPublishedCredentials(),
+  ]);
+  const siteUrl = getSiteUrl();
+  const personSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Artkin Carreon",
+    url: siteUrl,
+    jobTitle: profile.role,
+    sameAs: [
+      "https://github.com/kin2001",
+      "https://www.linkedin.com/in/artkin-carreon-8809b8421",
+    ],
+  };
+  const systemFacts = [
+    ["04", "Delivery Phases"],
+    ["03", "Core Capabilities"],
+    [String(published.length).padStart(2, "0"), "Case Studies"],
+    ["100%", "Human Approval"],
+  ] as const;
   return (
     <div className="mx-auto max-w-[1100px] space-y-16 px-4 py-10 sm:px-6 md:space-y-24 md:px-8 md:py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema).replaceAll("<", "\\u003c") }}
+      />
       <section className="grid min-h-[60vh] items-center gap-12 md:grid-cols-2" aria-labelledby="hero-title">
         <div className="order-2 space-y-8 md:order-1">
           <div className="space-y-4">
@@ -40,7 +60,7 @@ export default function HomePage() {
 
       <section className="space-y-12" id="projects">
         <div className="flex flex-col items-start gap-3 border-b border-[var(--line)] pb-4 sm:flex-row sm:items-end sm:justify-between"><h2 className="mono-label tracking-[.2em]">01 — Projects</h2><Link href="/work" className="mono-meta muted">VIEW ALL_{String(published.length).padStart(2, "0")} PROJECTS</Link></div>
-        {published.length ? <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">{published.slice(0, 3).map((project, index) => <article key={project.slug} className="flex min-w-0 flex-col justify-between border border-[var(--line)] bg-[var(--paper-pure)] p-6 sm:min-h-[450px]"><div><div className="flex flex-wrap items-start justify-between gap-3"><span className="mono-meta border border-[var(--line)] px-2 py-1">PROJECT_{String(index + 1).padStart(3, "0")}</span><span className="mono-meta text-[var(--accent)]">● LIVE</span></div><h3 className="mt-6 text-2xl font-medium leading-tight">{project.title}</h3><div className="mt-6 space-y-4 border-t border-[var(--line)] pt-4"><div><span className="mono-label muted">Problem</span><p className="mt-1 text-sm">{project.problem}</p></div><div><span className="mono-label muted">Solution</span><p className="mt-1 text-sm">{project.solution}</p></div></div></div><Link href={`/work/${project.slug}`} className="button-secondary mt-8 w-full">Explore schematics</Link></article>)}</div> : <div className="grid min-h-56 min-w-0 gap-6 border border-[var(--line)] bg-[var(--paper-pure)] p-6 sm:p-8 md:grid-cols-[180px_1fr] md:gap-8 md:p-10"><p className="mono-meta break-words text-[var(--accent)]">PROJECT_REGISTRY / 000</p><div className="min-w-0"><h3 className="text-2xl font-medium">Verified system records will appear here.</h3><p className="mt-4 max-w-2xl leading-7 text-[var(--ink-soft)]">No fictional projects from the Stitch sample are being published. This module will keep the exact project-card system once Artkin&apos;s real case studies and outcomes are supplied.</p></div></div>}
+        {published.length ? <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">{published.slice(0, 3).map((project, index) => <article key={project.slug} className="flex min-w-0 flex-col justify-between border border-[var(--line)] bg-[var(--paper-pure)] p-6 sm:min-h-[450px]"><div><div className="flex flex-wrap items-start justify-between gap-3"><span className="mono-meta border border-[var(--line)] px-2 py-1">PROJECT_{String(index + 1).padStart(3, "0")}</span><span className="mono-meta text-[var(--accent)]">● LIVE</span></div><h3 className="mt-6 text-2xl font-medium leading-tight">{project.title}</h3><div className="mt-6 border-t border-[var(--line)] pt-4"><span className="mono-label muted">Documentation</span><p className="mt-2 text-sm leading-6">{project.excerpt}</p></div></div><Link href={`/work/${project.slug}`} className="button-secondary mt-8 w-full" aria-label={`Open ${project.title}`}>Open record</Link></article>)}</div> : <div className="grid min-h-56 min-w-0 gap-6 border border-[var(--line)] bg-[var(--paper-pure)] p-6 sm:p-8 md:grid-cols-[180px_1fr] md:gap-8 md:p-10"><p className="mono-meta break-words text-[var(--accent)]">PROJECT_REGISTRY / 000</p><div className="min-w-0"><h3 className="text-2xl font-medium">Verified system records will appear here.</h3><p className="mt-4 max-w-2xl leading-7 text-[var(--ink-soft)]">Published project documentation will appear here after review. Draft records remain private.</p></div></div>}
       </section>
 
       <section className="space-y-12" id="systems">
@@ -55,7 +75,20 @@ export default function HomePage() {
 
       <section className="space-y-12" id="credentials">
         <div className="border-b border-[var(--line)] pb-4"><h2 className="mono-label tracking-[.2em]">04 — Credentials</h2></div>
-        <div className="border border-[var(--line)] p-6"><p className="mono-meta muted">CREDENTIAL_REGISTRY / AWAITING VERIFIED RECORDS</p></div>
+        {credentials.length ? (
+          <div className="grid gap-6 md:grid-cols-3">
+            {credentials.slice(0, 3).map((credential) => (
+              <article className="flex min-w-0 flex-col border border-[var(--line)] bg-[var(--paper-pure)] p-6" key={credential.id}>
+                <p className="mono-meta accent">{credential.issuer}</p>
+                <h3 className="mt-5 text-xl font-medium">{credential.name}</h3>
+                <p className="mono-meta muted mt-3">{credential.issueDate}</p>
+                <Link href={`/credentials/${credential.slug}`} className="button-secondary mt-8" aria-label={`Open ${credential.name}`}>Open record</Link>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="border border-[var(--line)] p-6"><p className="mono-meta muted">CREDENTIAL_REGISTRY / AWAITING VERIFIED RECORDS</p></div>
+        )}
       </section>
 
       <section className="flex flex-col items-center space-y-10 border-t border-[var(--line)] pb-20 pt-12 text-center md:pb-24" id="contact"><div className="max-w-2xl space-y-4"><p className="mono-label tracking-[.3em] text-[var(--accent)]">06 — System Access</p><h2 className="text-4xl font-semibold leading-tight sm:text-5xl">Have a process worth automating? Let&apos;s discuss building a smarter system.</h2></div><div className="flex w-full max-w-md flex-col gap-4 sm:flex-row sm:gap-6"><Link href="/contact" className="button-primary flex-1">Contact me</Link><Link href="/contact" className="button-secondary flex-1">Start a project</Link></div></section>

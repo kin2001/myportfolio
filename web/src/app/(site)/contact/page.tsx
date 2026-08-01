@@ -3,7 +3,26 @@ import Image from "next/image";
 import { ContactForm } from "@/components/contact-form";
 import { SectionHeader } from "@/components/section-header";
 
-export const metadata: Metadata = { title: "Contact", description: "Discuss a workflow automation or AI-assisted system with Artkin Carreon." };
+const description = "Discuss a workflow automation or AI-assisted system with Artkin Carreon.";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description,
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    type: "website",
+    title: "Contact | Artkin Carreon",
+    description,
+    url: "/contact",
+    images: [{ url: "/artkin-hero.webp", width: 1024, height: 1024, alt: "Artkin Carreon" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contact | Artkin Carreon",
+    description,
+    images: ["/artkin-hero.webp"],
+  },
+};
 
 export default function ContactPage() {
   return (
@@ -16,7 +35,7 @@ export default function ContactPage() {
       <SectionHeader index="01" title="Project inquiry" meta="HUMAN REVIEW REQUIRED" />
       <div className="mt-8"><ContactForm /></div>
       <div className="mt-8 grid gap-6 md:grid-cols-3">
-        {[["01", "Workflow automation", "Reduce repetitive steps and connect handoffs into a reliable process."], ["02", "API integration", "Connect tools through APIs, webhooks, and custom code so information moves smoothly."], ["03", "AI-assisted systems", "Use AI for retrieval, classification, and drafting, with human review where it matters."]].map(([index,title,body]) => <div className="module p-6" key={index}><span className="mono-meta accent">{index}</span><h2 className="mt-5 text-xl font-medium">{title}</h2><p className="mt-3 text-sm leading-6 ink-soft">{body}</p></div>)}
+        {[["01", "Workflow automation", "Reduce repetitive steps and connect handoffs into a reliable process."], ["02", "API integration", "Connect tools through APIs, webhooks, and custom code so information moves smoothly."], ["03", "AI-assisted systems", "Use AI for retrieval, classification, and drafting, with human review where it matters."]].map(([index,title,body]) => <div className="module p-6" key={index}><span className="mono-meta accent">{index}</span><h3 className="mt-5 text-xl font-medium">{title}</h3><p className="mt-3 text-sm leading-6 ink-soft">{body}</p></div>)}
       </div>
     </div>
   );

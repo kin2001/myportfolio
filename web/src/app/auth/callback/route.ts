@@ -22,5 +22,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login?error=not_allowed", request.url));
   }
 
+  const { error: auditError } = await supabase.rpc("record_admin_login");
+  if (auditError) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(
+      new URL("/admin/login?error=oauth_callback_failed", request.url),
+    );
+  }
   return NextResponse.redirect(new URL(safeNext(url.searchParams.get("next")), request.url));
 }

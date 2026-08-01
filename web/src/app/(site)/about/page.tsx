@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { SectionHeader } from "@/components/section-header";
+import { getSiteUrl } from "@/lib/env";
 
 const description = "Meet Artkin Carreon, a Computer Engineering graduate who builds practical AI and workflow automation with n8n, APIs, webhooks, and custom code.";
 
@@ -19,9 +20,15 @@ export const metadata: Metadata = {
     url: "/about",
     images: [{ url: "/artkin-about.webp", width: 1024, height: 1024, alt: "Artkin Carreon in graduation attire" }],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Artkin Carreon | AI Automation Specialist",
+    description,
+    images: ["/artkin-about.webp"],
+  },
 };
 
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const siteUrl = getSiteUrl();
 const personStructuredData = {
   "@context": "https://schema.org",
   "@type": "Person",

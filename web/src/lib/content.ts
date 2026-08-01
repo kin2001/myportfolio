@@ -1,25 +1,3 @@
-export type ProjectStatus = "draft" | "published" | "archived";
-
-export type Project = {
-  slug: string;
-  title: string;
-  summary: string;
-  problem: string;
-  solution: string;
-  outcome?: string;
-  tools: string[];
-  status: ProjectStatus;
-  featured: boolean;
-};
-
-export type Credential = {
-  name: string;
-  issuer: string;
-  date: string;
-  verificationUrl: string;
-  relatedProject?: string;
-};
-
 export const profile = {
   name: "ARTKIN CARREON",
   role: "AI Automation Specialist",
@@ -28,10 +6,6 @@ export const profile = {
   shortPositioning:
     "I design AI-powered workflows, automation systems, and practical digital tools that turn repetitive processes into reliable operations.",
 };
-
-// Publish only verified records. Empty arrays are intentional until evidence is supplied.
-export const projects: Project[] = [];
-export const credentials: Credential[] = [];
 
 export const capabilities = [
   {

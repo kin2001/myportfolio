@@ -166,6 +166,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .field[aria-invalid="true"] { border-color: var(--danger); }
 .field::placeholder { color: var(--muted); }
 
+.site-main,
+#admin-main { overflow-wrap: anywhere; }
+
 @media (max-width: 767px) {
   .content-canvas { padding: 40px 20px 72px; }
   .section-space { margin-top: 80px; }

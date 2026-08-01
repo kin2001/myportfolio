@@ -1,10 +1,10 @@
-# Artkin Carreon — Portfolio Frontend
+# Artkin Carreon — Portfolio
 
-Next.js implementation of Artkin Carreon's AI automation portfolio. The visual system is adapted from the downloaded Google Stitch reference in ../stitch_ai_systems_laboratory.
+Next.js portfolio and private publishing interface. The visual system is adapted from the downloaded Google Stitch reference in `../stitch_ai_systems_laboratory`.
 
 ## Run locally
 
-    npm install
+    npm ci
     npm run dev
 
 Open http://localhost:3000.
@@ -12,14 +12,17 @@ Open http://localhost:3000.
 ## Validation
 
     npm run typecheck
+    npm run test:smoke
+    npm run test:e2e
     npm run build
 
 Webpack is selected explicitly because this Windows environment falls back to WebAssembly SWC bindings, which Turbopack does not support.
 
-## Content rules
+## Publishing
 
-- Public projects come from src/lib/content.ts until the API is connected.
-- projects and credentials intentionally start empty.
+- Public projects and credentials are generated from immutable Supabase publication snapshots during Vercel builds.
+- Drafts, CV history, audit records, asset metadata, and private evidence are admin-only.
+- Cloudflare R2 stores private originals and optimized public derivatives.
 - Do not add sample clients, metrics, employers, testimonials, or credentials.
 - Publish only records that have been verified and approved.
 
@@ -27,4 +30,4 @@ Webpack is selected explicitly because this Windows environment falls back to We
 
 Copy .env.example to .env.local and fill in local values. Only variables prefixed with NEXT_PUBLIC_ are exposed to the browser.
 
-The contact form requires the FastAPI service before it can transmit inquiries. Without NEXT_PUBLIC_API_URL, it fails safely and states that no message was sent.
+See `../docs/ADMIN_SETUP.md` for the external Supabase, R2, Vercel, Better Stack, Google OAuth, and GitHub configuration that cannot be created from this repository.

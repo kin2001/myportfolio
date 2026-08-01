@@ -1,5 +1,8 @@
 begin;
 
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
 create schema if not exists private;
 revoke all on schema private from public;
 
@@ -24,6 +27,12 @@ as $$
   )
   select coalesce(
     pg_catalog.jsonb_typeof(p_document) = 'array'
+    and case
+      when pg_catalog.jsonb_typeof(p_document) = 'array'
+        then pg_catalog.jsonb_array_length(p_document) <= 100
+      else false
+    end
+    and pg_catalog.octet_length(p_document::text) <= 1000000
     and not exists (
       select 1
       from blocks
@@ -103,6 +112,11 @@ as $$
   )
   select coalesce(
     pg_catalog.jsonb_typeof(p_links) = 'array'
+    and case
+      when pg_catalog.jsonb_typeof(p_links) = 'array'
+        then pg_catalog.jsonb_array_length(p_links) <= 20
+      else false
+    end
     and not exists (
       select 1
       from links
@@ -111,8 +125,10 @@ as $$
         or pg_catalog.btrim(link ->> 'id') = ''
         or pg_catalog.jsonb_typeof(link -> 'label') is distinct from 'string'
         or pg_catalog.btrim(link ->> 'label') = ''
+        or pg_catalog.char_length(link ->> 'label') > 100
         or pg_catalog.jsonb_typeof(link -> 'url') is distinct from 'string'
         or (link ->> 'url') !~ '^https://[^[:space:]]+$'
+        or pg_catalog.char_length(link ->> 'url') > 2048
         or coalesce(link ->> 'kind', '') not in (
           'github',
           'demo',
@@ -125,6 +141,26 @@ as $$
     and (
       select pg_catalog.count(*) = pg_catalog.count(distinct link ->> 'id')
       from links
+    ),
+    false
+  );
+$$;
+
+create function private.valid_credential_skills(p_skills text[])
+returns boolean
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select coalesce(
+    pg_catalog.cardinality(p_skills) <= 50
+    and not exists (
+      select 1
+      from pg_catalog.unnest(p_skills) as skill(value)
+      where value is null
+        or pg_catalog.btrim(value) = ''
+        or pg_catalog.char_length(value) > 100
     ),
     false
   );
@@ -188,10 +224,36 @@ create table private.admin_users (
 comment on table private.admin_users is
   'Exactly two immutable Supabase user UUID slots. Populate only after both approved Google accounts sign in.';
 
+create table private.runtime_secrets (
+  name text primary key check (name = 'asset_mutation'),
+  secret text not null check (
+    secret = pg_catalog.btrim(secret)
+    and pg_catalog.octet_length(secret) between 32 and 1024
+  ),
+  updated_at timestamptz not null default now()
+);
+
+comment on table private.runtime_secrets is
+  'Database-owner managed runtime secrets. Never expose this table through the Data API.';
+
 create table public.assets (
   id uuid primary key default gen_random_uuid(),
+  purpose text not null check (
+    purpose in ('project_image', 'credential_image', 'credential_pdf', 'cv_pdf')
+  ),
+  original_filename text not null check (
+    pg_catalog.btrim(original_filename) <> ''
+    and pg_catalog.char_length(original_filename) <= 255
+  ),
   object_key text not null unique check (pg_catalog.btrim(object_key) <> ''),
+  private_derivative_key text unique,
+  private_derivative_size_bytes bigint check (
+    private_derivative_size_bytes between 1 and 8388608
+  ),
   public_object_key text unique,
+  public_mime_type text check (
+    public_mime_type in ('image/webp', 'application/pdf')
+  ),
   mime_type text not null check (
     mime_type in (
       'image/jpeg',
@@ -206,7 +268,7 @@ create table public.assets (
   size_bytes bigint not null check (size_bytes > 0),
   checksum_sha256 text check (checksum_sha256 ~ '^[0-9a-f]{64}$'),
   processing_state text not null default 'pending' check (
-    processing_state in ('pending', 'ready', 'published')
+    processing_state in ('pending', 'deleting', 'ready', 'published')
   ),
   visibility text not null default 'private' check (visibility in ('private', 'public')),
   owner_id uuid not null references auth.users(id) on delete restrict,
@@ -214,41 +276,101 @@ create table public.assets (
   validated_at timestamptz,
   created_at timestamptz not null default now(),
   check (
-    size_bytes <= case
-      when mime_type = 'application/pdf' then 10485760
-      else 8388608
-    end
+    (
+      purpose in ('project_image', 'credential_image')
+      and mime_type in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
+      and size_bytes <= 8388608
+    )
+    or (
+      purpose in ('credential_pdf', 'cv_pdf')
+      and mime_type = 'application/pdf'
+      and size_bytes <= 10485760
+    )
   ),
   check (
-    processing_state = 'pending'
+    (private_derivative_key is null) = (private_derivative_size_bytes is null)
+  ),
+  check (
+    private_derivative_key is null
+    or (
+      pg_catalog.btrim(private_derivative_key) <> ''
+      and private_derivative_key <> object_key
+    )
+  ),
+  check (
+    (public_object_key is null) = (public_mime_type is null)
+  ),
+  check (
+    public_mime_type is null
+    or (
+      purpose in ('project_image', 'credential_image')
+      and public_mime_type = 'image/webp'
+    )
+    or (
+      purpose = 'credential_pdf'
+      and public_mime_type = 'application/pdf'
+    )
+  ),
+  check (
+    processing_state in ('pending', 'deleting')
     or (
       validated_at is not null
       and checksum_sha256 is not null
       and (
         (
-          mime_type = 'application/pdf'
+          purpose in ('credential_pdf', 'cv_pdf')
           and width is null
           and height is null
+          and private_derivative_key is null
+          and private_derivative_size_bytes is null
         )
         or (
-          mime_type like 'image/%'
+          purpose in ('project_image', 'credential_image')
           and width > 0
           and height > 0
           and pg_catalog.greatest(width, height) <= 2400
+          and private_derivative_key is not null
+          and private_derivative_size_bytes is not null
         )
       )
     )
   ),
   check (
-    processing_state <> 'pending'
-    or (visibility = 'private' and public_object_key is null)
+    processing_state not in ('pending', 'deleting')
+    or (
+      visibility = 'private'
+      and private_derivative_key is null
+      and private_derivative_size_bytes is null
+      and public_object_key is null
+      and public_mime_type is null
+    )
+  ),
+  check (
+    processing_state <> 'ready'
+    or (
+      visibility = 'private'
+      and public_object_key is null
+      and public_mime_type is null
+    )
   ),
   check (
     processing_state <> 'published'
     or (
-      visibility = 'public'
+      purpose <> 'cv_pdf'
+      and visibility = 'public'
       and public_object_key is not null
       and pg_catalog.btrim(public_object_key) <> ''
+      and public_mime_type is not null
+      and publication_permission_confirmed_at is not null
+    )
+  ),
+  check (
+    purpose <> 'cv_pdf'
+    or (
+      processing_state in ('pending', 'deleting', 'ready')
+      and visibility = 'private'
+      and public_object_key is null
+      and public_mime_type is null
     )
   )
 );
@@ -271,15 +393,27 @@ comment on table public.projects is
 
 create table public.project_drafts (
   project_id uuid primary key references public.projects(id) on delete restrict,
-  title text not null check (pg_catalog.btrim(title) <> ''),
+  title text not null check (
+    pg_catalog.btrim(title) <> ''
+    and pg_catalog.char_length(title) <= 160
+  ),
   document jsonb not null default '[]'::jsonb check (
     private.valid_project_document(document, false)
   ),
   cover_asset_id uuid references public.assets(id) on delete restrict,
+  cover_alt text,
   links jsonb not null default '[]'::jsonb check (private.valid_project_links(links)),
   lock_version bigint not null default 1 check (lock_version > 0),
   updated_by uuid not null references auth.users(id) on delete restrict,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check (
+    cover_alt is null
+    or (
+      pg_catalog.btrim(cover_alt) <> ''
+      and pg_catalog.char_length(cover_alt) <= 500
+    )
+  ),
+  check (cover_asset_id is not null or cover_alt is null)
 );
 
 create table public.project_publications (
@@ -287,10 +421,20 @@ create table public.project_publications (
   project_id uuid not null references public.projects(id) on delete restrict,
   version bigint not null check (version > 0),
   slug text not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
-  title text not null check (pg_catalog.btrim(title) <> ''),
+  title text not null check (
+    pg_catalog.btrim(title) <> ''
+    and pg_catalog.char_length(title) <= 160
+  ),
   excerpt text not null check (pg_catalog.btrim(excerpt) <> ''),
   document jsonb not null check (private.valid_project_document(document, true)),
-  cover jsonb check (cover is null or pg_catalog.jsonb_typeof(cover) = 'object'),
+  cover jsonb check (
+    cover is null
+    or (
+      pg_catalog.jsonb_typeof(cover) = 'object'
+      and coalesce(pg_catalog.jsonb_typeof(cover -> 'alt'), '') = 'string'
+      and pg_catalog.btrim(cover ->> 'alt') <> ''
+    )
+  ),
   links jsonb not null default '[]'::jsonb check (private.valid_project_links(links)),
   asset_manifest jsonb not null default '{}'::jsonb check (
     pg_catalog.jsonb_typeof(asset_manifest) = 'object'
@@ -311,14 +455,21 @@ alter table public.projects
 create table public.credentials (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
-  name text not null check (pg_catalog.btrim(name) <> ''),
-  issuer text not null default '',
+  name text not null check (
+    pg_catalog.btrim(name) <> ''
+    and pg_catalog.char_length(name) <= 160
+  ),
+  issuer text not null default '' check (pg_catalog.char_length(issuer) <= 160),
   issue_date date,
   expiry_date date,
-  skills text[] not null default '{}',
+  skills text[] not null default '{}' check (private.valid_credential_skills(skills)),
   related_project_id uuid references public.projects(id) on delete restrict,
   verification_url text check (
-    verification_url is null or verification_url ~ '^https://[^[:space:]]+$'
+    verification_url is null
+    or (
+      pg_catalog.char_length(verification_url) <= 2048
+      and verification_url ~ '^https://[^[:space:]]+$'
+    )
   ),
   evidence_asset_id uuid references public.assets(id) on delete restrict,
   evidence_visibility text not null default 'private' check (
@@ -336,7 +487,8 @@ create table public.credentials (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   first_published_at timestamptz,
-  check (expiry_date is null or issue_date is null or expiry_date >= issue_date)
+  check (expiry_date is null or issue_date is null or expiry_date >= issue_date),
+  check (evidence_alt is null or pg_catalog.char_length(evidence_alt) <= 500)
 );
 
 create table public.credential_publications (
@@ -344,14 +496,24 @@ create table public.credential_publications (
   credential_id uuid not null references public.credentials(id) on delete restrict,
   version bigint not null check (version > 0),
   slug text not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
-  name text not null check (pg_catalog.btrim(name) <> ''),
-  issuer text not null check (pg_catalog.btrim(issuer) <> ''),
+  name text not null check (
+    pg_catalog.btrim(name) <> ''
+    and pg_catalog.char_length(name) <= 160
+  ),
+  issuer text not null check (
+    pg_catalog.btrim(issuer) <> ''
+    and pg_catalog.char_length(issuer) <= 160
+  ),
   issue_date date not null,
   expiry_date date,
-  skills text[] not null default '{}',
+  skills text[] not null default '{}' check (private.valid_credential_skills(skills)),
   related_project_id uuid references public.projects(id) on delete restrict,
   verification_url text check (
-    verification_url is null or verification_url ~ '^https://[^[:space:]]+$'
+    verification_url is null
+    or (
+      pg_catalog.char_length(verification_url) <= 2048
+      and verification_url ~ '^https://[^[:space:]]+$'
+    )
   ),
   evidence_visibility text not null check (
     evidence_visibility in ('none', 'private', 'public')
@@ -376,9 +538,14 @@ alter table public.credentials
 create table public.cv_versions (
   id uuid primary key default gen_random_uuid(),
   asset_id uuid not null unique references public.assets(id) on delete restrict,
-  original_filename text not null check (pg_catalog.btrim(original_filename) <> ''),
+  original_filename text not null check (
+    pg_catalog.btrim(original_filename) <> ''
+    and pg_catalog.char_length(original_filename) <= 255
+  ),
   size_bytes bigint not null check (size_bytes between 1 and 10485760),
-  version_note text,
+  version_note text check (
+    version_note is null or pg_catalog.char_length(version_note) <= 240
+  ),
   uploaded_by uuid not null references auth.users(id) on delete restrict,
   uploaded_at timestamptz not null default now()
 );
@@ -406,27 +573,38 @@ create table public.audit_events (
 );
 
 create table public.deployment_checks (
-  id uuid primary key default gen_random_uuid(),
+  deployment_id text primary key check (pg_catalog.btrim(deployment_id) <> ''),
+  project_id text not null check (pg_catalog.btrim(project_id) <> ''),
   deployment_url text not null check (deployment_url ~ '^https://[^[:space:]]+$'),
   git_sha text not null check (git_sha ~ '^[0-9a-fA-F]{7,64}$'),
   run_id text not null unique check (pg_catalog.btrim(run_id) <> ''),
   run_number bigint not null check (run_number > 0),
-  result text not null check (result in ('passed', 'failed')),
-  broken_link_count integer not null default 0 check (broken_link_count >= 0),
-  missing_asset_count integer not null default 0 check (missing_asset_count >= 0),
-  page_error_count integer not null default 0 check (page_error_count >= 0),
-  console_error_count integer not null default 0 check (console_error_count >= 0),
   run_url text not null check (run_url ~ '^https://[^[:space:]]+$'),
+  status text not null default 'running' check (
+    status in ('running', 'success', 'failure')
+  ),
   checked_at timestamptz not null,
+  pages_checked integer not null default 0 check (pages_checked >= 0),
+  broken_count integer not null default 0 check (broken_count >= 0),
+  failures jsonb not null default '[]'::jsonb check (
+    pg_catalog.jsonb_typeof(failures) = 'array'
+    and pg_catalog.jsonb_array_length(failures) <= 50
+  ),
   received_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   check (
-    result = 'failed'
-    or (
-      broken_link_count = 0
-      and missing_asset_count = 0
-      and page_error_count = 0
-      and console_error_count = 0
+    (
+      status = 'running'
+      and pages_checked = 0
+      and broken_count = 0
+      and pg_catalog.jsonb_array_length(failures) = 0
     )
+    or (
+      status = 'success'
+      and broken_count = 0
+      and pg_catalog.jsonb_array_length(failures) = 0
+    )
+    or status = 'failure'
   )
 );
 
@@ -469,6 +647,303 @@ as $$
   select private.is_admin();
 $$;
 
+create function private.asset_mutation_attested(
+  p_administrator_id uuid,
+  p_operation text,
+  p_attestation_timestamp bigint,
+  p_fields text[],
+  p_attestation_signature text
+)
+returns boolean
+language sql
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    p_administrator_id is not null
+    and pg_catalog.abs(
+      pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+      - p_attestation_timestamp
+    ) <= 300
+    and p_attestation_signature ~ '^[0-9a-f]{64}$'
+    and exists (
+      select 1
+      from private.runtime_secrets
+      where name = 'asset_mutation'
+        and p_attestation_signature = pg_catalog.encode(
+          extensions.hmac(
+            pg_catalog.array_to_string(
+              array[
+                'v1',
+                p_operation,
+                p_administrator_id::text,
+                p_attestation_timestamp::text
+              ] || coalesce(p_fields, '{}'::text[]),
+              '|',
+              ''
+            ),
+            secret,
+            'sha256'
+          ),
+          'hex'
+        )
+    ),
+    false
+  );
+$$;
+
+create function public.finalize_asset(
+  p_asset_id uuid,
+  p_mime_type text,
+  p_size_bytes bigint,
+  p_checksum_sha256 text,
+  p_width integer,
+  p_height integer,
+  p_private_derivative_key text,
+  p_private_derivative_size_bytes bigint,
+  p_attestation_timestamp bigint,
+  p_attestation_signature text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_rows integer;
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  if not private.asset_mutation_attested(
+    auth.uid(),
+    'finalize',
+    p_attestation_timestamp,
+    array[
+      p_asset_id::text,
+      coalesce(p_mime_type, ''),
+      coalesce(p_size_bytes::text, ''),
+      coalesce(p_checksum_sha256, ''),
+      coalesce(p_width::text, ''),
+      coalesce(p_height::text, ''),
+      coalesce(p_private_derivative_key, ''),
+      coalesce(p_private_derivative_size_bytes::text, '')
+    ],
+    p_attestation_signature
+  ) then
+    raise exception 'invalid_asset_attestation' using errcode = '42501';
+  end if;
+  if p_checksum_sha256 !~ '^[0-9a-f]{64}$' then
+    raise exception 'invalid_asset_checksum' using errcode = '22023';
+  end if;
+
+  update public.assets
+  set checksum_sha256 = p_checksum_sha256,
+      processing_state = 'ready',
+      validated_at = now(),
+      width = p_width,
+      height = p_height,
+      private_derivative_key = p_private_derivative_key,
+      private_derivative_size_bytes = p_private_derivative_size_bytes
+  where id = p_asset_id
+    and processing_state = 'pending'
+    and mime_type = p_mime_type
+    and size_bytes = p_size_bytes
+    and (
+      (
+        purpose in ('project_image', 'credential_image')
+        and p_mime_type in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
+        and p_width between 1 and 2400
+        and p_height between 1 and 2400
+        and pg_catalog.greatest(p_width, p_height) <= 2400
+        and p_private_derivative_key ~ (
+          '^ready/' || p_asset_id::text
+          || '/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/image[.]webp$'
+        )
+        and p_private_derivative_size_bytes between 1 and 8388608
+      )
+      or (
+        purpose in ('credential_pdf', 'cv_pdf')
+        and p_mime_type = 'application/pdf'
+        and p_width is null
+        and p_height is null
+        and p_private_derivative_key is null
+        and p_private_derivative_size_bytes is null
+      )
+    );
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then
+    raise exception 'asset_finalize_conflict' using errcode = '40001';
+  end if;
+  return true;
+end;
+$$;
+
+create function public.publish_asset(
+  p_asset_id uuid,
+  p_public_object_key text,
+  p_public_mime_type text,
+  p_attestation_timestamp bigint,
+  p_attestation_signature text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_asset public.assets%rowtype;
+  v_expected_key text;
+  v_expected_mime text;
+  v_rows integer;
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  if not private.asset_mutation_attested(
+    auth.uid(),
+    'publish',
+    p_attestation_timestamp,
+    array[
+      p_asset_id::text,
+      coalesce(p_public_object_key, ''),
+      coalesce(p_public_mime_type, '')
+    ],
+    p_attestation_signature
+  ) then
+    raise exception 'invalid_asset_attestation' using errcode = '42501';
+  end if;
+
+  select * into v_asset
+  from public.assets
+  where id = p_asset_id
+  for update;
+  if not found then
+    raise exception 'asset_not_found' using errcode = 'P0002';
+  end if;
+  if v_asset.purpose = 'cv_pdf' then
+    raise exception 'cv_asset_cannot_be_public' using errcode = '23514';
+  end if;
+
+  v_expected_mime := case
+    when v_asset.purpose in ('project_image', 'credential_image')
+      then 'image/webp'
+    else 'application/pdf'
+  end;
+  v_expected_key := 'assets/' || v_asset.id::text || case
+    when v_expected_mime = 'image/webp' then '.webp'
+    else '.pdf'
+  end;
+  if p_public_object_key is distinct from v_expected_key
+    or p_public_mime_type is distinct from v_expected_mime
+  then
+    raise exception 'invalid_public_asset_metadata' using errcode = '22023';
+  end if;
+
+  if v_asset.processing_state = 'published' then
+    if v_asset.public_object_key is distinct from p_public_object_key
+      or v_asset.public_mime_type is distinct from p_public_mime_type
+    then
+      raise exception 'published_asset_metadata_mismatch' using errcode = '55000';
+    end if;
+    return false;
+  end if;
+  if v_asset.processing_state <> 'ready' then
+    raise exception 'asset_not_ready' using errcode = '55000';
+  end if;
+
+  update public.assets
+  set processing_state = 'published',
+      visibility = 'public',
+      public_object_key = p_public_object_key,
+      public_mime_type = p_public_mime_type,
+      publication_permission_confirmed_at = now()
+  where id = p_asset_id
+    and processing_state = 'ready';
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then
+    raise exception 'asset_publish_conflict' using errcode = '40001';
+  end if;
+  return true;
+end;
+$$;
+
+create function public.revert_asset_publication(
+  p_asset_id uuid,
+  p_public_object_key text,
+  p_attestation_timestamp bigint,
+  p_attestation_signature text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_asset public.assets%rowtype;
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  if not private.asset_mutation_attested(
+    auth.uid(),
+    'revert',
+    p_attestation_timestamp,
+    array[p_asset_id::text, coalesce(p_public_object_key, '')],
+    p_attestation_signature
+  ) then
+    raise exception 'invalid_asset_attestation' using errcode = '42501';
+  end if;
+
+  select * into v_asset
+  from public.assets
+  where id = p_asset_id
+  for update;
+  if not found then
+    raise exception 'asset_not_found' using errcode = 'P0002';
+  end if;
+  if v_asset.processing_state = 'ready' then
+    return true;
+  end if;
+  if v_asset.processing_state <> 'published'
+    or v_asset.public_object_key is distinct from p_public_object_key
+  then
+    raise exception 'asset_publication_cannot_be_reverted' using errcode = '55000';
+  end if;
+  if exists (
+    select 1
+    from public.projects project
+    join public.project_publications publication
+      on publication.id = project.current_publication_id
+    where project.lifecycle_state = 'published'
+      and publication.asset_manifest ? p_asset_id::text
+  ) or exists (
+    select 1
+    from public.credentials credential
+    join public.credential_publications publication
+      on publication.id = credential.current_publication_id
+    where credential.lifecycle_state = 'published'
+      and publication.evidence ->> 'assetId' = p_asset_id::text
+  ) then
+    return false;
+  end if;
+
+  update public.assets
+  set processing_state = 'ready',
+      visibility = 'private',
+      public_object_key = null,
+      public_mime_type = null,
+      publication_permission_confirmed_at = null
+  where id = p_asset_id
+    and processing_state = 'published'
+    and public_object_key = p_public_object_key;
+  if not found then
+    raise exception 'asset_revert_conflict' using errcode = '40001';
+  end if;
+  return true;
+end;
+$$;
+
 create function private.reject_mutation()
 returns trigger
 language plpgsql
@@ -486,15 +961,42 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if old.processing_state = 'published' then
-    raise exception 'published_asset_is_immutable' using errcode = '55000';
+  if old.processing_state = 'pending'
+    and new.processing_state not in ('pending', 'deleting', 'ready')
+  then
+    raise exception 'asset_must_be_validated_before_publication' using errcode = '55000';
   end if;
 
-  if old.processing_state = 'ready' then
+  if old.processing_state = 'deleting'
+    and new.processing_state not in ('pending', 'deleting')
+  then
+    raise exception 'asset_cleanup_claim_is_locked' using errcode = '55000';
+  end if;
+
+  if new.processing_state = 'deleting'
+    or old.processing_state = 'deleting'
+  then
+    if new.object_key is distinct from old.object_key
+      or new.purpose is distinct from old.purpose
+      or new.original_filename is distinct from old.original_filename
+      or new.mime_type is distinct from old.mime_type
+      or new.size_bytes is distinct from old.size_bytes
+      or new.owner_id is distinct from old.owner_id
+      or new.created_at is distinct from old.created_at
+    then
+      raise exception 'cleanup_claim_may_only_change_state' using errcode = '55000';
+    end if;
+  end if;
+
+  if old.processing_state in ('ready', 'published') then
     if new.processing_state not in ('ready', 'published') then
-      raise exception 'asset_state_cannot_regress' using errcode = '55000';
+      raise exception 'asset_state_cannot_change' using errcode = '55000';
     end if;
     if new.object_key is distinct from old.object_key
+      or new.purpose is distinct from old.purpose
+      or new.original_filename is distinct from old.original_filename
+      or new.private_derivative_key is distinct from old.private_derivative_key
+      or new.private_derivative_size_bytes is distinct from old.private_derivative_size_bytes
       or new.mime_type is distinct from old.mime_type
       or new.width is distinct from old.width
       or new.height is distinct from old.height
@@ -502,9 +1004,20 @@ begin
       or new.checksum_sha256 is distinct from old.checksum_sha256
       or new.owner_id is distinct from old.owner_id
       or new.validated_at is distinct from old.validated_at
+      or new.created_at is distinct from old.created_at
     then
       raise exception 'validated_asset_metadata_is_immutable' using errcode = '55000';
     end if;
+  end if;
+
+  if old.processing_state = 'published' and (
+    new.processing_state <> 'ready'
+    or new.visibility <> 'private'
+    or new.public_object_key is not null
+    or new.public_mime_type is not null
+    or new.publication_permission_confirmed_at is not null
+  ) then
+    raise exception 'published_asset_may_only_be_compensated' using errcode = '55000';
   end if;
 
   if exists (
@@ -513,10 +1026,43 @@ begin
     new.processing_state <> 'ready'
     or new.visibility <> 'private'
     or new.public_object_key is not null
+    or new.public_mime_type is not null
   ) then
     raise exception 'cv_version_asset_must_remain_private' using errcode = '55000';
   end if;
 
+  return new;
+end;
+$$;
+
+create function private.protect_deployment_check_update()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if old.status <> 'running' then
+    raise exception 'terminal_deployment_check_is_immutable' using errcode = '55000';
+  end if;
+  if new.status not in ('success', 'failure') then
+    raise exception 'deployment_check_must_become_terminal' using errcode = '55000';
+  end if;
+  if new.deployment_id is distinct from old.deployment_id
+    or new.project_id is distinct from old.project_id
+    or new.deployment_url is distinct from old.deployment_url
+    or new.git_sha is distinct from old.git_sha
+    or new.run_id is distinct from old.run_id
+    or new.run_number is distinct from old.run_number
+    or new.run_url is distinct from old.run_url
+    or new.received_at is distinct from old.received_at
+  then
+    raise exception 'deployment_check_identity_is_immutable' using errcode = '55000';
+  end if;
+  if new.checked_at < old.checked_at then
+    raise exception 'deployment_check_time_cannot_regress' using errcode = '55000';
+  end if;
+
+  new.updated_at := now();
   return new;
 end;
 $$;
@@ -550,9 +1096,13 @@ create trigger audit_events_are_append_only
 before update or delete on public.audit_events
 for each row execute function private.reject_mutation();
 
-create trigger deployment_checks_are_append_only
-before update or delete on public.deployment_checks
+create trigger deployment_checks_cannot_be_deleted
+before delete on public.deployment_checks
 for each row execute function private.reject_mutation();
+
+create trigger deployment_checks_become_terminal_once
+before update on public.deployment_checks
+for each row execute function private.protect_deployment_check_update();
 
 create trigger assets_follow_forward_only_state
 before update on public.assets
@@ -594,6 +1144,308 @@ as $$
   );
 $$;
 
+create function public.record_admin_login()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  perform private.record_audit(auth.uid(), 'session', null, 'login', '{}'::text[]);
+end;
+$$;
+
+create function public.record_admin_logout()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  perform private.record_audit(auth.uid(), 'session', null, 'logout', '{}'::text[]);
+end;
+$$;
+
+create function public.record_content_export()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  perform private.record_audit(auth.uid(), 'export', null, 'content_exported', '{}'::text[]);
+end;
+$$;
+
+create function public.record_assets_export()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  perform private.record_audit(auth.uid(), 'export', null, 'assets_exported', '{}'::text[]);
+end;
+$$;
+
+create function public.record_audit_export()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  perform private.record_audit(auth.uid(), 'export', null, 'audit_exported', '{}'::text[]);
+end;
+$$;
+
+create function public.record_deployment_retry()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not coalesce(private.is_admin(), false) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  perform private.record_audit(
+    auth.uid(),
+    'deployment',
+    null,
+    'retry_requested',
+    '{}'::text[]
+  );
+end;
+$$;
+
+create function private.record_cv_upload_audit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform private.record_audit(
+    new.uploaded_by,
+    'cv',
+    new.id,
+    'uploaded',
+    array['asset_id', 'original_filename', 'size_bytes']
+  );
+  return new;
+end;
+$$;
+
+create trigger cv_versions_record_upload_audit
+after insert on public.cv_versions
+for each row execute function private.record_cv_upload_audit();
+
+create function private.record_asset_upload_audit()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform private.record_audit(
+    auth.uid(),
+    'asset',
+    new.id,
+    'uploaded',
+    array['processing_state', 'validated_at']
+  );
+  return new;
+end;
+$$;
+
+create trigger assets_record_completed_upload
+after update on public.assets
+for each row
+when (old.processing_state = 'pending' and new.processing_state = 'ready')
+execute function private.record_asset_upload_audit();
+
+create function public.claim_pending_assets_for_cleanup(
+  p_limit integer,
+  p_attestation_timestamp bigint,
+  p_attestation_signature text,
+  p_administrator_id uuid default auth.uid()
+)
+returns table (
+  asset_id uuid,
+  object_key text,
+  private_derivative_key text
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_administrator_id is null or not exists (
+    select 1
+    from private.admin_users
+    where user_id = p_administrator_id
+  ) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  if not private.asset_mutation_attested(
+    p_administrator_id,
+    'cleanup_claim',
+    p_attestation_timestamp,
+    array[coalesce(p_limit::text, '')],
+    p_attestation_signature
+  ) then
+    raise exception 'invalid_asset_attestation' using errcode = '42501';
+  end if;
+  if p_limit is null or p_limit < 1 or p_limit > 100 then
+    raise exception 'cleanup_batch_too_large' using errcode = '22023';
+  end if;
+
+  return query
+  with candidates as (
+    select asset.id
+    from public.assets asset
+    where asset.processing_state = 'pending'
+      and asset.created_at < now() - interval '24 hours'
+      and not exists (
+        select 1
+        from public.project_drafts draft
+        where draft.cover_asset_id = asset.id
+      )
+      and not exists (
+        select 1
+        from public.credentials credential
+        where credential.evidence_asset_id = asset.id
+      )
+    order by asset.created_at, asset.id
+    for update of asset skip locked
+    limit p_limit
+  )
+  update public.assets asset
+  set processing_state = 'deleting'
+  from candidates
+  where asset.id = candidates.id
+    and asset.processing_state = 'pending'
+  returning asset.id, asset.object_key, asset.private_derivative_key;
+end;
+$$;
+
+create function public.finish_pending_asset_cleanup(
+  p_ids uuid[],
+  p_attestation_timestamp bigint,
+  p_attestation_signature text,
+  p_administrator_id uuid default auth.uid()
+)
+returns table (asset_id uuid)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid := p_administrator_id;
+begin
+  if p_administrator_id is null or not exists (
+    select 1
+    from private.admin_users
+    where user_id = p_administrator_id
+  ) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  if not private.asset_mutation_attested(
+    p_administrator_id,
+    'cleanup_finish',
+    p_attestation_timestamp,
+    array[coalesce(pg_catalog.array_to_string(p_ids, ','), '')],
+    p_attestation_signature
+  ) then
+    raise exception 'invalid_asset_attestation' using errcode = '42501';
+  end if;
+  if coalesce(pg_catalog.cardinality(p_ids), 0) = 0 then
+    return;
+  end if;
+  if pg_catalog.cardinality(p_ids) > 100 then
+    raise exception 'cleanup_batch_too_large' using errcode = '22023';
+  end if;
+
+  return query
+  delete from public.assets asset
+  where asset.id = any (p_ids)
+    and asset.processing_state = 'deleting'
+  returning asset.id;
+
+  if found then
+    perform private.record_audit(
+      v_actor,
+      'asset',
+      null,
+      'pending_cleanup',
+      array['processing_state', 'created_at']
+    );
+  end if;
+end;
+$$;
+
+create function public.release_pending_asset_cleanup(
+  p_ids uuid[],
+  p_attestation_timestamp bigint,
+  p_attestation_signature text,
+  p_administrator_id uuid default auth.uid()
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_rows integer;
+begin
+  if p_administrator_id is null or not exists (
+    select 1
+    from private.admin_users
+    where user_id = p_administrator_id
+  ) then
+    raise exception 'admin_not_allowed' using errcode = '42501';
+  end if;
+  if not private.asset_mutation_attested(
+    p_administrator_id,
+    'cleanup_release',
+    p_attestation_timestamp,
+    array[coalesce(pg_catalog.array_to_string(p_ids, ','), '')],
+    p_attestation_signature
+  ) then
+    raise exception 'invalid_asset_attestation' using errcode = '42501';
+  end if;
+  if coalesce(pg_catalog.cardinality(p_ids), 0) = 0 then
+    return 0;
+  end if;
+  if pg_catalog.cardinality(p_ids) > 100 then
+    raise exception 'cleanup_batch_too_large' using errcode = '22023';
+  end if;
+
+  update public.assets
+  set processing_state = 'pending'
+  where id = any (p_ids)
+    and processing_state = 'deleting';
+  get diagnostics v_rows = row_count;
+  return v_rows;
+end;
+$$;
+
 create function public.create_project(p_title text)
 returns public.project_drafts
 language plpgsql
@@ -613,6 +1465,9 @@ begin
   end if;
   if pg_catalog.btrim(coalesce(p_title, '')) = '' then
     raise exception 'title_required' using errcode = '22023';
+  end if;
+  if pg_catalog.char_length(pg_catalog.btrim(p_title)) > 160 then
+    raise exception 'title_too_long' using errcode = '22023';
   end if;
 
   v_base := private.slug_base(p_title);
@@ -642,6 +1497,7 @@ create function public.save_project_draft(
   p_title text,
   p_document jsonb,
   p_cover_asset_id uuid,
+  p_cover_alt text,
   p_links jsonb
 )
 returns public.project_drafts
@@ -658,12 +1514,19 @@ declare
   v_base text;
   v_slug text;
   v_suffix integer := 1;
+  v_cover_alt text := case
+    when p_cover_asset_id is null then null
+    else nullif(pg_catalog.btrim(coalesce(p_cover_alt, '')), '')
+  end;
 begin
   if not coalesce(private.is_admin(), false) then
     raise exception 'admin_not_allowed' using errcode = '42501';
   end if;
   if pg_catalog.btrim(coalesce(p_title, '')) = '' then
     raise exception 'title_required' using errcode = '22023';
+  end if;
+  if pg_catalog.char_length(pg_catalog.btrim(p_title)) > 160 then
+    raise exception 'title_too_long' using errcode = '22023';
   end if;
   if not private.valid_project_document(p_document, false) then
     raise exception 'invalid_document' using errcode = '22023';
@@ -692,9 +1555,33 @@ begin
   end if;
 
   if p_cover_asset_id is not null and not exists (
-    select 1 from public.assets where id = p_cover_asset_id
+    select 1
+    from public.assets
+    where id = p_cover_asset_id
+      and purpose = 'project_image'
+      and processing_state <> 'deleting'
   ) then
     raise exception 'cover_asset_not_found' using errcode = '23503';
+  end if;
+  if exists (
+    select 1
+    from pg_catalog.jsonb_array_elements(p_document) as blocks(block)
+    left join public.assets asset
+      on asset.id = case
+        when block ->> 'type' = 'image' then (block ->> 'assetId')::uuid
+        else null
+      end
+    where block ->> 'type' = 'image'
+      and (
+        asset.id is null
+        or asset.purpose <> 'project_image'
+        or asset.processing_state = 'deleting'
+      )
+  ) then
+    raise exception 'document_asset_not_found' using errcode = '23503';
+  end if;
+  if pg_catalog.char_length(coalesce(v_cover_alt, '')) > 500 then
+    raise exception 'cover_alt_too_long' using errcode = '22023';
   end if;
 
   if v_project.current_publication_id is null then
@@ -716,6 +1603,7 @@ begin
     case when v_old.title is distinct from pg_catalog.btrim(p_title) then 'title' end,
     case when v_old.document is distinct from p_document then 'document' end,
     case when v_old.cover_asset_id is distinct from p_cover_asset_id then 'cover_asset_id' end,
+    case when v_old.cover_alt is distinct from v_cover_alt then 'cover_alt' end,
     case when v_old.links is distinct from p_links then 'links' end
   ]::text[], null);
 
@@ -723,6 +1611,7 @@ begin
   set title = pg_catalog.btrim(p_title),
       document = p_document,
       cover_asset_id = p_cover_asset_id,
+      cover_alt = v_cover_alt,
       links = p_links,
       lock_version = lock_version + 1,
       updated_by = v_actor,
@@ -792,10 +1681,11 @@ begin
     where block ->> 'type' = 'image'
       and (
         asset.id is null
-        or asset.mime_type not like 'image/%'
+        or asset.purpose <> 'project_image'
         or asset.processing_state <> 'published'
         or asset.visibility <> 'public'
         or asset.public_object_key is null
+        or asset.public_mime_type <> 'image/webp'
         or asset.publication_permission_confirmed_at is null
       )
   ) then
@@ -806,13 +1696,20 @@ begin
     select 1
     from public.assets
     where id = v_draft.cover_asset_id
-      and mime_type like 'image/%'
+      and purpose = 'project_image'
       and processing_state = 'published'
       and visibility = 'public'
       and public_object_key is not null
+      and public_mime_type = 'image/webp'
       and publication_permission_confirmed_at is not null
   ) then
     raise exception 'cover_asset_not_publishable' using errcode = '23514';
+  end if;
+
+  if v_draft.cover_asset_id is not null
+    and pg_catalog.btrim(coalesce(v_draft.cover_alt, '')) = ''
+  then
+    raise exception 'cover_alt_required' using errcode = '23514';
   end if;
 
   select coalesce(
@@ -822,10 +1719,10 @@ begin
         pg_catalog.jsonb_build_object(
           'assetId', asset.id,
           'objectKey', asset.public_object_key,
-          'mimeType', asset.mime_type,
+          'mimeType', asset.public_mime_type,
           'width', asset.width,
           'height', asset.height,
-          'sizeBytes', asset.size_bytes,
+          'sizeBytes', coalesce(asset.private_derivative_size_bytes, asset.size_bytes),
           'checksumSha256', asset.checksum_sha256
         )
       )
@@ -849,7 +1746,8 @@ begin
 
   v_cover := case
     when v_draft.cover_asset_id is null then null
-    else v_manifest -> v_draft.cover_asset_id::text
+    else (v_manifest -> v_draft.cover_asset_id::text)
+      || pg_catalog.jsonb_build_object('alt', v_draft.cover_alt)
   end;
 
   select coalesce(pg_catalog.max(version), 0) + 1
@@ -990,6 +1888,9 @@ begin
   if pg_catalog.btrim(coalesce(p_name, '')) = '' then
     raise exception 'credential_name_required' using errcode = '22023';
   end if;
+  if pg_catalog.char_length(pg_catalog.btrim(p_name)) > 160 then
+    raise exception 'credential_name_too_long' using errcode = '22023';
+  end if;
 
   v_base := private.slug_base(p_name);
   loop
@@ -1049,6 +1950,11 @@ declare
   v_base text;
   v_slug text;
   v_suffix integer := 1;
+  v_evidence_alt text := nullif(
+    pg_catalog.btrim(coalesce(p_evidence_alt, '')),
+    ''
+  );
+  v_redaction_confirmed boolean;
 begin
   if not coalesce(private.is_admin(), false) then
     raise exception 'admin_not_allowed' using errcode = '42501';
@@ -1056,8 +1962,23 @@ begin
   if pg_catalog.btrim(coalesce(p_name, '')) = '' then
     raise exception 'credential_name_required' using errcode = '22023';
   end if;
-  if p_verification_url is not null and p_verification_url !~ '^https://[^[:space:]]+$' then
+  if pg_catalog.char_length(pg_catalog.btrim(p_name)) > 160 then
+    raise exception 'credential_name_too_long' using errcode = '22023';
+  end if;
+  if pg_catalog.char_length(coalesce(pg_catalog.btrim(p_issuer), '')) > 160 then
+    raise exception 'credential_issuer_too_long' using errcode = '22023';
+  end if;
+  if not private.valid_credential_skills(coalesce(p_skills, '{}'::text[])) then
+    raise exception 'invalid_credential_skills' using errcode = '22023';
+  end if;
+  if p_verification_url is not null and (
+    pg_catalog.char_length(p_verification_url) > 2048
+    or p_verification_url !~ '^https://[^[:space:]]+$'
+  ) then
     raise exception 'verification_url_must_be_https' using errcode = '22023';
+  end if;
+  if pg_catalog.char_length(coalesce(v_evidence_alt, '')) > 500 then
+    raise exception 'evidence_alt_too_long' using errcode = '22023';
   end if;
   if coalesce(p_evidence_visibility, '') not in ('private', 'public') then
     raise exception 'invalid_evidence_visibility' using errcode = '22023';
@@ -1076,13 +1997,21 @@ begin
   if v_old.lock_version is distinct from p_expected_lock_version then
     raise exception 'stale_lock_version' using errcode = '40001';
   end if;
+  v_redaction_confirmed := case
+    when v_old.evidence_asset_id is distinct from p_evidence_asset_id then false
+    else coalesce(p_redaction_confirmed, false)
+  end;
   if p_related_project_id is not null and not exists (
     select 1 from public.projects where id = p_related_project_id
   ) then
     raise exception 'related_project_not_found' using errcode = '23503';
   end if;
   if p_evidence_asset_id is not null and not exists (
-    select 1 from public.assets where id = p_evidence_asset_id
+    select 1
+    from public.assets
+    where id = p_evidence_asset_id
+      and purpose in ('credential_image', 'credential_pdf')
+      and processing_state <> 'deleting'
   ) then
     raise exception 'evidence_asset_not_found' using errcode = '23503';
   end if;
@@ -1110,8 +2039,8 @@ begin
     case when v_old.verification_url is distinct from p_verification_url then 'verification_url' end,
     case when v_old.evidence_asset_id is distinct from p_evidence_asset_id then 'evidence_asset_id' end,
     case when v_old.evidence_visibility is distinct from p_evidence_visibility then 'evidence_visibility' end,
-    case when v_old.evidence_alt is distinct from p_evidence_alt then 'evidence_alt' end,
-    case when v_old.redaction_confirmed is distinct from coalesce(p_redaction_confirmed, false) then 'redaction_confirmed' end
+    case when v_old.evidence_alt is distinct from v_evidence_alt then 'evidence_alt' end,
+    case when v_old.redaction_confirmed is distinct from v_redaction_confirmed then 'redaction_confirmed' end
   ]::text[], null);
 
   update public.credentials
@@ -1124,8 +2053,8 @@ begin
       verification_url = p_verification_url,
       evidence_asset_id = p_evidence_asset_id,
       evidence_visibility = p_evidence_visibility,
-      evidence_alt = p_evidence_alt,
-      redaction_confirmed = coalesce(p_redaction_confirmed, false),
+      evidence_alt = v_evidence_alt,
+      redaction_confirmed = v_redaction_confirmed,
       lock_version = lock_version + 1,
       updated_by = v_actor,
       updated_at = now()
@@ -1199,13 +2128,7 @@ begin
     where id = v_credential.evidence_asset_id;
     if not found
       or v_asset.processing_state not in ('ready', 'published')
-      or v_asset.mime_type not in (
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'image/avif',
-        'application/pdf'
-      )
+      or v_asset.purpose not in ('credential_image', 'credential_pdf')
     then
       raise exception 'credential_evidence_not_ready' using errcode = '23514';
     end if;
@@ -1217,6 +2140,7 @@ begin
       if v_asset.processing_state <> 'published'
         or v_asset.visibility <> 'public'
         or v_asset.public_object_key is null
+        or v_asset.public_mime_type is null
         or v_asset.publication_permission_confirmed_at is null
       then
         raise exception 'credential_evidence_not_public' using errcode = '23514';
@@ -1232,10 +2156,10 @@ begin
         pg_catalog.jsonb_build_object(
           'assetId', v_asset.id,
           'objectKey', v_asset.public_object_key,
-          'mimeType', v_asset.mime_type,
+          'mimeType', v_asset.public_mime_type,
           'width', v_asset.width,
           'height', v_asset.height,
-          'sizeBytes', v_asset.size_bytes,
+          'sizeBytes', coalesce(v_asset.private_derivative_size_bytes, v_asset.size_bytes),
           'checksumSha256', v_asset.checksum_sha256,
           'alt', nullif(pg_catalog.btrim(coalesce(v_credential.evidence_alt, '')), '')
         )
@@ -1357,6 +2281,7 @@ begin
     from public.cv_versions cv
     join public.assets asset on asset.id = cv.asset_id
     where cv.id = p_cv_version_id
+      and asset.purpose = 'cv_pdf'
       and asset.mime_type = 'application/pdf'
       and asset.processing_state = 'ready'
       and asset.visibility = 'private'
@@ -1364,7 +2289,7 @@ begin
     raise exception 'cv_version_not_ready' using errcode = '23514';
   end if;
 
-  -- The caller copies the retained private version to resume.pdf before changing this pointer.
+  -- /resume.pdf resolves this pointer and reads the retained private object on each request.
   update public.site_settings
   set current_cv_version_id = p_cv_version_id,
       updated_by = v_actor,
@@ -1383,7 +2308,32 @@ begin
 end;
 $$;
 
+create function public.current_cv_download()
+returns table (
+  object_key text,
+  size_bytes bigint,
+  checksum_sha256 text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select asset.object_key, asset.size_bytes, asset.checksum_sha256
+  from public.site_settings settings
+  join public.cv_versions version
+    on version.id = settings.current_cv_version_id
+  join public.assets asset
+    on asset.id = version.asset_id
+  where settings.singleton
+    and asset.purpose = 'cv_pdf'
+    and asset.mime_type = 'application/pdf'
+    and asset.processing_state = 'ready'
+    and asset.visibility = 'private';
+$$;
+
 alter table private.admin_users enable row level security;
+alter table private.runtime_secrets enable row level security;
 alter table public.assets enable row level security;
 alter table public.projects enable row level security;
 alter table public.project_drafts enable row level security;
@@ -1402,11 +2352,6 @@ using (private.is_admin());
 create policy assets_admin_insert
 on public.assets for insert to authenticated
 with check (private.is_admin() and owner_id = auth.uid());
-
-create policy assets_admin_update
-on public.assets for update to authenticated
-using (private.is_admin())
-with check (private.is_admin());
 
 create policy projects_public_index
 on public.projects for select to anon, authenticated
@@ -1460,10 +2405,12 @@ with check (
     select 1
     from public.assets asset
     where asset.id = cv_versions.asset_id
+      and asset.purpose = 'cv_pdf'
       and asset.mime_type = 'application/pdf'
       and asset.processing_state = 'ready'
       and asset.visibility = 'private'
       and asset.size_bytes = cv_versions.size_bytes
+      and asset.original_filename = cv_versions.original_filename
   )
 );
 
@@ -1475,10 +2422,6 @@ create policy audit_events_admin_select
 on public.audit_events for select to authenticated
 using (private.is_admin());
 
-create policy audit_events_admin_insert
-on public.audit_events for insert to authenticated
-with check (private.is_admin() and administrator_id = auth.uid());
-
 create policy deployment_checks_admin_select
 on public.deployment_checks for select to authenticated
 using (private.is_admin());
@@ -1487,7 +2430,13 @@ create policy deployment_checks_service_insert
 on public.deployment_checks for insert to service_role
 with check (true);
 
+create policy deployment_checks_service_update
+on public.deployment_checks for update to service_role
+using (true)
+with check (true);
+
 revoke all on table private.admin_users from public, anon, authenticated, service_role;
+revoke all on table private.runtime_secrets from public, anon, authenticated, service_role;
 revoke all on table public.assets from public, anon, authenticated, service_role;
 revoke all on table public.projects from public, anon, authenticated, service_role;
 revoke all on table public.project_drafts from public, anon, authenticated, service_role;
@@ -1502,7 +2451,7 @@ revoke all on table public.deployment_checks from public, anon, authenticated, s
 grant usage on schema private to anon, authenticated;
 grant usage on schema public to anon, authenticated, service_role;
 
-grant select, insert, update on public.assets to authenticated;
+grant select, insert on public.assets to authenticated;
 grant select on public.projects to anon, authenticated;
 grant select on public.project_drafts to authenticated;
 grant select on public.project_publications to anon, authenticated;
@@ -1510,23 +2459,60 @@ grant select on public.credentials to authenticated;
 grant select on public.credential_publications to anon, authenticated;
 grant select, insert on public.cv_versions to authenticated;
 grant select on public.site_settings to authenticated;
-grant select, insert on public.audit_events to authenticated;
+grant select on public.audit_events to authenticated;
 grant select on public.deployment_checks to authenticated;
-grant insert on public.deployment_checks to service_role;
+grant insert, update on public.deployment_checks to service_role;
+grant select (deployment_id, project_id, git_sha, run_id, status)
+on public.deployment_checks to service_role;
 
 revoke execute on function private.valid_project_document(jsonb, boolean) from public;
 revoke execute on function private.valid_project_links(jsonb) from public;
+revoke execute on function private.valid_credential_skills(text[]) from public;
 revoke execute on function private.project_excerpt(jsonb) from public;
 revoke execute on function private.slug_base(text) from public;
 revoke execute on function private.is_admin() from public;
 revoke execute on function private.is_current_credential_publication(uuid) from public;
+revoke execute on function private.asset_mutation_attested(uuid, text, bigint, text[], text)
+from public;
 revoke execute on function private.reject_mutation() from public;
 revoke execute on function private.protect_asset_update() from public;
+revoke execute on function private.protect_deployment_check_update() from public;
 revoke execute on function private.lock_published_slug() from public;
 revoke execute on function private.record_audit(uuid, text, uuid, text, text[]) from public;
+revoke execute on function private.record_cv_upload_audit() from public;
+revoke execute on function private.record_asset_upload_audit() from public;
 revoke execute on function public.current_user_is_admin() from public, anon, service_role;
+revoke execute on function public.finalize_asset(
+  uuid,
+  text,
+  bigint,
+  text,
+  integer,
+  integer,
+  text,
+  bigint,
+  bigint,
+  text
+) from public, anon, service_role;
+revoke execute on function public.publish_asset(uuid, text, text, bigint, text)
+from public, anon, service_role;
+revoke execute on function public.revert_asset_publication(uuid, text, bigint, text)
+from public, anon, service_role;
+revoke execute on function public.claim_pending_assets_for_cleanup(integer, bigint, text, uuid)
+from public, service_role;
+revoke execute on function public.finish_pending_asset_cleanup(uuid[], bigint, text, uuid)
+from public, service_role;
+revoke execute on function public.release_pending_asset_cleanup(uuid[], bigint, text, uuid)
+from public, service_role;
+revoke execute on function public.record_admin_login() from public, anon, service_role;
+revoke execute on function public.record_admin_logout() from public, anon, service_role;
+revoke execute on function public.record_content_export() from public, anon, service_role;
+revoke execute on function public.record_assets_export() from public, anon, service_role;
+revoke execute on function public.record_audit_export() from public, anon, service_role;
+revoke execute on function public.record_deployment_retry() from public, anon, service_role;
+revoke execute on function public.current_cv_download() from public, service_role;
 revoke execute on function public.create_project(text) from public, anon, service_role;
-revoke execute on function public.save_project_draft(uuid, bigint, text, jsonb, uuid, jsonb) from public, anon, service_role;
+revoke execute on function public.save_project_draft(uuid, bigint, text, jsonb, uuid, text, jsonb) from public, anon, service_role;
 revoke execute on function public.publish_project(uuid, bigint) from public, anon, service_role;
 revoke execute on function public.archive_project(uuid) from public, anon, service_role;
 revoke execute on function public.set_project_order(uuid, integer) from public, anon, service_role;
@@ -1553,8 +2539,37 @@ revoke execute on function public.set_current_cv(uuid) from public, anon, servic
 grant execute on function private.is_admin() to authenticated;
 grant execute on function private.is_current_credential_publication(uuid) to anon, authenticated;
 grant execute on function public.current_user_is_admin() to authenticated;
+grant execute on function public.finalize_asset(
+  uuid,
+  text,
+  bigint,
+  text,
+  integer,
+  integer,
+  text,
+  bigint,
+  bigint,
+  text
+) to authenticated;
+grant execute on function public.publish_asset(uuid, text, text, bigint, text)
+to authenticated;
+grant execute on function public.revert_asset_publication(uuid, text, bigint, text)
+to authenticated;
+grant execute on function public.claim_pending_assets_for_cleanup(integer, bigint, text, uuid)
+to anon, authenticated;
+grant execute on function public.finish_pending_asset_cleanup(uuid[], bigint, text, uuid)
+to anon, authenticated;
+grant execute on function public.release_pending_asset_cleanup(uuid[], bigint, text, uuid)
+to anon, authenticated;
+grant execute on function public.record_admin_login() to authenticated;
+grant execute on function public.record_admin_logout() to authenticated;
+grant execute on function public.record_content_export() to authenticated;
+grant execute on function public.record_assets_export() to authenticated;
+grant execute on function public.record_audit_export() to authenticated;
+grant execute on function public.record_deployment_retry() to authenticated;
+grant execute on function public.current_cv_download() to anon, authenticated;
 grant execute on function public.create_project(text) to authenticated;
-grant execute on function public.save_project_draft(uuid, bigint, text, jsonb, uuid, jsonb) to authenticated;
+grant execute on function public.save_project_draft(uuid, bigint, text, jsonb, uuid, text, jsonb) to authenticated;
 grant execute on function public.publish_project(uuid, bigint) to authenticated;
 grant execute on function public.archive_project(uuid) to authenticated;
 grant execute on function public.set_project_order(uuid, integer) to authenticated;
@@ -1582,5 +2597,12 @@ grant execute on function public.set_current_cv(uuid) to authenticated;
 -- database owner with:
 -- insert into private.admin_users (slot, user_id)
 -- values (1, '<first-user-uuid>'), (2, '<second-user-uuid>');
+--
+-- Configure the shared HMAC secret separately as the database owner, using the
+-- same 32+ character value as Vercel ASSET_MUTATION_SECRET:
+-- insert into private.runtime_secrets (name, secret)
+-- values ('asset_mutation', '<same-secret-as-vercel>')
+-- on conflict (name) do update
+-- set secret = excluded.secret, updated_at = now();
 
 commit;
