@@ -7,14 +7,18 @@ credential or secret belongs in this document or in Git.
 
 ## 1. Supabase
 
-1. Create the organization `Artkin Carreon`.
-2. Create the project `artkin-portfolio` in the Singapore region.
-3. Before changing the database, confirm the organization name, project
-   reference, and region in the Supabase dashboard.
-4. Apply `supabase/migrations/202607300001_admin_v1.sql` once through a normal
-   migration workflow.
+1. Use the organization `Portfolio`.
+2. Use the project `artkin-portfolio-sg` (`jdslgvmqeoeixkhejdyb`) in the
+   Singapore region (`ap-southeast-1`).
+3. Confirm the organization name, project reference, and region in the
+   Supabase dashboard before any later database change.
+4. Migration `20260814045615_admin_v1` has been applied from
+   `supabase/migrations/20260814045615_admin_v1.sql`.
 5. Run `supabase/tests/admin_v1_rls.sql` against a disposable or reset test
    database. Never run the test script against production data.
+
+The older `artkin-portfolio` project in Mumbai remains unused and empty. Do
+not configure Auth or apply the Admin v1 schema there.
 
 If the numbered migration has already been applied to an existing database,
 move later SQL changes into a new forward migration instead of rerunning it.

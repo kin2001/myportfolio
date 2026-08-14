@@ -328,7 +328,7 @@ create table public.assets (
           purpose in ('project_image', 'credential_image')
           and width > 0
           and height > 0
-          and pg_catalog.greatest(width, height) <= 2400
+          and greatest(width, height) <= 2400
           and private_derivative_key is not null
           and private_derivative_size_bytes is not null
         )
@@ -755,7 +755,7 @@ begin
         and p_mime_type in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')
         and p_width between 1 and 2400
         and p_height between 1 and 2400
-        and pg_catalog.greatest(p_width, p_height) <= 2400
+        and greatest(p_width, p_height) <= 2400
         and p_private_derivative_key ~ (
           '^ready/' || p_asset_id::text
           || '/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/image[.]webp$'

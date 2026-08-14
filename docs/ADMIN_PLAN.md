@@ -24,8 +24,9 @@ project-file uploads are deferred.
 
 ### Service setup
 
-- Create a new Supabase organization named `Artkin Carreon`.
-- Create a dedicated project named `artkin-portfolio` in the Singapore region.
+- Use the Supabase organization named `Portfolio`.
+- Use the dedicated project named `artkin-portfolio-sg` in the Singapore
+  region. The suffix distinguishes it from the unused Mumbai project.
 - Verify the exact organization, project reference, and region before applying
   migrations; never record credentials in documentation.
 - Create R2 buckets:
