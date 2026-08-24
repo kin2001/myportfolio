@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getRequestOrigin } from "@/lib/request-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function safeNext(value: string | null) {
@@ -7,27 +8,28 @@ function safeNext(value: string | null) {
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
+  const origin = getRequestOrigin(request);
   const code = url.searchParams.get("code");
   const supabase = await createSupabaseServerClient();
   if (!code || !supabase) {
-    return NextResponse.redirect(new URL("/admin/login?error=oauth_callback_failed", request.url));
+    return NextResponse.redirect(new URL("/admin/login?error=oauth_callback_failed", origin));
   }
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return NextResponse.redirect(new URL("/admin/login?error=oauth_callback_failed", request.url));
+  if (error) return NextResponse.redirect(new URL("/admin/login?error=oauth_callback_failed", origin));
 
   const { data: allowed } = await supabase.rpc("current_user_is_admin");
   if (allowed !== true) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(new URL("/admin/login?error=not_allowed", request.url));
+    return NextResponse.redirect(new URL("/admin/login?error=not_allowed", origin));
   }
 
   const { error: auditError } = await supabase.rpc("record_admin_login");
   if (auditError) {
     await supabase.auth.signOut();
     return NextResponse.redirect(
-      new URL("/admin/login?error=oauth_callback_failed", request.url),
+      new URL("/admin/login?error=oauth_callback_failed", origin),
     );
   }
-  return NextResponse.redirect(new URL(safeNext(url.searchParams.get("next")), request.url));
+  return NextResponse.redirect(new URL(safeNext(url.searchParams.get("next")), origin));
 }
