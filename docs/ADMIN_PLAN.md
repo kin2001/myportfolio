@@ -10,7 +10,8 @@ The v1 stack will be:
 - Next.js App Router for public pages, admin UI, Server Actions, and Route
   Handlers.
 - Supabase Auth and Postgres for two administrators and structured content.
-- Cloudflare R2 for project images, credential evidence, and every CV version.
+- Supabase Storage for project images, credential evidence, and every CV
+  version.
 - Vercel Hobby for the publicly viewable personal test deployment.
 - Vercel Web Analytics and Speed Insights for traffic and performance.
 - Better Stack for uptime and runtime-error monitoring.
@@ -29,13 +30,13 @@ project-file uploads are deferred.
   region. The suffix distinguishes it from the unused Mumbai project.
 - Verify the exact organization, project reference, and region before applying
   migrations; never record credentials in documentation.
-- Create R2 buckets:
-  - `artkin-portfolio-private` for originals, drafts, all CV versions, and
+- Create Supabase Storage buckets:
+  - `portfolio-private` for originals, drafts, all CV versions, and
     private credential evidence.
-  - `artkin-portfolio-public` for optimized published images and publicly
+  - `portfolio-public` for optimized published images and publicly
     visible credential evidence.
-- Use the generated `r2.dev` address during testing. Connect
-  `assets.artkincarreon.com` after purchasing the domain.
+- Keep direct client writes disabled. Admin-only server routes issue
+  single-object upload tokens and short-lived private preview URLs.
 - Replace the unused Netlify configuration with Vercel configuration only after
   the Vercel project is connected.
 
@@ -60,8 +61,8 @@ project-file uploads are deferred.
   - Audit records are append-only.
   - Private CV versions, drafts, and private evidence are never anonymously
     readable.
-- Service-role credentials remain server-only and are used only by the signed
-  deployment-check ingestion endpoint—not normal browser/admin operations.
+- Service-role credentials remain server-only and are used for Storage
+  operations and the signed deployment-check ingestion endpoint.
 
 ### Core data contracts
 
@@ -72,7 +73,7 @@ Use these records:
 - `project_drafts`: mutable title, documentation blocks, optional cover,
   optional links, and optimistic-lock version.
 - `project_publications`: immutable snapshots created on each publication.
-- `assets`: R2 object keys, MIME type, dimensions, size, checksum, processing
+- `assets`: Storage object keys, MIME type, dimensions, size, checksum, processing
   state, ownership, and visibility.
 - `credentials` and `credential_publications`: mutable draft plus immutable
   published snapshot.
@@ -154,7 +155,7 @@ ready” state:
 - Latest internal-link and smoke-check result.
 - Draft, published, and archived project totals.
 - Credential count and current CV version.
-- R2 storage estimate and warnings.
+- Supabase Storage estimate and warnings.
 - Recent administrator activity.
 
 Provider requests run server-side, cache briefly, and show “Unavailable” with
@@ -220,8 +221,8 @@ originals are retained.
 - CV and credential PDFs: PDF only, maximum 10 MB.
 - Reject SVG, HTML, DOCX, ZIP, executable, and mismatched file signatures.
 - Generate server-controlled UUID object keys.
-- Upload directly to the private bucket using short-lived, single-object
-  presigned URLs.
+- Upload directly to the private bucket using short-lived, single-object upload
+  tokens.
 - Finalization verifies the object, checksum, actual MIME type, and decoded
   image dimensions.
 - Strip EXIF/GPS metadata.
@@ -233,10 +234,8 @@ originals are retained.
 - Asset states are `pending → ready → published`.
 - Run one daily authenticated cleanup for abandoned pending uploads older than
   24 hours.
-- Track total verified bytes, warn at 6 GB and 7.5 GB, and block new uploads
-  when tracked storage would exceed 8 GB.
-- Configure a Cloudflare billing alert because application counters cannot
-  impose a Cloudflare spending cap.
+- Track total verified bytes, warn at 700 MB and 850 MB, and block new uploads
+  when tracked storage would exceed 900 MB.
 
 ### CV management
 
@@ -245,9 +244,9 @@ originals are retained.
 - Previous versions are never deleted in v1.
 - Administrators can preview/download any version using a short-lived signed
   URL.
-- “Set as current” copies the selected version to the stable public R2 key used
-  by `/resume.pdf`.
-- Only the current copy is publicly downloadable.
+- “Set as current” updates the protected database pointer used by
+  `/resume.pdf`.
+- Only the selected private version is streamed by `/resume.pdf`.
 - Replacing or restoring the current version never overwrites the retained
   private versions.
 - Public CV responses use attachment disposition and `nosniff`.
@@ -272,7 +271,7 @@ Optional fields:
 Each credential follows Draft → Preview → Publish → Archive. Evidence visibility
 is chosen per credential:
 
-- Public evidence is copied to the public R2 bucket and displayed or downloaded
+- Public evidence is copied to the public Storage bucket and displayed or downloaded
   from the credential page.
 - Private evidence remains admin-only while the credential record can still be
   public.
@@ -300,7 +299,7 @@ Provide separate downloads for:
 
 - Complete content JSON including drafts and immutable publications.
 - Audit CSV.
-- R2 asset manifest containing object keys, sizes, MIME types, and checksums.
+- Storage asset manifest containing object keys, sizes, MIME types, and checksums.
 
 Label this feature “Content export,” not “Full backup.” Original media can be
 retained manually in Google Drive; automatic Drive synchronization is deferred.
@@ -317,8 +316,8 @@ retained manually in Google Drive; automatic Drive synchronization is deferred.
   Supabase pauses or a later build fails.
 - A server-only Deploy Hook triggers after project/credential publication,
   archiving, or ordering changes.
-- Current CV changes update the stable R2 object without requiring a full
-  deployment.
+- Current CV changes update the protected database pointer without requiring a
+  full deployment.
 
 ### Post-deployment validation
 
@@ -346,7 +345,7 @@ When the custom domain is purchased, update together:
 - Vercel production domain.
 - Google OAuth authorized origins and Supabase redirect allowlist.
 - Turnstile hostnames.
-- R2 CORS and `assets.artkincarreon.com`.
+- Supabase Auth redirect and Storage access checks.
 - Better Stack monitors.
 - Analytics configuration.
 - Search Console and sitemap submission.
@@ -356,11 +355,11 @@ When the custom domain is purchased, update together:
 ### Delivery phases
 
 1. Save this approved plan as `docs/ADMIN_PLAN.md` and commit it.
-2. Create and verify Supabase, R2, Vercel, Google OAuth, and Better Stack
+2. Create and verify Supabase, Vercel, Google OAuth, and Better Stack
    resources.
 3. Add Supabase clients, migrations, grants, RLS tests, Google login, protected
    layouts, and the two-user allowlist.
-4. Add the R2 upload, validation, optimization, preview, cleanup, and
+4. Add the Supabase Storage upload, validation, optimization, preview, cleanup, and
    storage-warning pipeline.
 5. Replace static project arrays with draft/publication records; implement the
    block editor, preview, publishing, ordering, static public rendering, and
@@ -393,7 +392,7 @@ staging unrelated user files.
 - Home uses the first three manually ordered published projects.
 - Invalid images, oversized files, MIME mismatches, SVG/HTML, missing alt text,
   and expired upload URLs are rejected.
-- Draft/private R2 objects cannot be opened publicly.
+- Draft/private Storage objects cannot be opened publicly.
 - Published assets render responsively without layout shift.
 - Every CV version remains private; `/resume.pdf` downloads only the selected
   current version.
@@ -420,8 +419,8 @@ staging unrelated user files.
 - The two Gmail addresses will be supplied securely during authentication setup
   and never committed.
 - No sample project, credential, client, outcome, or metric will be invented.
-- Cloudflare R2 is the live asset store; Google Drive is optional manual backup
-  storage.
+- Supabase Storage is the live asset store; Google Drive is optional manual
+  backup storage.
 - The current visual baseline remains authoritative. The simplified project
   cards and project-page cover are intentional content-driven deviations and
   require screenshot review before updating the approved-baseline commit.

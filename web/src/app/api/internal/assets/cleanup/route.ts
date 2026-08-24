@@ -2,17 +2,14 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import {
   assetMutationAttestation,
-  type ClaimedCurrentCvSource,
   type ClaimedPublicationSource,
   writeClaimedPublicationSource,
-  writeClaimedCurrentCv,
 } from "@/lib/assets";
 import { getSupabasePublicConfig } from "@/lib/env";
 import {
-  CURRENT_CV_POINTER_KEY,
   deletePrivateObject,
   retirePublicObject,
-} from "@/lib/r2";
+} from "@/lib/supabase/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,10 +33,6 @@ type RevertCandidate = {
 
 type PublicationCandidate = ClaimedPublicationSource & {
   asset_id: string;
-  claim_token: string;
-};
-
-type CvCandidate = ClaimedCurrentCvSource & {
   claim_token: string;
 };
 
@@ -252,72 +245,12 @@ export async function GET(request: Request) {
   );
   const revertFailed = Boolean(revertClaimError) || !revertResults.every(Boolean);
 
-  const cvClaim = assetMutationAttestation(administratorId, "cv_recover", [
-    CURRENT_CV_POINTER_KEY,
-  ]);
-  const { data: staleCvTransitions, error: cvClaimError } = await supabase.rpc(
-    "claim_stale_current_cv_transition",
-    {
-      p_attestation_timestamp: cvClaim.timestamp,
-      p_attestation_signature: cvClaim.signature,
-      p_administrator_id: administratorId,
-    },
-  );
-  const cvCandidate = ((cvClaimError ? [] : staleCvTransitions ?? []) as CvCandidate[])[0];
-  let cvFailed = Boolean(cvClaimError);
-  if (cvCandidate) {
-    let recovered = false;
-    try {
-      const wrote = await writeClaimedCurrentCv(cvCandidate, async () => {
-        const confirmation = assetMutationAttestation(
-          administratorId,
-          "cv_confirm",
-          [cvCandidate.claim_token],
-        );
-        const { data: confirmed, error: confirmationError } = await supabase.rpc(
-          "confirm_current_cv_transition",
-          {
-            p_claim_token: cvCandidate.claim_token,
-            p_attestation_timestamp: confirmation.timestamp,
-            p_attestation_signature: confirmation.signature,
-            p_administrator_id: administratorId,
-          },
-        );
-        return !confirmationError && confirmed === true;
-      });
-      if (wrote) {
-        const finish = assetMutationAttestation(administratorId, "cv_finish", [
-          cvCandidate.cv_version_id,
-          cvCandidate.generation,
-          cvCandidate.checksum_sha256,
-          cvCandidate.claim_token,
-        ]);
-        const { data, error } = await supabase.rpc(
-          "finish_current_cv_transition",
-          {
-            p_cv_version_id: cvCandidate.cv_version_id,
-            p_generation: cvCandidate.generation,
-            p_checksum_sha256: cvCandidate.checksum_sha256,
-            p_claim_token: cvCandidate.claim_token,
-            p_attestation_timestamp: finish.timestamp,
-            p_attestation_signature: finish.signature,
-            p_administrator_id: administratorId,
-          },
-        );
-        recovered = !error && data === true;
-      }
-    } catch {
-      recovered = false;
-    }
-    cvFailed = !recovered;
-  }
   if (
     cleanupClaimFailed ||
     finishFailed ||
     failedIds.length > 0 ||
     publicationFailed ||
-    revertFailed ||
-    cvFailed
+    revertFailed
   ) {
     return response(
       {
@@ -334,6 +267,5 @@ export async function GET(request: Request) {
     released: 0,
     published: publicationResults.length,
     reverted: revertResults.length,
-    cvRecovered: Boolean(cvCandidate),
   });
 }

@@ -8,7 +8,7 @@ import {
   maxBytesForPurpose,
   newAssetIdentity,
 } from "@/lib/assets";
-import { createPrivateUploadUrl } from "@/lib/r2";
+import { createPrivateUploadToken } from "@/lib/supabase/storage";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -111,24 +111,22 @@ export async function POST(request: Request) {
     return NextResponse.json(
       assetError(
         "storage_limit_reached",
-        "New uploads are blocked because tracked storage would exceed 8 GB.",
+        "New uploads are blocked because tracked storage would exceed 900 MB.",
       ),
       { status: 409 },
     );
   }
 
   const { id, objectKey } = newAssetIdentity(admin.id);
-  let signed:
-    | { uploadUrl: string; headers: Record<string, string> }
-    | null;
+  let signed: { path: string; token: string } | null;
   try {
-    signed = await createPrivateUploadUrl(objectKey, mimeType, sizeBytes as number);
+    signed = await createPrivateUploadToken(objectKey);
   } catch {
     signed = null;
   }
   if (!signed) {
     return NextResponse.json(
-      assetError("r2_unavailable", "Asset storage is not configured or unavailable."),
+      assetError("storage_unavailable", "Supabase Storage is not configured or unavailable."),
       { status: 503 },
     );
   }
@@ -150,7 +148,11 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(
-    assetSuccess({ assetId: id, uploadUrl: signed.uploadUrl, headers: signed.headers }),
+    assetSuccess({
+      assetId: id,
+      uploadPath: signed.path,
+      uploadToken: signed.token,
+    }),
     { status: 201 },
   );
 }

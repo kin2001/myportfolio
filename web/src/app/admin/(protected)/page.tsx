@@ -26,12 +26,12 @@ function bytes(value: number) {
   return `${amount.toFixed(amount >= 10 ? 1 : 2)} ${unit}`;
 }
 
-const GIB = 1024 ** 3;
+const MIB = 1024 ** 2;
 
 function storageState(value: number) {
-  if (value >= 8 * GIB) return { label: "BLOCKED", className: "muted" };
-  if (value >= 7.5 * GIB) return { label: "NEAR LIMIT", className: "muted" };
-  if (value >= 6 * GIB) return { label: "WARNING", className: "muted" };
+  if (value >= 900 * MIB) return { label: "BLOCKED", className: "muted" };
+  if (value >= 850 * MIB) return { label: "NEAR LIMIT", className: "muted" };
+  if (value >= 700 * MIB) return { label: "WARNING", className: "muted" };
   return { label: "OK", className: "accent" };
 }
 
@@ -54,7 +54,7 @@ export default async function AdminDashboard() {
           .maybeSingle(),
         supabase
           .from("site_settings")
-          .select("current_cv_version_id,current_cv_public_object_key")
+          .select("current_cv_version_id")
           .eq("singleton", true)
           .maybeSingle(),
         supabase
@@ -284,7 +284,7 @@ export default async function AdminDashboard() {
             </span>
             <span className="text-sm ink-soft">
               {databaseAvailable
-                ? `${bytes(trackedBytes)} tracked across private originals, private derivatives, and public copies; ${readyAssets} validated assets. Warn at 6 GB, near-limit at 7.5 GB, uploads block at 8 GB.`
+                ? `${bytes(trackedBytes)} tracked across private originals, private derivatives, and public copies; ${readyAssets} validated assets. Warn at 700 MB, near-limit at 850 MB, uploads block at 900 MB.`
                 : "Storage records could not be read"}
             </span>
           </div>

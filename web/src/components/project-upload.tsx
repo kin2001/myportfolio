@@ -2,12 +2,12 @@
 
 import { useId, useState } from "react";
 import type { MutationResult } from "@/lib/portfolio-types";
+import {
+  uploadSignedAsset,
+  type SignedAssetUpload,
+} from "@/lib/supabase/storage-upload";
 
-type UploadReady = {
-  assetId: string;
-  uploadUrl?: string;
-  headers?: Record<string, string>;
-};
+type UploadReady = SignedAssetUpload;
 
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
@@ -56,19 +56,14 @@ export function ProjectUpload({
       });
       const initiate =
         (await initiateResponse.json()) as MutationResult<UploadReady>;
-      if (!initiateResponse.ok || !initiate.ok || !initiate.data.uploadUrl) {
+      if (!initiateResponse.ok || !initiate.ok) {
         throw new Error(
           initiate.ok ? "Upload could not be started." : initiate.error.message,
         );
       }
 
       setStatus("Uploading…");
-      const uploadResponse = await fetch(initiate.data.uploadUrl, {
-        method: "PUT",
-        headers: initiate.data.headers ?? { "content-type": file.type },
-        body: file,
-      });
-      if (!uploadResponse.ok) throw new Error("The image upload failed.");
+      await uploadSignedAsset(initiate.data, file);
 
       setStatus("Validating image…");
       const checksumSha256 = hex(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));

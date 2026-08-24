@@ -5,16 +5,13 @@ import type { MutationResult } from "@/lib/portfolio-types";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  CURRENT_CV_POINTER_KEY,
   createPrivatePreviewUrl,
-  headPublicObjectVersion,
+  publicObjectExists,
   readPrivateObject,
-  readCurrentCvPointer,
   readVerifiedPrivatePdf,
   retirePublicObject,
-  writePrivateObject,
   writePublicObject,
-} from "@/lib/r2";
+} from "@/lib/supabase/storage";
 
 export const ASSET_PURPOSES = [
   "project_image",
@@ -33,11 +30,6 @@ export type AssetMutationOperation =
   | "revert_claim"
   | "revert_finish"
   | "revert_release"
-  | "cv_claim"
-  | "cv_confirm"
-  | "cv_finish"
-  | "cv_release"
-  | "cv_recover"
   | "cleanup_claim"
   | "cleanup_finish"
   | "cleanup_release";
@@ -51,7 +43,7 @@ export const IMAGE_MIME_TYPES = [
 
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_PDF_BYTES = 10 * 1024 * 1024;
-export const MAX_TRACKED_BYTES = 8 * 1024 * 1024 * 1024;
+export const MAX_TRACKED_BYTES = 900 * 1024 * 1024;
 
 export type AssetRow = {
   id: string;
@@ -81,58 +73,6 @@ export type ClaimedPublicationSource = {
   public_mime_type: string;
 };
 
-export type ClaimedCurrentCvSource = {
-  cv_version_id: string;
-  object_key: string;
-  size_bytes: number;
-  checksum_sha256: string;
-  generation: string;
-  expected_pointer_etag: string | null;
-  expected_pointer_absent: boolean;
-};
-
-export async function writeClaimedCurrentCv(
-  source: ClaimedCurrentCvSource,
-  confirmClaim: () => Promise<boolean>,
-) {
-  const body = await readVerifiedPrivatePdf({
-    key: source.object_key,
-    sizeBytes: source.size_bytes,
-    checksumSha256: source.checksum_sha256,
-  });
-  if (!body) return false;
-  const pointer = await readCurrentCvPointer();
-  if (!pointer) return false;
-  if (
-    "etag" in pointer &&
-    !("invalid" in pointer) &&
-    pointer.versionId === source.cv_version_id &&
-    pointer.objectKey === source.object_key &&
-    pointer.sizeBytes === source.size_bytes &&
-    pointer.checksumSha256 === source.checksum_sha256 &&
-    pointer.generation.toLowerCase() === source.generation.toLowerCase()
-  ) return confirmClaim();
-
-  const condition = source.expected_pointer_absent
-    ? { absent: true as const }
-    : source.expected_pointer_etag
-      ? { etag: source.expected_pointer_etag }
-      : null;
-  if (!condition || !(await confirmClaim())) return false;
-  return writePrivateObject(
-    CURRENT_CV_POINTER_KEY,
-    Buffer.from(JSON.stringify({
-      versionId: source.cv_version_id,
-      objectKey: source.object_key,
-      sizeBytes: source.size_bytes,
-      checksumSha256: source.checksum_sha256,
-      generation: source.generation,
-    })),
-    "application/json",
-    condition,
-  );
-}
-
 export async function writeClaimedPublicationSource(
   source: ClaimedPublicationSource,
 ) {
@@ -155,15 +95,13 @@ export async function writeClaimedPublicationSource(
     if (!body || body.byteLength !== source.source_size_bytes) return false;
   }
   if (!body) return false;
-  const existing = await headPublicObjectVersion(source.public_object_key);
-  if (!existing) return false;
-  if ("etag" in existing) return !existing.retired;
+  const existing = await publicObjectExists(source.public_object_key);
+  if (existing === null) return false;
+  if (existing) return true;
   return writePublicObject({
     key: source.public_object_key,
     body,
     contentType: source.public_mime_type,
-    cacheControl: "public,max-age=0,must-revalidate",
-    condition: { absent: true },
   });
 }
 
@@ -363,7 +301,7 @@ export async function publishAsset(
       public_object_key: publicObjectKey,
       public_mime_type: publicMimeType,
     });
-    if (!copied) throw new Error("R2 is not configured.");
+    if (!copied) throw new Error("Supabase Storage is not configured.");
 
     const finish = assetMutationAttestation(admin.id, "publish_finish", [
       asset.id,

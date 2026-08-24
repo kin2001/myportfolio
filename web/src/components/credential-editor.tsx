@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { MutationResult } from "@/lib/portfolio-types";
+import {
+  uploadSignedAsset,
+  type SignedAssetUpload,
+} from "@/lib/supabase/storage-upload";
 
 export type CredentialRecord = {
   id: string;
@@ -23,7 +27,7 @@ export type CredentialRecord = {
 };
 
 export type CredentialInput = Omit<CredentialRecord, "slug" | "lifecycleState">;
-type AssetUpload = { assetId: string; uploadUrl: string; headers?: Record<string, string> };
+type AssetUpload = SignedAssetUpload;
 
 async function uploadEvidence(file: File): Promise<string> {
   const image = ["image/jpeg", "image/png", "image/webp", "image/avif"].includes(file.type);
@@ -49,8 +53,7 @@ async function uploadEvidence(file: File): Promise<string> {
     throw new Error(initiated.ok ? "Could not start the upload." : initiated.error.message);
   }
   const upload = initiated.data;
-  const put = await fetch(upload.uploadUrl, { method: "PUT", headers: upload.headers, body: file });
-  if (!put.ok) throw new Error("Could not upload the evidence.");
+  await uploadSignedAsset(upload, file);
   const checksumSha256 = Array.from(
     new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())),
     (byte) => byte.toString(16).padStart(2, "0"),

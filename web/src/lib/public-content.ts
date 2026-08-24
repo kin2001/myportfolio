@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 import { getSupabasePublicConfig } from "@/lib/env";
+import { publicAssetUrl as supabasePublicAssetUrl } from "@/lib/supabase/storage";
 import type {
   PublishedCredential,
   PublishedProject,
@@ -51,9 +52,7 @@ function publicClient() {
 }
 
 export function publicAssetUrl(objectKey: string) {
-  const base = process.env.R2_PUBLIC_BASE_URL?.trim().replace(/\/$/, "");
-  if (!base) return null;
-  return `${base}/${objectKey.split("/").map(encodeURIComponent).join("/")}`;
+  return supabasePublicAssetUrl(objectKey);
 }
 
 export async function getPublishedProjects(): Promise<PublishedProject[]> {

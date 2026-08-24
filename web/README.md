@@ -22,7 +22,7 @@ Webpack is selected explicitly because this Windows environment falls back to We
 
 - Public projects and credentials are generated from immutable Supabase publication snapshots during Vercel builds.
 - Drafts, CV history, audit records, asset metadata, and private evidence are admin-only.
-- Cloudflare R2 stores private originals and optimized public derivatives.
+- Supabase Storage stores private originals and optimized public derivatives.
 - Do not add sample clients, metrics, employers, testimonials, or credentials.
 - Publish only records that have been verified and approved.
 
@@ -30,4 +30,4 @@ Webpack is selected explicitly because this Windows environment falls back to We
 
 Copy .env.example to .env.local and fill in local values. Only variables prefixed with NEXT_PUBLIC_ are exposed to the browser.
 
-See `../docs/ADMIN_SETUP.md` for the external Supabase, R2, Vercel, Better Stack, Google OAuth, and GitHub configuration that cannot be created from this repository.
+See `../docs/ADMIN_SETUP.md` for the external Supabase, Vercel, Better Stack, Google OAuth, and GitHub configuration that cannot be created from this repository.

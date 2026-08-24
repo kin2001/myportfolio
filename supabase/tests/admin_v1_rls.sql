@@ -137,11 +137,7 @@ select pg_temp.assert_true(
         'record_assets_export',
         'record_audit_export',
         'record_deployment_retry',
-        'claim_current_cv_transition',
-        'confirm_current_cv_transition',
-        'finish_current_cv_transition',
-        'release_current_cv_transition',
-        'claim_stale_current_cv_transition',
+        'set_current_cv',
         'create_project',
         'save_project_draft',
         'publish_project',
@@ -205,11 +201,7 @@ select pg_temp.assert_true(
         'record_assets_export',
         'record_audit_export',
         'record_deployment_retry',
-        'claim_current_cv_transition',
-        'confirm_current_cv_transition',
-        'finish_current_cv_transition',
-        'release_current_cv_transition',
-        'claim_stale_current_cv_transition',
+        'set_current_cv',
         'create_project',
         'save_project_draft',
         'publish_project',
@@ -1157,70 +1149,7 @@ select pg_temp.assert_true(
   'CV insertion must emit one atomic upload audit event'
 );
 
-select coalesce(current_cv_version_id::text, '') as version_id
-from public.site_settings
-where singleton
-\gset cv_expected_
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_claim_
-
-select pg_temp.asset_signature(
-  'cv_claim',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_claim_timestamp'::bigint,
-  array[
-    :'cv_cv_version_id',
-    :'cv_expected_version_id',
-    '00000000-0000-4000-8000-000000000020',
-    pg_catalog.repeat('1', 64),
-    '',
-    'true'
-  ]
-) as signature
-\gset cv_claim_
-
-select claim_token::text as claim_token
-from public.claim_current_cv_transition(
-  :'cv_cv_version_id'::uuid,
-  nullif(:'cv_expected_version_id', '')::uuid,
-  '00000000-0000-4000-8000-000000000020'::uuid,
-  pg_catalog.repeat('1', 64),
-  null,
-  true,
-  :'cv_claim_timestamp'::bigint,
-  :'cv_claim_signature'
-)
-\gset cv_transition_
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_finish_
-
-select pg_temp.asset_signature(
-  'cv_finish',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_finish_timestamp'::bigint,
-  array[
-    :'cv_cv_version_id',
-    '00000000-0000-4000-8000-000000000020',
-    pg_catalog.repeat('1', 64),
-    :'cv_transition_claim_token'
-  ]
-) as signature
-\gset cv_finish_
-
-select public.finish_current_cv_transition(
-  :'cv_cv_version_id'::uuid,
-  '00000000-0000-4000-8000-000000000020'::uuid,
-  pg_catalog.repeat('1', 64),
-  :'cv_transition_claim_token'::uuid,
-  :'cv_finish_timestamp'::bigint,
-  :'cv_finish_signature'
-);
+select public.set_current_cv(:'cv_cv_version_id'::uuid);
 
 select pg_temp.assert_true(
   exists (
@@ -1228,196 +1157,13 @@ select pg_temp.assert_true(
     from public.site_settings
     where singleton
       and current_cv_version_id = :'cv_cv_version_id'::uuid
-      and current_cv_public_object_key = 'resume.pdf'
-      and current_cv_generation = '00000000-0000-4000-8000-000000000020'::uuid
   )
   and pg_catalog.to_regprocedure('public.current_cv_download()') is null
-  and pg_catalog.to_regprocedure('public.set_current_cv(uuid)') is null,
-  'current CV transition must keep private metadata out of anonymous RPCs'
+  and pg_catalog.to_regprocedure('public.set_current_cv(uuid)') is not null,
+  'current CV selection must keep private metadata out of anonymous RPCs'
 );
 
 select pg_catalog.set_config('test.cv_version_id', :'cv_cv_version_id', true);
-
-do $$
-declare
-  v_timestamp bigint := pg_catalog.floor(
-    pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-  )::bigint;
-  v_stale_expected constant uuid := '00000000-0000-4000-8000-000000000004';
-  v_generation constant uuid := '00000000-0000-4000-8000-000000000022';
-begin
-  perform * from public.claim_current_cv_transition(
-    pg_catalog.current_setting('test.cv_version_id')::uuid,
-    v_stale_expected,
-    v_generation,
-    pg_catalog.repeat('1', 64),
-    '"etag-current"',
-    false,
-    v_timestamp,
-    pg_temp.asset_signature(
-      'cv_claim',
-      pg_catalog.current_setting('test.admin_1')::uuid,
-      v_timestamp,
-      array[
-        pg_catalog.current_setting('test.cv_version_id'),
-        coalesce(v_stale_expected::text, ''),
-        v_generation::text,
-        pg_catalog.repeat('1', 64),
-        '"etag-current"',
-        'false'
-      ]
-    )
-  );
-  raise exception 'stale current-CV commit unexpectedly succeeded';
-exception
-  when serialization_failure then null;
-end;
-$$;
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_recovery_seed_
-
-select pg_temp.asset_signature(
-  'cv_claim',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_recovery_seed_timestamp'::bigint,
-  array[
-    :'cv_cv_version_id',
-    :'cv_cv_version_id',
-    '00000000-0000-4000-8000-000000000021',
-    pg_catalog.repeat('1', 64),
-    '"etag-current"',
-    'false'
-  ]
-) as signature
-\gset cv_recovery_seed_
-
-select claim_token::text as claim_token
-from public.claim_current_cv_transition(
-  :'cv_cv_version_id'::uuid,
-  :'cv_cv_version_id'::uuid,
-  '00000000-0000-4000-8000-000000000021'::uuid,
-  pg_catalog.repeat('1', 64),
-  '"etag-current"',
-  false,
-  :'cv_recovery_seed_timestamp'::bigint,
-  :'cv_recovery_seed_signature'
-)
-\gset cv_recovery_old_
-
-reset role;
-update public.site_settings
-set current_cv_transition_claimed_at = now() - interval '16 minutes'
-where singleton;
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_recovery_claim_
-
-select pg_temp.asset_signature(
-  'cv_recover',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_recovery_claim_timestamp'::bigint,
-  array['current-cv.json']
-) as signature
-\gset cv_recovery_claim_
-
-set local role anon;
-select claim_token::text as claim_token
-from public.claim_stale_current_cv_transition(
-  :'cv_recovery_claim_timestamp'::bigint,
-  :'cv_recovery_claim_signature',
-  pg_catalog.current_setting('test.admin_1')::uuid
-)
-\gset cv_recovery_new_
-
-reset role;
-select pg_catalog.set_config(
-  'request.jwt.claim.sub',
-  pg_catalog.current_setting('test.admin_1'),
-  true
-);
-set local role authenticated;
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_stale_confirm_
-
-select pg_temp.asset_signature(
-  'cv_confirm',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_stale_confirm_timestamp'::bigint,
-  array[:'cv_recovery_old_claim_token']
-) as signature
-\gset cv_stale_confirm_
-
-select pg_temp.assert_true(
-  not public.confirm_current_cv_transition(
-    :'cv_recovery_old_claim_token'::uuid,
-    :'cv_stale_confirm_timestamp'::bigint,
-    :'cv_stale_confirm_signature',
-    pg_catalog.current_setting('test.admin_1')::uuid
-  ),
-  'a stale current-CV token must be rejected after recovery reclaim'
-);
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_current_confirm_
-
-select pg_temp.asset_signature(
-  'cv_confirm',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_current_confirm_timestamp'::bigint,
-  array[:'cv_recovery_new_claim_token']
-) as signature
-\gset cv_current_confirm_
-
-select pg_temp.assert_true(
-  public.confirm_current_cv_transition(
-    :'cv_recovery_new_claim_token'::uuid,
-    :'cv_current_confirm_timestamp'::bigint,
-    :'cv_current_confirm_signature',
-    pg_catalog.current_setting('test.admin_1')::uuid
-  ),
-  'the current CV lease token must remain valid for the conditional pointer write'
-);
-
-select pg_catalog.floor(
-  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-)::bigint as timestamp
-\gset cv_recovery_finish_
-
-select pg_temp.asset_signature(
-  'cv_finish',
-  pg_catalog.current_setting('test.admin_1')::uuid,
-  :'cv_recovery_finish_timestamp'::bigint,
-  array[
-    :'cv_cv_version_id',
-    '00000000-0000-4000-8000-000000000021',
-    pg_catalog.repeat('1', 64),
-    :'cv_recovery_new_claim_token'
-  ]
-) as signature
-\gset cv_recovery_finish_
-
-select pg_temp.assert_true(
-  public.finish_current_cv_transition(
-    :'cv_cv_version_id'::uuid,
-    '00000000-0000-4000-8000-000000000021'::uuid,
-    pg_catalog.repeat('1', 64),
-    :'cv_recovery_new_claim_token'::uuid,
-    :'cv_recovery_finish_timestamp'::bigint,
-    :'cv_recovery_finish_signature',
-    pg_catalog.current_setting('test.admin_1')::uuid
-  ),
-  'stale current-CV transitions must be recoverable with the refreshed token'
-);
 
 reset role;
 select pg_catalog.set_config(
@@ -1872,6 +1618,17 @@ exception
 end;
 $$;
 
+do $$
+begin
+  perform public.set_current_cv(
+    pg_catalog.current_setting('test.cv_version_id')::uuid
+  );
+  raise exception 'third user unexpectedly selected the current CV';
+exception
+  when insufficient_privilege then null;
+end;
+$$;
+
 reset role;
 set local role anon;
 
@@ -2113,34 +1870,34 @@ select pg_temp.assert_true(
     'EXECUTE'
   )
   and pg_catalog.to_regprocedure('public.current_cv_download()') is null
-  and pg_catalog.to_regprocedure('public.set_current_cv(uuid)') is null
+  and pg_catalog.to_regprocedure('public.set_current_cv(uuid)') is not null
   and pg_catalog.to_regprocedure('public.publish_asset(uuid,text,text,bigint,text)') is null
   and pg_catalog.to_regprocedure('public.commit_current_cv(uuid,uuid,text,text,bigint,text)') is null
   and pg_catalog.has_function_privilege(
     'authenticated',
-    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)',
+    'public.set_current_cv(uuid)',
     'EXECUTE'
   )
   and not pg_catalog.has_function_privilege(
     'anon',
-    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)',
+    'public.set_current_cv(uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
-    'anon',
-    'public.finish_current_cv_transition(uuid,uuid,text,uuid,bigint,text,uuid)',
-    'EXECUTE'
-  )
-  and pg_catalog.has_function_privilege(
-    'anon',
-    'public.confirm_current_cv_transition(uuid,bigint,text,uuid)',
-    'EXECUTE'
-  )
-  and pg_catalog.has_function_privilege(
-    'anon',
-    'public.claim_stale_current_cv_transition(bigint,text,uuid)',
-    'EXECUTE'
-  )
+  and pg_catalog.to_regprocedure(
+    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)'
+  ) is null
+  and pg_catalog.to_regprocedure(
+    'public.finish_current_cv_transition(uuid,uuid,text,uuid,bigint,text,uuid)'
+  ) is null
+  and pg_catalog.to_regprocedure(
+    'public.confirm_current_cv_transition(uuid,bigint,text,uuid)'
+  ) is null
+  and pg_catalog.to_regprocedure(
+    'public.release_current_cv_transition(uuid,bigint,text,uuid)'
+  ) is null
+  and pg_catalog.to_regprocedure(
+    'public.claim_stale_current_cv_transition(bigint,text,uuid)'
+  ) is null
   and pg_catalog.has_function_privilege(
     'authenticated',
     'public.claim_asset_public_revert(uuid,text,bigint,text,uuid)',
@@ -2168,27 +1925,7 @@ select pg_temp.assert_true(
   )
   and not pg_catalog.has_function_privilege(
     'service_role',
-    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)',
-    'EXECUTE'
-  )
-  and not pg_catalog.has_function_privilege(
-    'service_role',
-    'public.finish_current_cv_transition(uuid,uuid,text,uuid,bigint,text,uuid)',
-    'EXECUTE'
-  )
-  and not pg_catalog.has_function_privilege(
-    'service_role',
-    'public.confirm_current_cv_transition(uuid,bigint,text,uuid)',
-    'EXECUTE'
-  )
-  and not pg_catalog.has_function_privilege(
-    'service_role',
-    'public.release_current_cv_transition(uuid,bigint,text,uuid)',
-    'EXECUTE'
-  )
-  and not pg_catalog.has_function_privilege(
-    'service_role',
-    'public.claim_stale_current_cv_transition(bigint,text,uuid)',
+    'public.set_current_cv(uuid)',
     'EXECUTE'
   )
   and not pg_catalog.has_function_privilege(

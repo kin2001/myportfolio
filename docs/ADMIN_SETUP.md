@@ -1,10 +1,10 @@
 # Admin v1 external setup
 
-The repository contains the admin application, database migrations, R2 upload
-pipeline, monitoring integrations, and deployment checks. Supabase is created
-and migrated; the remaining provider resources below still need setup in their
-respective dashboards. No credential or secret belongs in this document or in
-Git.
+The repository contains the admin application, database migrations, Supabase
+Storage upload pipeline, monitoring integrations, and deployment checks.
+Supabase is created and migrated; the remaining provider resources below still
+need setup in their respective dashboards. No credential or secret belongs in
+this document or in Git.
 
 ## 1. Supabase
 
@@ -17,9 +17,11 @@ Git.
    `supabase/migrations/20260814045615_admin_v1.sql`.
 5. Migration `20260814053000_r2_reliability.sql` has been applied.
 6. Migration `20260814140428_monitoring_snapshots.sql` has been applied.
-7. Run `supabase/tests/admin_v1_rls.sql`, then
-   `supabase/tests/monitoring_snapshots_rls.sql`, against a disposable or reset test
-   database. Never run the test script against production data.
+7. Migration `20260824122455_supabase_storage_cutover.sql` has been applied.
+8. Run `supabase/tests/admin_v1_rls.sql`,
+   `supabase/tests/monitoring_snapshots_rls.sql`, and
+   `supabase/tests/supabase_storage_cutover.sql` against a disposable or reset
+   test database. Never run the test scripts against production data.
 
 The older `artkin-portfolio` project in Mumbai remains unused and empty. Do
 not configure Auth or apply the Admin v1 schema there.
@@ -87,48 +89,30 @@ set secret = excluded.secret, updated_at = now();
 The `private` schema is not exposed through the Data API. Never put this value
 in a `NEXT_PUBLIC_` variable.
 
-## 2. Cloudflare R2
+## 2. Supabase Storage
 
-Create:
+The storage cutover migration creates:
 
-- `artkin-portfolio-private`
-- `artkin-portfolio-public`
+- `portfolio-private` for originals, drafts, all CV versions, and private
+  credential evidence.
+- `portfolio-public` for optimized published images and explicitly public
+  credential evidence.
 
-Keep public access disabled on the private bucket. Enable its generated
-`r2.dev` development address only on the public bucket, then use that address
-as `R2_PUBLIC_BASE_URL`. Cloudflare documents that `r2.dev` is rate-limited and
-intended for testing; use `assets.artkincarreon.com` after the domain is
-available. See [R2 public buckets](https://developers.cloudflare.com/r2/buckets/public-buckets/).
+The private bucket has no public read policy. Admin-only server routes create
+single-object upload tokens and short-lived preview links. The public bucket is
+readable by URL, while uploads, replacements, and removals remain server-only.
 
-Create an R2 API token restricted to these two buckets with object read and
-write access. Add its account ID, access key ID, and secret access key only to
-server-side environment variables.
+Do not add direct `storage.objects` write policies for `anon` or
+`authenticated`; exact-object upload tokens are the browser upload boundary.
+The server-side Storage client uses `SUPABASE_SERVICE_ROLE_KEY`, which must
+never use a `NEXT_PUBLIC_` prefix or enter the browser bundle.
 
-Set the private bucket CORS policy for browser uploads:
-
-```json
-[
-  {
-    "AllowedOrigins": [
-      "http://localhost:3000",
-      "https://artkincarreon.vercel.app"
-    ],
-    "AllowedMethods": ["PUT"],
-    "AllowedHeaders": ["Content-Type"],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3600
-  }
-]
-```
-
-Origins must match exactly and must not end with `/`. Cloudflare requires CORS
-for browser use of presigned URLs; see the
-[R2 CORS guide](https://developers.cloudflare.com/r2/buckets/cors/) and
-[presigned URL guide](https://developers.cloudflare.com/r2/api/s3/presigned-urls/).
-
-Configure a Cloudflare billing alert. The application warns at 6 GB and 7.5 GB
-and blocks new tracked uploads above 8 GB, but it cannot impose an account-wide
-Cloudflare spending cap.
+Supabase Free includes 1 GB of file storage. The application warns at 700 MB
+and 850 MB and blocks new tracked uploads above 900 MB, leaving a buffer for
+provider accounting and temporary processing. Check current usage under the
+Supabase organization usage page. See
+[Storage buckets](https://supabase.com/docs/guides/storage/buckets/fundamentals)
+and [Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
 
 ## 3. Vercel
 
@@ -155,13 +139,7 @@ daily cron jobs and sends `Authorization: Bearer $CRON_SECRET`; see
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public | Supabase publishable key |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public | Existing contact-form Turnstile key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server | Signed deployment-check ingestion only |
-| `R2_ACCOUNT_ID` | Server | Cloudflare account |
-| `R2_ACCESS_KEY_ID` | Server | Restricted R2 token |
-| `R2_SECRET_ACCESS_KEY` | Server | Restricted R2 token secret |
-| `R2_PRIVATE_BUCKET` | Server | `artkin-portfolio-private` |
-| `R2_PUBLIC_BUCKET` | Server | `artkin-portfolio-public` |
-| `R2_PUBLIC_BASE_URL` | Server | Public `r2.dev` address while testing |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server | Storage operations and signed deployment-check ingestion |
 | `ASSET_MUTATION_SECRET` | Server | Matches `private.runtime_secrets` |
 | `CLEANUP_ADMIN_USER_ID` | Server | UUID of one allowlisted administrator |
 | `CRON_SECRET` | Server | Separate random secret of at least 32 bytes |
@@ -235,7 +213,8 @@ critical routes, and submits a signed result. See
    then archive it.
 5. Upload two CV versions and confirm `/resume.pdf` returns only the selected
    current version as an attachment.
-6. Confirm the R2 private objects cannot be opened without signed access.
+6. Confirm objects in `portfolio-private` cannot be opened without signed
+   access, while published derivatives in `portfolio-public` load normally.
 7. Trigger a production deployment and confirm the GitHub smoke result appears
    in the admin dashboard.
 8. Confirm the three Better Stack monitors and sanitized runtime-error source.
@@ -247,6 +226,5 @@ are connected and verified.
 ## 7. Future domain migration
 
 When the custom domain is purchased, update the canonical site URL, Vercel
-domain, Google origins, Supabase redirect allowlist, Turnstile hostnames, R2
-CORS and public custom domain, Better Stack monitors, Search Console, and
-sitemap together.
+domain, Google origins, Supabase redirect allowlist, Turnstile hostnames,
+Better Stack monitors, Search Console, and sitemap together.

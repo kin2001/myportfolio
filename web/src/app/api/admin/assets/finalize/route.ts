@@ -18,7 +18,7 @@ import {
   headPrivateObject,
   readPrivateObject,
   writePrivateObject,
-} from "@/lib/r2";
+} from "@/lib/supabase/storage";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
   }
   if (!head || !bytes) {
     return NextResponse.json(
-      assetError("r2_unavailable", "Asset storage is not configured or unavailable."),
+      assetError("storage_unavailable", "Supabase Storage is not configured or unavailable."),
       { status: 503 },
     );
   }
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
         derivative.body,
         "image/webp",
       );
-      if (!stored) throw new Error("R2 is not configured.");
+      if (!stored) throw new Error("Supabase Storage is not configured.");
     } catch (optimizationError) {
       const message =
         optimizationError instanceof Error &&

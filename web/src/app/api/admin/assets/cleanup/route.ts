@@ -3,16 +3,13 @@ import {
   assetError,
   assetMutationAttestation,
   assetSuccess,
-  type ClaimedCurrentCvSource,
   type ClaimedPublicationSource,
   writeClaimedPublicationSource,
-  writeClaimedCurrentCv,
 } from "@/lib/assets";
 import {
-  CURRENT_CV_POINTER_KEY,
   deletePrivateObject,
   retirePublicObject,
-} from "@/lib/r2";
+} from "@/lib/supabase/storage";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -31,10 +28,6 @@ type RevertCandidate = {
 
 type PublicationCandidate = ClaimedPublicationSource & {
   asset_id: string;
-  claim_token: string;
-};
-
-type CvCandidate = ClaimedCurrentCvSource & {
   claim_token: string;
 };
 
@@ -84,61 +77,6 @@ async function recoverStalePublications(
     }),
   );
   return { ok: results.every(Boolean), published: results.filter(Boolean).length };
-}
-
-async function recoverStaleCurrentCv(
-  administratorId: string,
-  supabase: AdminSupabase,
-) {
-  const claim = assetMutationAttestation(administratorId, "cv_recover", [
-    CURRENT_CV_POINTER_KEY,
-  ]);
-  const { data, error } = await supabase.rpc("claim_stale_current_cv_transition", {
-    p_attestation_timestamp: claim.timestamp,
-    p_attestation_signature: claim.signature,
-  });
-  if (error) return false;
-  const candidate = ((data ?? []) as CvCandidate[])[0];
-  if (!candidate) return true;
-  try {
-    const wrote = await writeClaimedCurrentCv(candidate, async () => {
-      const confirmation = assetMutationAttestation(
-        administratorId,
-        "cv_confirm",
-        [candidate.claim_token],
-      );
-      const { data: confirmed, error: confirmationError } = await supabase.rpc(
-        "confirm_current_cv_transition",
-        {
-          p_claim_token: candidate.claim_token,
-          p_attestation_timestamp: confirmation.timestamp,
-          p_attestation_signature: confirmation.signature,
-        },
-      );
-      return !confirmationError && confirmed === true;
-    });
-    if (!wrote) return false;
-    const finish = assetMutationAttestation(administratorId, "cv_finish", [
-      candidate.cv_version_id,
-      candidate.generation,
-      candidate.checksum_sha256,
-      candidate.claim_token,
-    ]);
-    const { data: completed, error: finishError } = await supabase.rpc(
-      "finish_current_cv_transition",
-      {
-        p_cv_version_id: candidate.cv_version_id,
-        p_generation: candidate.generation,
-        p_checksum_sha256: candidate.checksum_sha256,
-        p_claim_token: candidate.claim_token,
-        p_attestation_timestamp: finish.timestamp,
-        p_attestation_signature: finish.signature,
-      },
-    );
-    return !finishError && completed === true;
-  } catch {
-    return false;
-  }
 }
 
 async function recoverStalePublicReverts(
@@ -284,12 +222,11 @@ export async function POST() {
   }
   cleanupFailed ||= failedIds.length > 0;
 
-  const [published, recovered, cvRecovered] = await Promise.all([
+  const [published, recovered] = await Promise.all([
     recoverStalePublications(admin.id, supabase),
     recoverStalePublicReverts(admin.id, supabase),
-    recoverStaleCurrentCv(admin.id, supabase),
   ]);
-  if (cleanupFailed || !published.ok || !recovered.ok || !cvRecovered) {
+  if (cleanupFailed || !published.ok || !recovered.ok) {
     return NextResponse.json(
       assetError(
         "asset_recovery_partial_failure",

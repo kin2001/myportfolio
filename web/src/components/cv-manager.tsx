@@ -2,6 +2,10 @@
 
 import { useState, useTransition } from "react";
 import type { MutationResult } from "@/lib/portfolio-types";
+import {
+  uploadSignedAsset,
+  type SignedAssetUpload,
+} from "@/lib/supabase/storage-upload";
 
 export type CvVersion = {
   id: string;
@@ -12,11 +16,7 @@ export type CvVersion = {
   uploadedAt: string;
 };
 
-type AssetUpload = {
-  assetId: string;
-  uploadUrl: string;
-  headers?: Record<string, string>;
-};
+type AssetUpload = SignedAssetUpload;
 
 function date(value: string) {
   return new Intl.DateTimeFormat("en-PH", {
@@ -44,12 +44,7 @@ async function uploadPdf(file: File): Promise<string> {
   }
   const upload = initiated.data;
 
-  const put = await fetch(upload.uploadUrl, {
-    method: "PUT",
-    headers: upload.headers,
-    body: file,
-  });
-  if (!put.ok) throw new Error("Could not upload the PDF.");
+  await uploadSignedAsset(upload, file);
 
   const checksumSha256 = Array.from(
     new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())),
