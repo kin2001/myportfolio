@@ -3,8 +3,16 @@ import {
   assetError,
   assetMutationAttestation,
   assetSuccess,
+  type ClaimedCurrentCvSource,
+  type ClaimedPublicationSource,
+  writeClaimedPublicationSource,
+  writeClaimedCurrentCv,
 } from "@/lib/assets";
-import { deletePrivateObject } from "@/lib/r2";
+import {
+  CURRENT_CV_POINTER_KEY,
+  deletePrivateObject,
+  retirePublicObject,
+} from "@/lib/r2";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -12,7 +20,176 @@ type CleanupCandidate = {
   asset_id: string;
   object_key: string;
   private_derivative_key: string | null;
+  claim_token: string;
 };
+
+type RevertCandidate = {
+  asset_id: string;
+  public_object_key: string;
+  claim_token: string;
+};
+
+type PublicationCandidate = ClaimedPublicationSource & {
+  asset_id: string;
+  claim_token: string;
+};
+
+type CvCandidate = ClaimedCurrentCvSource & {
+  claim_token: string;
+};
+
+type AdminSupabase = NonNullable<
+  Awaited<ReturnType<typeof createSupabaseServerClient>>
+>;
+
+async function recoverStalePublications(
+  administratorId: string,
+  supabase: AdminSupabase,
+) {
+  const claim = assetMutationAttestation(administratorId, "publish_recover", [
+    "100",
+  ]);
+  const { data, error } = await supabase.rpc("claim_stale_asset_publications", {
+    p_limit: 100,
+    p_attestation_timestamp: claim.timestamp,
+    p_attestation_signature: claim.signature,
+  });
+  if (error) return { ok: false, published: 0 };
+
+  const results = await Promise.all(
+    ((data ?? []) as PublicationCandidate[]).map(async (candidate) => {
+      try {
+        if (!(await writeClaimedPublicationSource(candidate))) return false;
+        const finish = assetMutationAttestation(administratorId, "publish_finish", [
+          candidate.asset_id,
+          candidate.public_object_key,
+          candidate.public_mime_type,
+          candidate.claim_token,
+        ]);
+        const { data: completed, error: finishError } = await supabase.rpc(
+          "finish_asset_publication",
+          {
+            p_asset_id: candidate.asset_id,
+            p_public_object_key: candidate.public_object_key,
+            p_public_mime_type: candidate.public_mime_type,
+            p_claim_token: candidate.claim_token,
+            p_attestation_timestamp: finish.timestamp,
+            p_attestation_signature: finish.signature,
+          },
+        );
+        return !finishError && completed === true;
+      } catch {
+        return false;
+      }
+    }),
+  );
+  return { ok: results.every(Boolean), published: results.filter(Boolean).length };
+}
+
+async function recoverStaleCurrentCv(
+  administratorId: string,
+  supabase: AdminSupabase,
+) {
+  const claim = assetMutationAttestation(administratorId, "cv_recover", [
+    CURRENT_CV_POINTER_KEY,
+  ]);
+  const { data, error } = await supabase.rpc("claim_stale_current_cv_transition", {
+    p_attestation_timestamp: claim.timestamp,
+    p_attestation_signature: claim.signature,
+  });
+  if (error) return false;
+  const candidate = ((data ?? []) as CvCandidate[])[0];
+  if (!candidate) return true;
+  try {
+    const wrote = await writeClaimedCurrentCv(candidate, async () => {
+      const confirmation = assetMutationAttestation(
+        administratorId,
+        "cv_confirm",
+        [candidate.claim_token],
+      );
+      const { data: confirmed, error: confirmationError } = await supabase.rpc(
+        "confirm_current_cv_transition",
+        {
+          p_claim_token: candidate.claim_token,
+          p_attestation_timestamp: confirmation.timestamp,
+          p_attestation_signature: confirmation.signature,
+        },
+      );
+      return !confirmationError && confirmed === true;
+    });
+    if (!wrote) return false;
+    const finish = assetMutationAttestation(administratorId, "cv_finish", [
+      candidate.cv_version_id,
+      candidate.generation,
+      candidate.checksum_sha256,
+      candidate.claim_token,
+    ]);
+    const { data: completed, error: finishError } = await supabase.rpc(
+      "finish_current_cv_transition",
+      {
+        p_cv_version_id: candidate.cv_version_id,
+        p_generation: candidate.generation,
+        p_checksum_sha256: candidate.checksum_sha256,
+        p_claim_token: candidate.claim_token,
+        p_attestation_timestamp: finish.timestamp,
+        p_attestation_signature: finish.signature,
+      },
+    );
+    return !finishError && completed === true;
+  } catch {
+    return false;
+  }
+}
+
+async function recoverStalePublicReverts(
+  administratorId: string,
+  supabase: AdminSupabase,
+) {
+  const claim = assetMutationAttestation(administratorId, "revert_claim", [
+    "100",
+  ]);
+  const { data, error } = await supabase.rpc(
+    "claim_stale_asset_public_reverts",
+    {
+      p_limit: 100,
+      p_attestation_timestamp: claim.timestamp,
+      p_attestation_signature: claim.signature,
+    },
+  );
+  if (error) return { ok: false, reverted: 0 };
+
+  const results = await Promise.all(
+    ((data ?? []) as RevertCandidate[]).map(async (candidate) => {
+      let removed = false;
+      try {
+        removed = await retirePublicObject(candidate.public_object_key);
+      } catch {
+        removed = false;
+      }
+      if (!removed) return false;
+      const attestation = assetMutationAttestation(administratorId, "revert_finish", [
+        candidate.asset_id,
+        candidate.public_object_key,
+        candidate.claim_token,
+      ]);
+      const { data: completed, error: completionError } = await supabase.rpc(
+        "finish_asset_public_revert",
+        {
+          p_asset_id: candidate.asset_id,
+          p_public_object_key: candidate.public_object_key,
+          p_claim_token: candidate.claim_token,
+          p_attestation_timestamp: attestation.timestamp,
+          p_attestation_signature: attestation.signature,
+        },
+      );
+      return !completionError && completed === true;
+    }),
+  );
+  return {
+    ok: results.every(Boolean),
+    reverted: results.filter(Boolean).length,
+  };
+}
 
 export async function POST() {
   const [admin, supabase] = await Promise.all([
@@ -48,74 +225,51 @@ export async function POST() {
       p_attestation_signature: claimAttestation.signature,
     },
   );
-  if (claimError) {
-    return NextResponse.json(
-      assetError("cleanup_query_failed", "Abandoned uploads could not be checked."),
-      { status: 500 },
-    );
-  }
-  if (!candidates?.length) {
-    return NextResponse.json(assetSuccess({ deleted: 0 }));
-  }
-
+  let cleanupFailed = Boolean(claimError);
   const removals = await Promise.all(
-    (candidates as CleanupCandidate[]).map(
-      async ({ asset_id, object_key, private_derivative_key }) => {
+    ((claimError ? [] : candidates ?? []) as CleanupCandidate[]).map(
+      async ({ asset_id, object_key, private_derivative_key, claim_token }) => {
         try {
           const results = await Promise.all(
             [object_key, private_derivative_key]
               .filter((key): key is string => Boolean(key))
               .map((key) => deletePrivateObject(key)),
           );
-          return { assetId: asset_id, removed: results.every(Boolean) };
+          return {
+            assetId: asset_id,
+            claimToken: claim_token,
+            removed: results.every(Boolean),
+          };
         } catch {
-          return { assetId: asset_id, removed: false };
+          return {
+            assetId: asset_id,
+            claimToken: claim_token,
+            removed: false,
+          };
         }
       },
     ),
   );
+  const removedClaims = removals.filter(({ removed }) => removed);
   const failedIds = removals
     .filter(({ removed }) => !removed)
     .map(({ assetId }) => assetId);
-  const removedIds = removals
-    .filter(({ removed }) => removed)
-    .map(({ assetId }) => assetId);
-
-  if (failedIds.length) {
-    const releaseAttestation = assetMutationAttestation(
-      admin.id,
-      "cleanup_release",
-      [failedIds.join(",")],
-    );
-    const { error: releaseError } = await supabase.rpc(
-      "release_pending_asset_cleanup",
-      {
-        p_ids: failedIds,
-        p_attestation_timestamp: releaseAttestation.timestamp,
-        p_attestation_signature: releaseAttestation.signature,
-      },
-    );
-    if (releaseError) {
-      return NextResponse.json(
-        assetError(
-          "cleanup_release_failed",
-          "Some cleanup claims need administrator review.",
-        ),
-        { status: 500 },
-      );
-    }
-  }
+  const removedIds = removedClaims.map(({ assetId }) => assetId);
 
   if (removedIds.length) {
     const finishAttestation = assetMutationAttestation(
       admin.id,
       "cleanup_finish",
-      [removedIds.join(",")],
+      [
+        removedIds.join(","),
+        removedClaims.map(({ claimToken }) => claimToken).join(","),
+      ],
     );
     const { data: deletedRows, error: deleteError } = await supabase.rpc(
       "finish_pending_asset_cleanup",
       {
         p_ids: removedIds,
+        p_claim_tokens: removedClaims.map(({ claimToken }) => claimToken),
         p_attestation_timestamp: finishAttestation.timestamp,
         p_attestation_signature: finishAttestation.signature,
       },
@@ -125,24 +279,30 @@ export async function POST() {
       !Array.isArray(deletedRows) ||
       deletedRows.length !== removedIds.length
     ) {
-      return NextResponse.json(
-        assetError(
-          "cleanup_delete_failed",
-          "Private objects were removed, but some cleanup records need review.",
-        ),
-        { status: 409 },
-      );
+      cleanupFailed = true;
     }
   }
+  cleanupFailed ||= failedIds.length > 0;
 
-  if (failedIds.length) {
+  const [published, recovered, cvRecovered] = await Promise.all([
+    recoverStalePublications(admin.id, supabase),
+    recoverStalePublicReverts(admin.id, supabase),
+    recoverStaleCurrentCv(admin.id, supabase),
+  ]);
+  if (cleanupFailed || !published.ok || !recovered.ok || !cvRecovered) {
     return NextResponse.json(
       assetError(
-        "cleanup_partial_failure",
-        "Some private objects could not be removed. Their claims were released.",
+        "asset_recovery_partial_failure",
+        "Some cleanup or interrupted asset transitions need administrator review.",
       ),
       { status: 503 },
     );
   }
-  return NextResponse.json(assetSuccess({ deleted: removedIds.length }));
+  return NextResponse.json(
+    assetSuccess({
+      deleted: removedIds.length,
+      published: published.published,
+      reverted: recovered.reverted,
+    }),
+  );
 }

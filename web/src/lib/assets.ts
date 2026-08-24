@@ -5,9 +5,15 @@ import type { MutationResult } from "@/lib/portfolio-types";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  copyPrivateObjectToPublic,
+  CURRENT_CV_POINTER_KEY,
   createPrivatePreviewUrl,
-  deletePublicObject,
+  headPublicObjectVersion,
+  readPrivateObject,
+  readCurrentCvPointer,
+  readVerifiedPrivatePdf,
+  retirePublicObject,
+  writePrivateObject,
+  writePublicObject,
 } from "@/lib/r2";
 
 export const ASSET_PURPOSES = [
@@ -20,8 +26,18 @@ export const ASSET_PURPOSES = [
 export type AssetPurpose = (typeof ASSET_PURPOSES)[number];
 export type AssetMutationOperation =
   | "finalize"
-  | "publish"
-  | "revert"
+  | "publish_claim"
+  | "publish_finish"
+  | "publish_release"
+  | "publish_recover"
+  | "revert_claim"
+  | "revert_finish"
+  | "revert_release"
+  | "cv_claim"
+  | "cv_confirm"
+  | "cv_finish"
+  | "cv_release"
+  | "cv_recover"
   | "cleanup_claim"
   | "cleanup_finish"
   | "cleanup_release";
@@ -55,6 +71,101 @@ export type AssetRow = {
   visibility: "private" | "public";
   owner_id: string;
 };
+
+export type ClaimedPublicationSource = {
+  source_object_key: string;
+  source_size_bytes: number;
+  source_checksum_sha256: string | null;
+  source_purpose: string;
+  public_object_key: string;
+  public_mime_type: string;
+};
+
+export type ClaimedCurrentCvSource = {
+  cv_version_id: string;
+  object_key: string;
+  size_bytes: number;
+  checksum_sha256: string;
+  generation: string;
+  expected_pointer_etag: string | null;
+  expected_pointer_absent: boolean;
+};
+
+export async function writeClaimedCurrentCv(
+  source: ClaimedCurrentCvSource,
+  confirmClaim: () => Promise<boolean>,
+) {
+  const body = await readVerifiedPrivatePdf({
+    key: source.object_key,
+    sizeBytes: source.size_bytes,
+    checksumSha256: source.checksum_sha256,
+  });
+  if (!body) return false;
+  const pointer = await readCurrentCvPointer();
+  if (!pointer) return false;
+  if (
+    "etag" in pointer &&
+    !("invalid" in pointer) &&
+    pointer.versionId === source.cv_version_id &&
+    pointer.objectKey === source.object_key &&
+    pointer.sizeBytes === source.size_bytes &&
+    pointer.checksumSha256 === source.checksum_sha256 &&
+    pointer.generation.toLowerCase() === source.generation.toLowerCase()
+  ) return confirmClaim();
+
+  const condition = source.expected_pointer_absent
+    ? { absent: true as const }
+    : source.expected_pointer_etag
+      ? { etag: source.expected_pointer_etag }
+      : null;
+  if (!condition || !(await confirmClaim())) return false;
+  return writePrivateObject(
+    CURRENT_CV_POINTER_KEY,
+    Buffer.from(JSON.stringify({
+      versionId: source.cv_version_id,
+      objectKey: source.object_key,
+      sizeBytes: source.size_bytes,
+      checksumSha256: source.checksum_sha256,
+      generation: source.generation,
+    })),
+    "application/json",
+    condition,
+  );
+}
+
+export async function writeClaimedPublicationSource(
+  source: ClaimedPublicationSource,
+) {
+  let body: Buffer | null;
+  if (source.source_purpose === "credential_pdf") {
+    if (
+      !Number.isSafeInteger(source.source_size_bytes) ||
+      source.source_size_bytes < 1 ||
+      !source.source_checksum_sha256 ||
+      !/^[0-9a-f]{64}$/.test(source.source_checksum_sha256)
+    ) return false;
+    body = await readVerifiedPrivatePdf({
+      key: source.source_object_key,
+      sizeBytes: source.source_size_bytes,
+      checksumSha256: source.source_checksum_sha256,
+    });
+  } else {
+    if (!source.source_purpose.endsWith("_image")) return false;
+    body = await readPrivateObject(source.source_object_key);
+    if (!body || body.byteLength !== source.source_size_bytes) return false;
+  }
+  if (!body) return false;
+  const existing = await headPublicObjectVersion(source.public_object_key);
+  if (!existing) return false;
+  if ("etag" in existing) return !existing.retired;
+  return writePublicObject({
+    key: source.public_object_key,
+    body,
+    contentType: source.public_mime_type,
+    cacheControl: "public,max-age=0,must-revalidate",
+    condition: { absent: true },
+  });
+}
 
 export function isAssetPurpose(value: unknown): value is AssetPurpose {
   return (
@@ -210,11 +321,11 @@ export async function publishAsset(
   }
 
   const extension = isImage ? "webp" : "pdf";
-  const publicObjectKey = `assets/${asset.id}.${extension}`;
+  const publicObjectKey = `assets/${asset.id}/${randomUUID()}.${extension}`;
   const publicMimeType = isImage ? "image/webp" : "application/pdf";
-  let attestation;
+  let claim;
   try {
-    attestation = assetMutationAttestation(admin.id, "publish", [
+    claim = assetMutationAttestation(admin.id, "publish_claim", [
       asset.id,
       publicObjectKey,
       publicMimeType,
@@ -226,37 +337,56 @@ export async function publishAsset(
     );
   }
 
-  let copied = false;
-  try {
-    copied = await copyPrivateObjectToPublic({
-      sourceKey,
-      publicKey: publicObjectKey,
-      contentType: publicMimeType,
-      cacheControl: "public,max-age=31536000,immutable",
-    });
-    if (!copied) return assetError("r2_unavailable", "Asset storage is not configured.");
+  const { data: claimData, error: claimError } = await supabase
+    .rpc("claim_asset_publication", {
+      p_asset_id: asset.id,
+      p_public_object_key: publicObjectKey,
+      p_public_mime_type: publicMimeType,
+      p_attestation_timestamp: claim.timestamp,
+      p_attestation_signature: claim.signature,
+    })
+    .single();
+  const claimed = claimData as (ClaimedPublicationSource & {
+    claim_token: string;
+  }) | null;
+  if (claimError || !claimed || typeof claimed.claim_token !== "string") {
+    return assetError(
+      "asset_publish_conflict",
+      "The asset publication is already being processed. Try again shortly.",
+    );
+  }
+  const claimToken = claimed.claim_token;
 
+  try {
+    const copied = await writeClaimedPublicationSource({
+      ...claimed,
+      public_object_key: publicObjectKey,
+      public_mime_type: publicMimeType,
+    });
+    if (!copied) throw new Error("R2 is not configured.");
+
+    const finish = assetMutationAttestation(admin.id, "publish_finish", [
+      asset.id,
+      publicObjectKey,
+      publicMimeType,
+      claimToken,
+    ]);
     const { data: newlyPublished, error: updateError } = await supabase.rpc(
-      "publish_asset",
+      "finish_asset_publication",
       {
         p_asset_id: asset.id,
         p_public_object_key: publicObjectKey,
         p_public_mime_type: publicMimeType,
-        p_attestation_timestamp: attestation.timestamp,
-        p_attestation_signature: attestation.signature,
+        p_claim_token: claimToken,
+        p_attestation_timestamp: finish.timestamp,
+        p_attestation_signature: finish.signature,
       },
     );
 
     if (updateError) {
-      const compensated = await rollbackPublishedAsset(
-        asset.id,
-        publicObjectKey,
-      );
       return assetError(
-        compensated ? "asset_publish_failed" : "asset_publish_compensation_failed",
-        compensated
-          ? "The asset could not be published."
-          : "The asset publication needs administrator review.",
+        "asset_publish_recovery_pending",
+        "The asset publication will be recovered automatically.",
       );
     }
     return assetSuccess({
@@ -264,15 +394,9 @@ export async function publishAsset(
       newlyPublished: newlyPublished === true,
     });
   } catch {
-    const compensated = await rollbackPublishedAsset(
-      asset.id,
-      publicObjectKey,
-    );
     return assetError(
-      compensated ? "asset_publish_failed" : "asset_publish_compensation_failed",
-      compensated
-        ? "The asset could not be published."
-        : "The asset publication needs administrator review.",
+      "asset_publish_recovery_pending",
+      "The asset publication will be recovered automatically.",
     );
   }
 }
@@ -288,34 +412,42 @@ export async function rollbackPublishedAsset(
   if (!admin || !supabase) return false;
 
   try {
-    const attestation = assetMutationAttestation(admin.id, "revert", [
+    const claim = assetMutationAttestation(admin.id, "revert_claim", [
       assetId,
       publicObjectKey,
     ]);
-    const { data, error } = await supabase.rpc("revert_asset_publication", {
+    const { data: claimToken, error: claimError } = await supabase.rpc(
+      "claim_asset_public_revert",
+      {
+        p_asset_id: assetId,
+        p_public_object_key: publicObjectKey,
+        p_attestation_timestamp: claim.timestamp,
+        p_attestation_signature: claim.signature,
+      },
+    );
+    if (claimError || typeof claimToken !== "string") return false;
+
+    let removed = false;
+    try {
+      removed = (await retirePublicObject(publicObjectKey)) === true;
+    } catch {
+      removed = false;
+    }
+    if (!removed) return false;
+
+    const finish = assetMutationAttestation(admin.id, "revert_finish", [
+      assetId,
+      publicObjectKey,
+      claimToken,
+    ]);
+    const { data, error } = await supabase.rpc("finish_asset_public_revert", {
       p_asset_id: assetId,
       p_public_object_key: publicObjectKey,
-      p_attestation_timestamp: attestation.timestamp,
-      p_attestation_signature: attestation.signature,
+      p_claim_token: claimToken,
+      p_attestation_timestamp: finish.timestamp,
+      p_attestation_signature: finish.signature,
     });
-    if (!error && data === true) {
-      return (await deletePublicObject(publicObjectKey)) === true;
-    }
-  } catch {
-    // A missing or mismatched HMAC can only be compensated if DB state stayed ready.
-  }
-
-  try {
-    const { data: asset, error: readError } = await supabase
-      .from("assets")
-      .select("processing_state,public_object_key")
-      .eq("id", assetId)
-      .maybeSingle();
-    if (readError || !asset) return false;
-    if (asset.processing_state === "ready") {
-      return (await deletePublicObject(publicObjectKey)) === true;
-    }
-    return false;
+    return !error && data === true;
   } catch {
     return false;
   }

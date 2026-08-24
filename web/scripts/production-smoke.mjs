@@ -4,7 +4,7 @@ import { createHmac } from "node:crypto";
 const MAX_URLS = 100;
 const CONCURRENCY = 5;
 const TIMEOUT_MS = 15_000;
-const MAX_FAILURE_DETAILS = 50;
+const MAX_FAILURES = 100;
 const SEED_PATHS = [
   "/",
   "/work",
@@ -25,20 +25,10 @@ function requiredEnv(name) {
   return value;
 }
 
-function cleanMessage(value) {
-  return String(value).replace(/\s+/g, " ").trim().slice(0, 500);
-}
-
-function addFailure(result, detail) {
+function addFailure(result, category) {
+  if (result.brokenCount >= MAX_FAILURES) return;
   result.brokenCount += 1;
-  if (result.failures.length < MAX_FAILURE_DETAILS) {
-    result.failures.push({
-      url: detail.url,
-      source: detail.source,
-      ...(Number.isInteger(detail.status) ? { status: detail.status } : {}),
-      ...(detail.error ? { error: cleanMessage(detail.error) } : {}),
-    });
-  }
+  result.failureCounts[category] = (result.failureCounts[category] ?? 0) + 1;
 }
 
 function sameOriginUrl(rawValue, sourceUrl, origin) {
@@ -47,9 +37,15 @@ function sameOriginUrl(rawValue, sourceUrl, origin) {
 
   try {
     const url = new URL(raw, sourceUrl);
-    if (!["http:", "https:"].includes(url.protocol) || url.origin !== origin) {
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      url.origin !== origin ||
+      url.username ||
+      url.password
+    ) {
       return null;
     }
+    url.search = "";
     url.hash = "";
     return url.href;
   } catch {
@@ -88,17 +84,13 @@ function extractUrls(text, contentType) {
   return urls;
 }
 
-function pageError(text) {
+function hasPageError(text) {
   if (/Application error: a client-side exception has occurred/i.test(text)) {
-    return "Application error page returned HTTP 200";
+    return true;
   }
 
   const title = text.match(/<title[^>]*>\s*([^<]{1,200})<\/title>/i)?.[1];
-  if (title && /^(?:Internal Server Error|5\d\d\b)/i.test(title.trim())) {
-    return `Error page returned HTTP 200: ${title.trim()}`;
-  }
-
-  return null;
+  return Boolean(title && /^(?:Internal Server Error|5\d\d\b)/i.test(title.trim()));
 }
 
 function requestHeaders(bypassSecret) {
@@ -118,18 +110,18 @@ async function crawl(baseUrl, bypassSecret) {
   const origin = baseUrl.origin;
   const queue = [];
   const queued = new Set();
-  const result = { pagesChecked: 0, brokenCount: 0, failures: [] };
+  const result = { pagesChecked: 0, brokenCount: 0, failureCounts: {} };
 
   const enqueue = (rawUrl, sourceUrl = baseUrl) => {
     const url = sameOriginUrl(rawUrl, sourceUrl, origin);
     if (!url || queued.has(url) || queued.size >= MAX_URLS) return;
     queued.add(url);
-    queue.push({ url, source: sourceUrl.href ?? String(sourceUrl) });
+    queue.push(url);
   };
 
   for (const path of SEED_PATHS) enqueue(path);
 
-  const check = async ({ url, source }) => {
+  const check = async (url) => {
     result.pagesChecked += 1;
 
     try {
@@ -148,12 +140,7 @@ async function crawl(baseUrl, bypassSecret) {
       }
 
       if (status < 200 || status >= 300) {
-        addFailure(result, {
-          url,
-          source,
-          status,
-          error: `HTTP ${status}`,
-        });
+        addFailure(result, "http_error");
         await response.body?.cancel();
         return;
       }
@@ -165,21 +152,13 @@ async function crawl(baseUrl, bypassSecret) {
       }
 
       const text = await response.text();
-      const error = contentType.includes("text/html") ? pageError(text) : null;
-      if (error) {
-        addFailure(result, { url, source: url, status, error });
+      if (contentType.includes("text/html") && hasPageError(text)) {
+        addFailure(result, "application_error");
       }
 
       for (const candidate of extractUrls(text, contentType)) enqueue(candidate, url);
     } catch (error) {
-      addFailure(result, {
-        url,
-        source,
-        error:
-          error?.name === "TimeoutError"
-            ? "Request timed out after 15 seconds"
-            : error?.message ?? error,
-      });
+      addFailure(result, error?.name === "TimeoutError" ? "request_timeout" : "request_error");
     }
   };
 
@@ -194,18 +173,24 @@ async function checkBrowser(baseUrl, bypassSecret, result) {
   const { chromium } = await import("playwright");
   const browser = await chromium.launch({ headless: true });
   try {
-    const context = await browser.newContext({
-      extraHTTPHeaders: requestHeaders(bypassSecret),
-    });
+    const context = await browser.newContext();
+    if (bypassSecret) {
+      const response = await context.request.get(baseUrl.href, {
+        headers: requestHeaders(bypassSecret),
+        maxRedirects: 0,
+        timeout: TIMEOUT_MS,
+      });
+      await response.dispose();
+    }
     for (const path of BROWSER_PATHS) {
       const page = await context.newPage();
       const url = new URL(path, baseUrl).href;
-      page.on("pageerror", (failure) => {
-        addFailure(result, { url, source: "pageerror", error: failure.message });
+      page.on("pageerror", () => {
+        addFailure(result, "browser_page_error");
       });
       page.on("console", (entry) => {
         if (entry.type() === "error") {
-          addFailure(result, { url, source: "console", error: entry.text() });
+          addFailure(result, "browser_console_error");
         }
       });
       try {
@@ -214,19 +199,10 @@ async function checkBrowser(baseUrl, bypassSecret, result) {
           timeout: TIMEOUT_MS,
         });
         if (!response || !response.ok()) {
-          addFailure(result, {
-            url,
-            source: "browser",
-            status: response?.status(),
-            error: response ? `HTTP ${response.status()}` : "Navigation returned no response",
-          });
+          addFailure(result, "browser_navigation_error");
         }
-      } catch (error) {
-        addFailure(result, {
-          url,
-          source: "browser",
-          error: error?.message ?? error,
-        });
+      } catch {
+        addFailure(result, "browser_navigation_error");
       } finally {
         await page.close();
       }
@@ -260,10 +236,8 @@ async function postReport(endpoint, secret, bypassSecret, report) {
   });
 
   if (!response.ok) {
-    const detail = cleanMessage(await response.text());
-    throw new Error(
-      `Report ingestion returned HTTP ${response.status}${detail ? `: ${detail}` : ""}`,
-    );
+    await response.body?.cancel();
+    throw new Error(`Report ingestion returned HTTP ${response.status}`);
   }
 
   await response.body?.cancel();
@@ -272,22 +246,22 @@ async function postReport(endpoint, secret, bypassSecret, report) {
 function selfTest() {
   const source = new URL("https://example.com/start");
   assert.equal(
-    sameOriginUrl("/work#details", source, source.origin),
+    sameOriginUrl("/work?email=private%40example.com#details", source, source.origin),
     "https://example.com/work",
   );
   assert.equal(sameOriginUrl("mailto:test@example.com", source, source.origin), null);
   assert.equal(sameOriginUrl("https://outside.example/work", source, source.origin), null);
+  assert.equal(sameOriginUrl("https://user:secret@example.com/work", source, source.origin), null);
 
-  const result = { pagesChecked: 0, brokenCount: 0, failures: [] };
-  for (let index = 0; index < 51; index += 1) {
-    addFailure(result, {
-      url: `https://example.com/${index}`,
-      source: "https://example.com/",
-      status: 404,
-    });
+  const result = { pagesChecked: 0, brokenCount: 0, failureCounts: {} };
+  for (let index = 0; index < 101; index += 1) {
+    addFailure(result, index % 2 ? "http_error" : "browser_console_error");
   }
-  assert.equal(result.brokenCount, 51);
-  assert.equal(result.failures.length, 50);
+  assert.equal(result.brokenCount, 100);
+  assert.deepEqual(result.failureCounts, {
+    browser_console_error: 50,
+    http_error: 50,
+  });
 
   assert.deepEqual(
     extractUrls('<a href="/work"><img srcset="/a.png 1x, /b.png 2x">', "text/html"),
@@ -297,10 +271,25 @@ function selfTest() {
 }
 
 async function main() {
-  const deploymentUrl = requiredEnv("BASE_URL");
-  const baseUrl = new URL(deploymentUrl);
-  if (!["http:", "https:"].includes(baseUrl.protocol) || baseUrl.username || baseUrl.password) {
-    throw new Error("BASE_URL must be an HTTP(S) URL without credentials");
+  const baseUrl = new URL(requiredEnv("BASE_URL"));
+  if (
+    !["http:", "https:"].includes(baseUrl.protocol) ||
+    baseUrl.username ||
+    baseUrl.password ||
+    baseUrl.search ||
+    baseUrl.hash
+  ) {
+    throw new Error("BASE_URL must be an HTTP(S) URL without credentials, query, or hash");
+  }
+  const runUrl = new URL(requiredEnv("RUN_URL"));
+  if (
+    runUrl.protocol !== "https:" ||
+    runUrl.username ||
+    runUrl.password ||
+    runUrl.search ||
+    runUrl.hash
+  ) {
+    throw new Error("RUN_URL must be an HTTPS URL without credentials, query, or hash");
   }
 
   const secret = requiredEnv("DEPLOY_CHECK_SECRET");
@@ -310,11 +299,11 @@ async function main() {
     version: 1,
     deploymentId: requiredEnv("DEPLOYMENT_ID"),
     projectId: requiredEnv("PROJECT_ID"),
-    deploymentUrl,
+    deploymentUrl: baseUrl.href,
     gitSha: requiredEnv("GIT_SHA"),
     runId: requiredEnv("RUN_ID"),
     runNumber: Number(requiredEnv("RUN_NUMBER")),
-    runUrl: requiredEnv("RUN_URL"),
+    runUrl: runUrl.href,
   };
   if (!Number.isSafeInteger(common.runNumber) || common.runNumber < 1) {
     throw new Error("RUN_NUMBER must be a positive safe integer");
@@ -326,34 +315,26 @@ async function main() {
     checkedAt: new Date().toISOString(),
     pagesChecked: 0,
     brokenCount: 0,
-    failures: [],
+    failureCounts: {},
   };
 
   try {
     await postReport(endpoint, secret, bypassSecret, running);
-  } catch (error) {
-    console.warn(`Running report failed: ${cleanMessage(error?.message ?? error)}`);
+  } catch {
+    console.warn("Initial smoke status could not be recorded; final ingestion will retry safely.");
   }
 
   let result;
   try {
     result = await crawl(baseUrl, bypassSecret);
-  } catch (error) {
-    result = { pagesChecked: 0, brokenCount: 0, failures: [] };
-    addFailure(result, {
-      url: deploymentUrl,
-      source: deploymentUrl,
-      error: error?.message ?? error,
-    });
+  } catch {
+    result = { pagesChecked: 0, brokenCount: 0, failureCounts: {} };
+    addFailure(result, "request_error");
   }
   try {
     await checkBrowser(baseUrl, bypassSecret, result);
-  } catch (error) {
-    addFailure(result, {
-      url: deploymentUrl,
-      source: "browser",
-      error: error?.message ?? error,
-    });
+  } catch {
+    addFailure(result, "browser_unavailable");
   }
 
   const final = {
@@ -366,9 +347,9 @@ async function main() {
   let ingestionFailed = false;
   try {
     await postReport(endpoint, secret, bypassSecret, final);
-  } catch (error) {
+  } catch {
     ingestionFailed = true;
-    console.error(`Final report failed: ${cleanMessage(error?.message ?? error)}`);
+    console.error("Final smoke result could not be recorded.");
   }
 
   const summary = `${result.pagesChecked} URLs checked, ${result.brokenCount} failures`;
@@ -379,8 +360,8 @@ async function main() {
 if (process.argv.includes("--self-test")) {
   selfTest();
 } else {
-  await main().catch((error) => {
-    console.error(cleanMessage(error?.stack ?? error));
+  await main().catch(() => {
+    console.error("Production smoke could not run.");
     process.exitCode = 1;
   });
 }

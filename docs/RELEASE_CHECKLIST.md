@@ -22,10 +22,13 @@
 - [ ] Keyboard navigation and focus states work.
 - [ ] Images have accurate alternative text.
 - [ ] Forms expose labels, errors, and honest delivery status.
-- [ ] Production Turnstile hostnames and site key are configured.
-- [ ] The inquiry API validates Turnstile `success`, hostname, and
-      `contact_inquiry` action before processing data.
+- [ ] The contact page does not claim an inquiry was sent while the inquiry
+      backend is deferred, and its direct contact links work.
+- [ ] `NEXT_PUBLIC_API_URL` remains empty until the inquiry backend exists.
 - [ ] Admin and draft paths are not indexed.
+
+Production Turnstile hostname checks and server-side token validation are a
+gate for the future inquiry-backend release, not for Admin v1.
 
 ## SEO and semantic structure
 

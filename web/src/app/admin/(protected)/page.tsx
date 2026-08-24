@@ -48,7 +48,7 @@ export default async function AdminDashboard() {
         supabase.from("audit_events").select("id", { count: "exact", head: true }),
         supabase
           .from("deployment_checks")
-          .select("status,checked_at,pages_checked,broken_count,run_url,git_sha")
+          .select("deployment_id,status,checked_at,pages_checked,broken_count,run_url,git_sha")
           .order("run_number", { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -65,9 +65,25 @@ export default async function AdminDashboard() {
       ])
     : Promise.resolve(null);
   const [monitoring, database] = await Promise.all([
-    getMonitoringSnapshot(),
+    getMonitoringSnapshot(supabase ?? undefined),
     databasePromise,
   ]);
+  const analyticsData = monitoring.analytics.available
+    ? monitoring.analytics.data
+    : monitoring.analytics.lastData ?? null;
+  const runtimeErrorsData = monitoring.runtimeErrors.available
+    ? monitoring.runtimeErrors.data
+    : monitoring.runtimeErrors.lastData ?? null;
+  const browserErrorsData = monitoring.browserErrors.available
+    ? monitoring.browserErrors.data
+    : monitoring.browserErrors.lastData ?? null;
+  const deploymentData = monitoring.deployment.available
+    ? monitoring.deployment.data
+    : monitoring.deployment.lastData ?? null;
+  const analyticsReason = monitoring.analytics.available ? null : monitoring.analytics.reason;
+  const runtimeErrorsReason = monitoring.runtimeErrors.available ? null : monitoring.runtimeErrors.reason;
+  const browserErrorsReason = monitoring.browserErrors.available ? null : monitoring.browserErrors.reason;
+  const deploymentReason = monitoring.deployment.available ? null : monitoring.deployment.reason;
 
   const databaseAvailable = database?.every((result) => !result.error) ?? false;
   const counts = databaseAvailable
@@ -97,6 +113,14 @@ export default async function AdminDashboard() {
   ).length;
   const auditCount = databaseAvailable ? database![6].count ?? 0 : null;
   const deploymentCheck = databaseAvailable ? database![7].data : null;
+  const deploymentCheckIsStale = Boolean(
+    deploymentCheck &&
+      deploymentData &&
+      (deploymentCheck.deployment_id !== deploymentData.id ||
+        (deploymentCheck.git_sha &&
+          deploymentData.gitSha &&
+          deploymentCheck.git_sha !== deploymentData.gitSha)),
+  );
   const recentActivity = databaseAvailable ? database![9].data ?? [] : [];
   const storage = storageState(trackedBytes);
   const stats = [
@@ -144,7 +168,7 @@ export default async function AdminDashboard() {
           <div>
             <h2 className="mono-label">Traffic</h2>
             <p className="mono-meta muted mt-2">
-              As of {monitoring.analytics.available ? date(monitoring.analytics.data.asOf) : "Unavailable"}
+              As of {analyticsData ? date(analyticsData.asOf) : "Unavailable"}
             </p>
           </div>
           {monitoring.providerLinks.available ? (
@@ -160,14 +184,22 @@ export default async function AdminDashboard() {
             <span className="mono-meta muted">Provider links unavailable</span>
           )}
         </div>
-        {monitoring.analytics.available ? (
+        {analyticsData ? (
           <>
+            {!monitoring.analytics.available ? (
+              <div className="module mt-5 p-6">
+                <strong>Unavailable</strong>
+                <p className="mt-2 text-sm ink-soft">
+                  Showing the last successful Vercel Analytics snapshot from {date(monitoring.analytics.lastSuccessfulAt)}.
+                </p>
+              </div>
+            ) : null}
             <div className="mt-5 grid gap-px border border-[var(--line)] bg-[var(--line)] sm:grid-cols-2 lg:grid-cols-4">
               {[
-                [monitoring.analytics.data.sevenDays.visitors, "Visitors / 7 days"],
-                [monitoring.analytics.data.sevenDays.pageviews, "Page views / 7 days"],
-                [monitoring.analytics.data.thirtyDays.visitors, "Visitors / 30 days"],
-                [monitoring.analytics.data.thirtyDays.pageviews, "Page views / 30 days"],
+                [analyticsData.sevenDays.visitors, "Visitors / 7 days"],
+                [analyticsData.sevenDays.pageviews, "Page views / 7 days"],
+                [analyticsData.thirtyDays.visitors, "Visitors / 30 days"],
+                [analyticsData.thirtyDays.pageviews, "Page views / 30 days"],
               ].map(([value, label]) => (
                 <div className="surface p-6" key={label}>
                   <strong className="text-3xl">{Number(value).toLocaleString("en-US")}</strong>
@@ -177,14 +209,14 @@ export default async function AdminDashboard() {
             </div>
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               {[
-                ["Top routes / 30 days", monitoring.analytics.data.topRoutes],
-                ["Top referrers / 30 days", monitoring.analytics.data.topReferrers],
+                ["Top routes / 30 days", analyticsData.topRoutes],
+                ["Top referrers / 30 days", analyticsData.topReferrers],
               ].map(([title, rows]) => (
                 <div className="module p-6" key={title as string}>
                   <h3 className="mono-label">{title as string}</h3>
-                  {(rows as typeof monitoring.analytics.data.topRoutes).length ? (
+                  {(rows as typeof analyticsData.topRoutes).length ? (
                     <ol className="mt-5 divide-y divide-[var(--line)]">
-                      {(rows as typeof monitoring.analytics.data.topRoutes).map((row) => (
+                      {(rows as typeof analyticsData.topRoutes).map((row) => (
                         <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-3" key={row.label}>
                           <span className="truncate">{row.label || "Direct / none"}</span>
                           <span className="mono-meta muted">{row.pageviews.toLocaleString("en-US")} views</span>
@@ -199,7 +231,7 @@ export default async function AdminDashboard() {
         ) : (
           <div className="module mt-5 p-6">
             <strong>Unavailable</strong>
-            <p className="mt-2 text-sm ink-soft">Vercel Web Analytics is {monitoring.analytics.reason.toLowerCase()}.</p>
+            <p className="mt-2 text-sm ink-soft">Vercel Web Analytics is {analyticsReason?.toLowerCase() ?? "unavailable"}.</p>
           </div>
         )}
       </section>
@@ -258,17 +290,17 @@ export default async function AdminDashboard() {
           </div>
           <div className="grid gap-2 p-5 md:grid-cols-[180px_130px_1fr]">
             <strong>Runtime/server errors</strong>
-            <span className={`mono-label ${monitoring.runtimeErrors.available && monitoring.runtimeErrors.data.count === 0 ? "accent" : "muted"}`}>
-              {monitoring.runtimeErrors.available ? monitoring.runtimeErrors.data.count.toLocaleString("en-US") : "UNAVAILABLE"}
+            <span className={`mono-label ${monitoring.runtimeErrors.available && runtimeErrorsData?.count === 0 ? "accent" : "muted"}`}>
+              {monitoring.runtimeErrors.available ? runtimeErrorsData?.count.toLocaleString("en-US") : "UNAVAILABLE"}
             </span>
             <span className="text-sm ink-soft">
-              {monitoring.runtimeErrors.available
-                ? `${monitoring.runtimeErrors.data.windowLabel}; ${
-                    monitoring.runtimeErrors.data.lastOccurredAt
-                      ? `last occurrence ${date(monitoring.runtimeErrors.data.lastOccurredAt)}`
+              {runtimeErrorsData
+                ? `${monitoring.runtimeErrors.available ? "" : `Last successful snapshot ${date(monitoring.runtimeErrors.lastSuccessfulAt)} / `}${runtimeErrorsData.windowLabel}; ${
+                    runtimeErrorsData.lastOccurredAt
+                      ? `last occurrence ${date(runtimeErrorsData.lastOccurredAt)}`
                       : "no occurrence in this window"
                   }`
-                : `Vercel runtime logs are ${monitoring.runtimeErrors.reason.toLowerCase()}`}
+                : `Vercel runtime logs are ${runtimeErrorsReason?.toLowerCase() ?? "unavailable"}`}
               {monitoring.providerLinks.available ? (
                 <> · <a className="underline" href={monitoring.providerLinks.data.logs} target="_blank" rel="noreferrer">Open logs</a></>
               ) : null}
@@ -276,33 +308,36 @@ export default async function AdminDashboard() {
           </div>
           <div className="grid gap-2 p-5 md:grid-cols-[180px_130px_1fr]">
             <strong>Browser errors</strong>
-            <span className={`mono-label ${monitoring.browserErrors.available && monitoring.browserErrors.data.count === 0 ? "accent" : "muted"}`}>
-              {monitoring.browserErrors.available ? monitoring.browserErrors.data.count.toLocaleString("en-US") : "UNAVAILABLE"}
+            <span className={`mono-label ${monitoring.browserErrors.available && browserErrorsData?.count === 0 ? "accent" : "muted"}`}>
+              {monitoring.browserErrors.available ? browserErrorsData?.count.toLocaleString("en-US") : "UNAVAILABLE"}
             </span>
             <span className="text-sm ink-soft">
-              {monitoring.browserErrors.available
-                ? `${monitoring.browserErrors.data.windowLabel}; ${
-                    monitoring.browserErrors.data.lastOccurredAt
-                      ? `last occurrence ${date(monitoring.browserErrors.data.lastOccurredAt)}`
+              {browserErrorsData
+                ? `${monitoring.browserErrors.available ? "" : `Last successful snapshot ${date(monitoring.browserErrors.lastSuccessfulAt)} / `}${browserErrorsData.windowLabel}; ${
+                    browserErrorsData.lastOccurredAt
+                      ? `last occurrence ${date(browserErrorsData.lastOccurredAt)}`
                       : "no occurrence in this window"
                   }`
-                : `Better Stack error querying is ${monitoring.browserErrors.reason.toLowerCase()}`}
+                : `Better Stack error querying is ${browserErrorsReason?.toLowerCase() ?? "unavailable"}`}
             </span>
           </div>
           <div className="grid gap-2 p-5 md:grid-cols-[180px_130px_1fr]">
             <strong>Production deploy</strong>
-            <span className={`mono-label ${monitoring.deployment.available ? "accent" : "muted"}`}>{monitoring.deployment.available ? monitoring.deployment.data.state : "UNAVAILABLE"}</span>
+            <span className={`mono-label ${monitoring.deployment.available ? "accent" : "muted"}`}>{monitoring.deployment.available ? deploymentData?.state : "UNAVAILABLE"}</span>
             <span className="text-sm ink-soft">
-              {monitoring.deployment.available ? (
-                <a className="underline" href={monitoring.deployment.data.url} target="_blank" rel="noreferrer">
-                  {date(monitoring.deployment.data.createdAt)}{monitoring.deployment.data.gitSha ? ` · ${monitoring.deployment.data.gitSha.slice(0, 7)}` : ""}
+              {deploymentData ? (
+                <a className="underline" href={deploymentData.url} target="_blank" rel="noreferrer">
+                  {!monitoring.deployment.available ? `Last successful snapshot ${date(monitoring.deployment.lastSuccessfulAt)} / ` : ""}
+                  {date(deploymentData.createdAt)}{deploymentData.gitSha ? ` · ${deploymentData.gitSha.slice(0, 7)}` : ""}
                 </a>
-              ) : `Vercel deployment data is ${monitoring.deployment.reason.toLowerCase()}`}
+              ) : `Vercel deployment data is ${deploymentReason?.toLowerCase() ?? "unavailable"}`}
             </span>
           </div>
           <div className="grid gap-2 p-5 md:grid-cols-[180px_130px_1fr]">
             <strong>Production smoke</strong>
-            <span className={`mono-label ${deploymentCheck?.status === "success" ? "accent" : "muted"}`}>{deploymentCheck?.status?.toUpperCase() ?? "UNAVAILABLE"}</span>
+            <span className={`mono-label ${deploymentCheck?.status === "success" && !deploymentCheckIsStale ? "accent" : "muted"}`}>
+              {deploymentCheckIsStale ? "STALE" : deploymentCheck?.status?.toUpperCase() ?? "UNAVAILABLE"}
+            </span>
             <span className="text-sm ink-soft">
               {deploymentCheck ? (
                 <a className="underline" href={deploymentCheck.run_url} target="_blank" rel="noreferrer">
@@ -314,8 +349,16 @@ export default async function AdminDashboard() {
           {monitoring.monitors.map((monitor) => (
             <div className="grid gap-2 p-5 md:grid-cols-[180px_130px_1fr]" key={monitor.label}>
               <strong>Monitor / {monitor.label}</strong>
-              <span className={`mono-label ${monitor.status === "up" ? "accent" : "muted"}`}>{monitor.status.toUpperCase()}</span>
-              <span className="text-sm ink-soft">Last checked {date(monitor.lastCheckedAt)}</span>
+              <span className={`mono-label ${monitor.status === "up" ? "accent" : "muted"}`}>
+                {monitor.reason === "Not configured" ? "NOT CONFIGURED" : monitor.status.toUpperCase()}
+              </span>
+              <span className="text-sm ink-soft">
+                {monitor.reason === "Not configured"
+                  ? "Monitoring is not configured."
+                  : monitor.status === "Unavailable" && monitor.lastData
+                  ? `Unavailable / last successful ${date(monitor.lastSuccessfulAt)} / ${monitor.lastData.status.toUpperCase()} / checked ${date(monitor.lastData.lastCheckedAt)}`
+                  : `Last checked ${date(monitor.lastCheckedAt)}`}
+              </span>
             </div>
           ))}
         </div>

@@ -1,41 +1,46 @@
-import { createHash } from "node:crypto";
-import { readPrivateObject } from "@/lib/r2";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { readCurrentCvPointer, readVerifiedPrivatePdf } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
+function unavailable(status: 404 | 503) {
+  return new Response(
+    status === 404 ? "CV not available." : "CV service temporarily unavailable.", {
+    status,
+    headers: {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
+
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
-    if (!supabase) return new Response("CV not available.", { status: 404 });
-    const { data, error } = await supabase.rpc("current_cv_download");
-    const current = Array.isArray(data) ? data[0] : null;
-    if (error || !current?.object_key) {
-      return new Response("CV not available.", { status: 404 });
+    const pointer = await readCurrentCvPointer();
+    if (!pointer || "invalid" in pointer) {
+      console.error("[resume.pdf] CV storage is unavailable or invalid.");
+      return unavailable(503);
     }
-    const body = await readPrivateObject(current.object_key);
-    if (
-      !body ||
-      body.byteLength !== Number(current.size_bytes) ||
-      createHash("sha256").update(body).digest("hex") !==
-        current.checksum_sha256
-    ) {
-      return new Response("CV not available.", { status: 404 });
+    if ("absent" in pointer) return unavailable(404);
+    const current = await readVerifiedPrivatePdf({
+      key: pointer.objectKey,
+      sizeBytes: pointer.sizeBytes,
+      checksumSha256: pointer.checksumSha256,
+    });
+    if (!current) {
+      console.error("[resume.pdf] Current CV failed integrity verification.");
+      return unavailable(503);
     }
+
     const headers = new Headers({
       "cache-control": "no-store",
       "content-disposition": 'attachment; filename="Artkin-Carreon-CV.pdf"',
       "content-type": "application/pdf",
       "x-content-type-options": "nosniff",
     });
-    headers.set("content-length", body.byteLength.toString());
-    return new Response(body, {
-      headers,
-    });
+    headers.set("content-length", current.byteLength.toString());
+    return new Response(current, { headers });
   } catch {
-    return new Response("CV not available.", {
-      status: 404,
-      headers: { "x-content-type-options": "nosniff" },
-    });
+    console.error("[resume.pdf] CV storage request failed.");
+    return unavailable(503);
   }
 }

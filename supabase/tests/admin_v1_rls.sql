@@ -120,8 +120,14 @@ select pg_temp.assert_true(
         'record_audit',
         'current_user_is_admin',
         'finalize_asset',
-        'publish_asset',
-        'revert_asset_publication',
+        'claim_asset_publication',
+        'finish_asset_publication',
+        'release_asset_publication',
+        'claim_stale_asset_publications',
+        'claim_asset_public_revert',
+        'finish_asset_public_revert',
+        'release_asset_public_revert',
+        'claim_stale_asset_public_reverts',
         'claim_pending_assets_for_cleanup',
         'finish_pending_asset_cleanup',
         'release_pending_asset_cleanup',
@@ -131,7 +137,11 @@ select pg_temp.assert_true(
         'record_assets_export',
         'record_audit_export',
         'record_deployment_retry',
-        'current_cv_download',
+        'claim_current_cv_transition',
+        'confirm_current_cv_transition',
+        'finish_current_cv_transition',
+        'release_current_cv_transition',
+        'claim_stale_current_cv_transition',
         'create_project',
         'save_project_draft',
         'publish_project',
@@ -141,7 +151,7 @@ select pg_temp.assert_true(
         'save_credential',
         'publish_credential',
         'archive_credential',
-        'set_current_cv',
+        'prevent_claimed_asset_publication',
         'record_cv_upload_audit',
         'record_asset_upload_audit'
       )
@@ -178,8 +188,14 @@ select pg_temp.assert_true(
         'record_audit',
         'current_user_is_admin',
         'finalize_asset',
-        'publish_asset',
-        'revert_asset_publication',
+        'claim_asset_publication',
+        'finish_asset_publication',
+        'release_asset_publication',
+        'claim_stale_asset_publications',
+        'claim_asset_public_revert',
+        'finish_asset_public_revert',
+        'release_asset_public_revert',
+        'claim_stale_asset_public_reverts',
         'claim_pending_assets_for_cleanup',
         'finish_pending_asset_cleanup',
         'release_pending_asset_cleanup',
@@ -189,7 +205,11 @@ select pg_temp.assert_true(
         'record_assets_export',
         'record_audit_export',
         'record_deployment_retry',
-        'current_cv_download',
+        'claim_current_cv_transition',
+        'confirm_current_cv_transition',
+        'finish_current_cv_transition',
+        'release_current_cv_transition',
+        'claim_stale_current_cv_transition',
         'create_project',
         'save_project_draft',
         'publish_project',
@@ -199,7 +219,7 @@ select pg_temp.assert_true(
         'save_credential',
         'publish_credential',
         'archive_credential',
-        'set_current_cv',
+        'prevent_claimed_asset_publication',
         'record_cv_upload_audit',
         'record_asset_upload_audit'
       )
@@ -343,6 +363,10 @@ values (
 returning id::text as asset_id
 \gset asset_
 
+select 'assets/' || :'asset_asset_id'
+  || '/00000000-0000-4000-8000-000000000010.webp' as object_key
+\gset asset_public_
+
 select
   pg_catalog.floor(
     pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
@@ -439,58 +463,248 @@ select
 \gset published_
 
 select pg_temp.asset_signature(
-  'publish',
+  'publish_claim',
   pg_catalog.current_setting('test.admin_1')::uuid,
   :'published_timestamp'::bigint,
   array[
     :'asset_asset_id',
-    'assets/' || :'asset_asset_id' || '.webp',
+    :'asset_public_object_key',
     'image/webp'
   ]
 ) as signature
 \gset published_
 
-select pg_temp.assert_true(
-  public.publish_asset(
-    :'asset_asset_id'::uuid,
-    'assets/' || :'asset_asset_id' || '.webp',
-    'image/webp',
-    :'published_timestamp'::bigint,
-    :'published_signature'
-  ),
-  'server-attested publication must publish a ready asset'
-);
+select claim_token::text as claim_token
+from public.claim_asset_publication(
+  :'asset_asset_id'::uuid,
+  :'asset_public_object_key',
+  'image/webp',
+  :'published_timestamp'::bigint,
+  :'published_signature'
+)
+\gset published_
 
-select
-  pg_catalog.floor(
-    pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
-  )::bigint as timestamp
-\gset reverted_
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset publish_finish_
 
 select pg_temp.asset_signature(
-  'revert',
+  'publish_finish',
   pg_catalog.current_setting('test.admin_1')::uuid,
-  :'reverted_timestamp'::bigint,
-  array[:'asset_asset_id', 'assets/' || :'asset_asset_id' || '.webp']
+  :'publish_finish_timestamp'::bigint,
+  array[
+    :'asset_asset_id',
+    :'asset_public_object_key',
+    'image/webp',
+    :'published_claim_token'
+  ]
 ) as signature
-\gset reverted_
+\gset publish_finish_
 
 select pg_temp.assert_true(
-  public.revert_asset_publication(
+  public.finish_asset_publication(
     :'asset_asset_id'::uuid,
-    'assets/' || :'asset_asset_id' || '.webp',
-    :'reverted_timestamp'::bigint,
-    :'reverted_signature'
+    :'asset_public_object_key',
+    'image/webp',
+    :'published_claim_token'::uuid,
+    :'publish_finish_timestamp'::bigint,
+    :'publish_finish_signature'
+  ),
+  'database-first publication claim must finish only after the public copy'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset revert_claim_
+
+select pg_temp.asset_signature(
+  'revert_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'revert_claim_timestamp'::bigint,
+  array[:'asset_asset_id', :'asset_public_object_key']
+) as signature
+\gset revert_claim_
+
+select public.claim_asset_public_revert(
+  :'asset_asset_id'::uuid,
+  :'asset_public_object_key',
+  :'revert_claim_timestamp'::bigint,
+  :'revert_claim_signature'
+)::text as claim_token
+\gset revert_claim_
+
+select pg_temp.assert_true(
+  :'revert_claim_claim_token' <> '' and exists (
+    select 1 from public.assets
+    where id = :'asset_asset_id'::uuid
+      and processing_state = 'published'
+      and public_revert_claimed_at is not null
+  ),
+  'public revert must claim database state before object deletion'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset revert_release_
+
+select pg_temp.asset_signature(
+  'revert_release',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'revert_release_timestamp'::bigint,
+  array[
+    :'asset_asset_id',
+    :'asset_public_object_key',
+    :'revert_claim_claim_token'
+  ]
+) as signature
+\gset revert_release_
+
+select pg_temp.assert_true(
+  public.release_asset_public_revert(
+    :'asset_asset_id'::uuid,
+    :'asset_public_object_key',
+    :'revert_claim_claim_token'::uuid,
+    :'revert_release_timestamp'::bigint,
+    :'revert_release_signature'
   )
   and exists (
-    select 1
-    from public.assets
+    select 1 from public.assets
+    where id = :'asset_asset_id'::uuid
+      and processing_state = 'published'
+      and public_revert_claimed_at is null
+  ),
+  'a pre-storage cancellation may release the revert claim with its lease token'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset revert_reclaim_
+
+select pg_temp.asset_signature(
+  'revert_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'revert_reclaim_timestamp'::bigint,
+  array[:'asset_asset_id', :'asset_public_object_key']
+) as signature
+\gset revert_reclaim_
+
+select public.claim_asset_public_revert(
+  :'asset_asset_id'::uuid,
+  :'asset_public_object_key',
+  :'revert_reclaim_timestamp'::bigint,
+  :'revert_reclaim_signature'
+)::text as claim_token
+\gset revert_reclaim_
+
+reset role;
+update public.assets
+set public_revert_claimed_at = now() - interval '16 minutes'
+where id = :'asset_asset_id'::uuid;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset stale_revert_
+
+select pg_temp.asset_signature(
+  'revert_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'stale_revert_timestamp'::bigint,
+  array['100']
+) as signature
+\gset stale_revert_
+
+set local role anon;
+select claim_token::text as claim_token
+from public.claim_stale_asset_public_reverts(
+  100,
+  :'stale_revert_timestamp'::bigint,
+  :'stale_revert_signature',
+  pg_catalog.current_setting('test.admin_1')::uuid
+)
+where asset_id = :'asset_asset_id'::uuid
+\gset stale_revert_claim_
+
+select pg_temp.assert_true(
+  :'stale_revert_claim_claim_token'::uuid is distinct from :'revert_reclaim_claim_token'::uuid,
+  'cleanup must reclaim an interrupted public revert after its lease expires'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset stale_revert_release_
+
+select pg_temp.asset_signature(
+  'revert_release',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'stale_revert_release_timestamp'::bigint,
+  array[
+    :'asset_asset_id',
+    :'asset_public_object_key',
+    :'revert_reclaim_claim_token'
+  ]
+) as signature
+\gset stale_revert_release_
+
+select pg_temp.assert_true(
+  not public.release_asset_public_revert(
+    :'asset_asset_id'::uuid,
+    :'asset_public_object_key',
+    :'revert_reclaim_claim_token'::uuid,
+    :'stale_revert_release_timestamp'::bigint,
+    :'stale_revert_release_signature',
+    pg_catalog.current_setting('test.admin_1')::uuid
+  ),
+  'a stale public-revert token must be rejected after lease reclaim'
+);
+
+reset role;
+select pg_catalog.set_config(
+  'request.jwt.claim.sub',
+  pg_catalog.current_setting('test.admin_1'),
+  true
+);
+set local role authenticated;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset revert_finish_
+
+select pg_temp.asset_signature(
+  'revert_finish',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'revert_finish_timestamp'::bigint,
+  array[
+    :'asset_asset_id',
+    :'asset_public_object_key',
+    :'stale_revert_claim_claim_token'
+  ]
+) as signature
+\gset revert_finish_
+
+select pg_temp.assert_true(
+  public.finish_asset_public_revert(
+    :'asset_asset_id'::uuid,
+    :'asset_public_object_key',
+    :'stale_revert_claim_claim_token'::uuid,
+    :'revert_finish_timestamp'::bigint,
+    :'revert_finish_signature'
+  )
+  and exists (
+    select 1 from public.assets
     where id = :'asset_asset_id'::uuid
       and processing_state = 'ready'
       and visibility = 'private'
       and public_object_key is null
+      and public_revert_claimed_at is null
   ),
-  'failed entity publication compensation must securely restore ready state'
+  'finished public revert must securely restore ready private state'
 );
 
 do $$
@@ -619,7 +833,7 @@ exception
 end;
 $$;
 
-select asset_id::text as asset_id, object_key
+select asset_id::text as asset_id, object_key, claim_token::text as claim_token
 from public.claim_pending_assets_for_cleanup(
   100,
   :'cleanup_claim_timestamp'::bigint,
@@ -645,6 +859,40 @@ select pg_temp.assert_true(
 
 reset role;
 
+update public.assets
+set cleanup_claimed_at = now() - interval '16 minutes'
+where id = :'abandoned_asset_asset_id'::uuid;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset stale_cleanup_
+
+select pg_temp.asset_signature(
+  'cleanup_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'stale_cleanup_timestamp'::bigint,
+  array['100']
+) as signature
+\gset stale_cleanup_
+
+set local role anon;
+select claim_token::text as claim_token
+from public.claim_pending_assets_for_cleanup(
+  100,
+  :'stale_cleanup_timestamp'::bigint,
+  :'stale_cleanup_signature',
+  pg_catalog.current_setting('test.admin_1')::uuid
+)
+where asset_id = :'abandoned_asset_asset_id'::uuid
+\gset stale_cleanup_claim_
+
+select pg_temp.assert_true(
+  :'stale_cleanup_claim_claim_token'::uuid is distinct from :'claimed_asset_claim_token'::uuid,
+  'an expired deleting lease must be reclaimable after an interrupted cleanup'
+);
+reset role;
+
 select pg_temp.assert_true(
   :'claimed_asset_asset_id'::uuid = :'abandoned_asset_asset_id'::uuid
   and :'claimed_asset_object_key' = 'tests/abandoned-admin-v1.pdf'
@@ -653,6 +901,7 @@ select pg_temp.assert_true(
     from public.assets
     where id = :'abandoned_asset_asset_id'::uuid
       and processing_state = 'deleting'
+      and cleanup_claimed_at is not null
   )
   and exists (
     select 1
@@ -678,16 +927,51 @@ select pg_temp.asset_signature(
   'cleanup_release',
   pg_catalog.current_setting('test.admin_1')::uuid,
   :'cleanup_release_timestamp'::bigint,
-  array[:'abandoned_asset_asset_id']
+  array[
+    :'abandoned_asset_asset_id',
+    :'claimed_asset_claim_token'
+  ]
 ) as signature
 \gset cleanup_release_
 
 set local role anon;
 
+select pg_temp.assert_true(
+  public.release_pending_asset_cleanup(
+    array[:'abandoned_asset_asset_id'::uuid],
+    array[:'claimed_asset_claim_token'::uuid],
+    :'cleanup_release_timestamp'::bigint,
+    :'cleanup_release_signature',
+    pg_catalog.current_setting('test.admin_1')::uuid
+  ) = 0,
+  'a stale pending-cleanup token must be rejected after lease reclaim'
+);
+
+reset role;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cleanup_release_current_
+
+select pg_temp.asset_signature(
+  'cleanup_release',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cleanup_release_current_timestamp'::bigint,
+  array[
+    :'abandoned_asset_asset_id',
+    :'stale_cleanup_claim_claim_token'
+  ]
+) as signature
+\gset cleanup_release_current_
+
+set local role anon;
+
 select public.release_pending_asset_cleanup(
   array[:'abandoned_asset_asset_id'::uuid],
-  :'cleanup_release_timestamp'::bigint,
-  :'cleanup_release_signature',
+  array[:'stale_cleanup_claim_claim_token'::uuid],
+  :'cleanup_release_current_timestamp'::bigint,
+  :'cleanup_release_current_signature',
   pg_catalog.current_setting('test.admin_1')::uuid
 ) as released
 \gset cleanup_release_result_
@@ -702,7 +986,7 @@ select pg_temp.assert_true(
     where id = :'abandoned_asset_asset_id'::uuid
       and processing_state = 'pending'
   ),
-  'storage failure must release a cleanup claim'
+  'a pre-storage cancellation may release a cleanup claim with its lease token'
 );
 
 select pg_catalog.floor(
@@ -720,7 +1004,7 @@ select pg_temp.asset_signature(
 
 set local role anon;
 
-select asset_id::text as asset_id
+select asset_id::text as asset_id, claim_token::text as claim_token
 from public.claim_pending_assets_for_cleanup(
   100,
   :'cleanup_reclaim_timestamp'::bigint,
@@ -739,7 +1023,10 @@ select pg_temp.asset_signature(
   'cleanup_finish',
   pg_catalog.current_setting('test.admin_1')::uuid,
   :'cleanup_finish_timestamp'::bigint,
-  array[:'reclaimed_asset_asset_id']
+  array[
+    :'reclaimed_asset_asset_id',
+    :'reclaimed_asset_claim_token'
+  ]
 ) as signature
 \gset cleanup_finish_
 
@@ -748,6 +1035,7 @@ select pg_temp.assert_true(
     select pg_catalog.count(*) = 1
     from public.finish_pending_asset_cleanup(
       array[:'reclaimed_asset_asset_id'::uuid],
+      array[:'reclaimed_asset_claim_token'::uuid],
       :'cleanup_finish_timestamp'::bigint,
       :'cleanup_finish_signature',
       pg_catalog.current_setting('test.admin_1')::uuid
@@ -869,18 +1157,275 @@ select pg_temp.assert_true(
   'CV insertion must emit one atomic upload audit event'
 );
 
-select id
-from public.set_current_cv(:'cv_cv_version_id'::uuid);
+select coalesce(current_cv_version_id::text, '') as version_id
+from public.site_settings
+where singleton
+\gset cv_expected_
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_claim_
+
+select pg_temp.asset_signature(
+  'cv_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_claim_timestamp'::bigint,
+  array[
+    :'cv_cv_version_id',
+    :'cv_expected_version_id',
+    '00000000-0000-4000-8000-000000000020',
+    pg_catalog.repeat('1', 64),
+    '',
+    'true'
+  ]
+) as signature
+\gset cv_claim_
+
+select claim_token::text as claim_token
+from public.claim_current_cv_transition(
+  :'cv_cv_version_id'::uuid,
+  nullif(:'cv_expected_version_id', '')::uuid,
+  '00000000-0000-4000-8000-000000000020'::uuid,
+  pg_catalog.repeat('1', 64),
+  null,
+  true,
+  :'cv_claim_timestamp'::bigint,
+  :'cv_claim_signature'
+)
+\gset cv_transition_
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_finish_
+
+select pg_temp.asset_signature(
+  'cv_finish',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_finish_timestamp'::bigint,
+  array[
+    :'cv_cv_version_id',
+    '00000000-0000-4000-8000-000000000020',
+    pg_catalog.repeat('1', 64),
+    :'cv_transition_claim_token'
+  ]
+) as signature
+\gset cv_finish_
+
+select public.finish_current_cv_transition(
+  :'cv_cv_version_id'::uuid,
+  '00000000-0000-4000-8000-000000000020'::uuid,
+  pg_catalog.repeat('1', 64),
+  :'cv_transition_claim_token'::uuid,
+  :'cv_finish_timestamp'::bigint,
+  :'cv_finish_signature'
+);
 
 select pg_temp.assert_true(
-  (
-    select pg_catalog.count(*) = 1
-    from public.current_cv_download()
-    where object_key = 'tests/admin-v1-cv.pdf'
-      and size_bytes = 96
-  ),
-  'the stable CV route must resolve the database-selected private version'
+  exists (
+    select 1
+    from public.site_settings
+    where singleton
+      and current_cv_version_id = :'cv_cv_version_id'::uuid
+      and current_cv_public_object_key = 'resume.pdf'
+      and current_cv_generation = '00000000-0000-4000-8000-000000000020'::uuid
+  )
+  and pg_catalog.to_regprocedure('public.current_cv_download()') is null
+  and pg_catalog.to_regprocedure('public.set_current_cv(uuid)') is null,
+  'current CV transition must keep private metadata out of anonymous RPCs'
 );
+
+select pg_catalog.set_config('test.cv_version_id', :'cv_cv_version_id', true);
+
+do $$
+declare
+  v_timestamp bigint := pg_catalog.floor(
+    pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+  )::bigint;
+  v_stale_expected constant uuid := '00000000-0000-4000-8000-000000000004';
+  v_generation constant uuid := '00000000-0000-4000-8000-000000000022';
+begin
+  perform * from public.claim_current_cv_transition(
+    pg_catalog.current_setting('test.cv_version_id')::uuid,
+    v_stale_expected,
+    v_generation,
+    pg_catalog.repeat('1', 64),
+    '"etag-current"',
+    false,
+    v_timestamp,
+    pg_temp.asset_signature(
+      'cv_claim',
+      pg_catalog.current_setting('test.admin_1')::uuid,
+      v_timestamp,
+      array[
+        pg_catalog.current_setting('test.cv_version_id'),
+        coalesce(v_stale_expected::text, ''),
+        v_generation::text,
+        pg_catalog.repeat('1', 64),
+        '"etag-current"',
+        'false'
+      ]
+    )
+  );
+  raise exception 'stale current-CV commit unexpectedly succeeded';
+exception
+  when serialization_failure then null;
+end;
+$$;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_recovery_seed_
+
+select pg_temp.asset_signature(
+  'cv_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_recovery_seed_timestamp'::bigint,
+  array[
+    :'cv_cv_version_id',
+    :'cv_cv_version_id',
+    '00000000-0000-4000-8000-000000000021',
+    pg_catalog.repeat('1', 64),
+    '"etag-current"',
+    'false'
+  ]
+) as signature
+\gset cv_recovery_seed_
+
+select claim_token::text as claim_token
+from public.claim_current_cv_transition(
+  :'cv_cv_version_id'::uuid,
+  :'cv_cv_version_id'::uuid,
+  '00000000-0000-4000-8000-000000000021'::uuid,
+  pg_catalog.repeat('1', 64),
+  '"etag-current"',
+  false,
+  :'cv_recovery_seed_timestamp'::bigint,
+  :'cv_recovery_seed_signature'
+)
+\gset cv_recovery_old_
+
+reset role;
+update public.site_settings
+set current_cv_transition_claimed_at = now() - interval '16 minutes'
+where singleton;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_recovery_claim_
+
+select pg_temp.asset_signature(
+  'cv_recover',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_recovery_claim_timestamp'::bigint,
+  array['current-cv.json']
+) as signature
+\gset cv_recovery_claim_
+
+set local role anon;
+select claim_token::text as claim_token
+from public.claim_stale_current_cv_transition(
+  :'cv_recovery_claim_timestamp'::bigint,
+  :'cv_recovery_claim_signature',
+  pg_catalog.current_setting('test.admin_1')::uuid
+)
+\gset cv_recovery_new_
+
+reset role;
+select pg_catalog.set_config(
+  'request.jwt.claim.sub',
+  pg_catalog.current_setting('test.admin_1'),
+  true
+);
+set local role authenticated;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_stale_confirm_
+
+select pg_temp.asset_signature(
+  'cv_confirm',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_stale_confirm_timestamp'::bigint,
+  array[:'cv_recovery_old_claim_token']
+) as signature
+\gset cv_stale_confirm_
+
+select pg_temp.assert_true(
+  not public.confirm_current_cv_transition(
+    :'cv_recovery_old_claim_token'::uuid,
+    :'cv_stale_confirm_timestamp'::bigint,
+    :'cv_stale_confirm_signature',
+    pg_catalog.current_setting('test.admin_1')::uuid
+  ),
+  'a stale current-CV token must be rejected after recovery reclaim'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_current_confirm_
+
+select pg_temp.asset_signature(
+  'cv_confirm',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_current_confirm_timestamp'::bigint,
+  array[:'cv_recovery_new_claim_token']
+) as signature
+\gset cv_current_confirm_
+
+select pg_temp.assert_true(
+  public.confirm_current_cv_transition(
+    :'cv_recovery_new_claim_token'::uuid,
+    :'cv_current_confirm_timestamp'::bigint,
+    :'cv_current_confirm_signature',
+    pg_catalog.current_setting('test.admin_1')::uuid
+  ),
+  'the current CV lease token must remain valid for the conditional pointer write'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset cv_recovery_finish_
+
+select pg_temp.asset_signature(
+  'cv_finish',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'cv_recovery_finish_timestamp'::bigint,
+  array[
+    :'cv_cv_version_id',
+    '00000000-0000-4000-8000-000000000021',
+    pg_catalog.repeat('1', 64),
+    :'cv_recovery_new_claim_token'
+  ]
+) as signature
+\gset cv_recovery_finish_
+
+select pg_temp.assert_true(
+  public.finish_current_cv_transition(
+    :'cv_cv_version_id'::uuid,
+    '00000000-0000-4000-8000-000000000021'::uuid,
+    pg_catalog.repeat('1', 64),
+    :'cv_recovery_new_claim_token'::uuid,
+    :'cv_recovery_finish_timestamp'::bigint,
+    :'cv_recovery_finish_signature',
+    pg_catalog.current_setting('test.admin_1')::uuid
+  ),
+  'stale current-CV transitions must be recoverable with the refreshed token'
+);
+
+reset role;
+select pg_catalog.set_config(
+  'request.jwt.claim.sub',
+  pg_catalog.current_setting('test.admin_1'),
+  true
+);
+set local role authenticated;
 
 select id::text as credential_id, lock_version::text as lock_version
 from public.create_credential('Admin v1 credential fixture')
@@ -936,6 +1481,10 @@ values (
 returning id::text as asset_id
 \gset evidence_asset_
 
+select 'assets/' || :'evidence_asset_asset_id'
+  || '/00000000-0000-4000-8000-000000000011.pdf' as object_key
+\gset evidence_public_
+
 select pg_catalog.floor(
   pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
 )::bigint as timestamp
@@ -971,10 +1520,8 @@ select public.finalize_asset(
   :'evidence_finalized_signature'
 );
 
-select pg_temp.assert_true(
-  not redaction_confirmed,
-  'replacing credential evidence must reset redaction confirmation in SQL'
-)
+select lock_version::text as lock_version,
+  redaction_confirmed::text as redaction_confirmed
 from public.save_credential(
   :'credential_credential_id'::uuid,
   :'saved_credential_lock_version'::bigint,
@@ -989,6 +1536,279 @@ from public.save_credential(
   'private',
   null,
   true
+)
+\gset replaced_evidence_
+
+select pg_temp.assert_true(
+  :'replaced_evidence_redaction_confirmed' = 'false',
+  'replacing credential evidence must reset redaction confirmation in SQL'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset evidence_published_
+
+select pg_temp.asset_signature(
+  'publish_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'evidence_published_timestamp'::bigint,
+  array[
+    :'evidence_asset_asset_id',
+    :'evidence_public_object_key',
+    'application/pdf'
+  ]
+) as signature
+\gset evidence_published_
+
+select claim_token::text as claim_token,
+  source_size_bytes::text as source_size_bytes,
+  source_checksum_sha256,
+  source_purpose
+from public.claim_asset_publication(
+  :'evidence_asset_asset_id'::uuid,
+  :'evidence_public_object_key',
+  'application/pdf',
+  :'evidence_published_timestamp'::bigint,
+  :'evidence_published_signature'
+)
+\gset evidence_publication_old_
+
+select pg_temp.assert_true(
+  :'evidence_publication_old_source_size_bytes'::bigint = 80
+  and :'evidence_publication_old_source_checksum_sha256' = pg_catalog.repeat('2', 64)
+  and :'evidence_publication_old_source_purpose' = 'credential_pdf',
+  'credential PDF publication claims must return immutable verification metadata'
+);
+
+reset role;
+update public.assets
+set publication_claimed_at = now() - interval '16 minutes'
+where id = :'evidence_asset_asset_id'::uuid;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset evidence_publication_recover_
+
+select pg_temp.asset_signature(
+  'publish_recover',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'evidence_publication_recover_timestamp'::bigint,
+  array['100']
+) as signature
+\gset evidence_publication_recover_
+
+set local role anon;
+select claim_token::text as claim_token,
+  source_size_bytes::text as source_size_bytes,
+  source_checksum_sha256,
+  source_purpose
+from public.claim_stale_asset_publications(
+  100,
+  :'evidence_publication_recover_timestamp'::bigint,
+  :'evidence_publication_recover_signature',
+  pg_catalog.current_setting('test.admin_1')::uuid
+)
+where asset_id = :'evidence_asset_asset_id'::uuid
+\gset evidence_publication_new_
+
+select pg_temp.assert_true(
+  :'evidence_publication_new_source_size_bytes'::bigint = 80
+  and :'evidence_publication_new_source_checksum_sha256' = pg_catalog.repeat('2', 64)
+  and :'evidence_publication_new_source_purpose' = 'credential_pdf',
+  'stale credential PDF recovery must retain immutable verification metadata'
+);
+
+reset role;
+select pg_catalog.set_config(
+  'request.jwt.claim.sub',
+  pg_catalog.current_setting('test.admin_1'),
+  true
+);
+set local role authenticated;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset evidence_publication_stale_release_
+
+select pg_temp.asset_signature(
+  'publish_release',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'evidence_publication_stale_release_timestamp'::bigint,
+  array[
+    :'evidence_asset_asset_id',
+    :'evidence_publication_old_claim_token'
+  ]
+) as signature
+\gset evidence_publication_stale_release_
+
+select pg_temp.assert_true(
+  not public.release_asset_publication(
+    :'evidence_asset_asset_id'::uuid,
+    :'evidence_publication_old_claim_token'::uuid,
+    :'evidence_publication_stale_release_timestamp'::bigint,
+    :'evidence_publication_stale_release_signature'
+  ),
+  'a stale publication token must be rejected after recovery reclaim'
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset evidence_publication_finish_
+
+select pg_temp.asset_signature(
+  'publish_finish',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'evidence_publication_finish_timestamp'::bigint,
+  array[
+    :'evidence_asset_asset_id',
+    :'evidence_public_object_key',
+    'application/pdf',
+    :'evidence_publication_new_claim_token'
+  ]
+) as signature
+\gset evidence_publication_finish_
+
+select public.finish_asset_publication(
+  :'evidence_asset_asset_id'::uuid,
+  :'evidence_public_object_key',
+  'application/pdf',
+  :'evidence_publication_new_claim_token'::uuid,
+  :'evidence_publication_finish_timestamp'::bigint,
+  :'evidence_publication_finish_signature',
+  pg_catalog.current_setting('test.admin_1')::uuid
+);
+
+select lock_version::text as lock_version
+from public.save_credential(
+  :'credential_credential_id'::uuid,
+  :'replaced_evidence_lock_version'::bigint,
+  'Admin v1 credential fixture',
+  'Verified issuer',
+  date '2026-07-30',
+  null,
+  array['Workflow automation'],
+  null,
+  'https://example.com/verify',
+  :'evidence_asset_asset_id'::uuid,
+  'public',
+  null,
+  true
+)
+\gset public_evidence_
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset evidence_revert_claim_
+
+select pg_temp.asset_signature(
+  'revert_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'evidence_revert_claim_timestamp'::bigint,
+  array[
+    :'evidence_asset_asset_id',
+    :'evidence_public_object_key'
+  ]
+) as signature
+\gset evidence_revert_claim_
+
+select public.claim_asset_public_revert(
+  :'evidence_asset_asset_id'::uuid,
+  :'evidence_public_object_key',
+  :'evidence_revert_claim_timestamp'::bigint,
+  :'evidence_revert_claim_signature'
+)::text as claim_token
+\gset evidence_revert_
+
+select pg_catalog.set_config(
+  'test.credential_id',
+  :'credential_credential_id',
+  true
+);
+select pg_catalog.set_config(
+  'test.credential_lock',
+  :'public_evidence_lock_version',
+  true
+);
+
+do $$
+begin
+  perform public.publish_credential(
+    pg_catalog.current_setting('test.credential_id')::uuid,
+    pg_catalog.current_setting('test.credential_lock')::bigint
+  );
+  raise exception 'credential publication with a claimed asset unexpectedly succeeded';
+exception
+  when serialization_failure then null;
+end;
+$$;
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset evidence_revert_release_
+
+select pg_temp.asset_signature(
+  'revert_release',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'evidence_revert_release_timestamp'::bigint,
+  array[
+    :'evidence_asset_asset_id',
+    :'evidence_public_object_key',
+    :'evidence_revert_claim_token'
+  ]
+) as signature
+\gset evidence_revert_release_
+
+select public.release_asset_public_revert(
+  :'evidence_asset_asset_id'::uuid,
+  :'evidence_public_object_key',
+  :'evidence_revert_claim_token'::uuid,
+  :'evidence_revert_release_timestamp'::bigint,
+  :'evidence_revert_release_signature'
+);
+
+select id::text as publication_id
+from public.publish_credential(
+  :'credential_credential_id'::uuid,
+  :'public_evidence_lock_version'::bigint
+)
+\gset credential_
+
+select pg_catalog.set_config(
+  'test.credential_publication_id',
+  :'credential_publication_id',
+  true
+);
+
+select pg_catalog.floor(
+  pg_catalog.date_part('epoch', pg_catalog.clock_timestamp())
+)::bigint as timestamp
+\gset referenced_revert_
+
+select pg_temp.asset_signature(
+  'revert_claim',
+  pg_catalog.current_setting('test.admin_1')::uuid,
+  :'referenced_revert_timestamp'::bigint,
+  array[
+    :'evidence_asset_asset_id',
+    :'evidence_public_object_key'
+  ]
+) as signature
+\gset referenced_revert_
+
+select pg_temp.assert_true(
+  public.claim_asset_public_revert(
+    :'evidence_asset_asset_id'::uuid,
+    :'evidence_public_object_key',
+    :'referenced_revert_timestamp'::bigint,
+    :'referenced_revert_signature'
+  ) is null,
+  'a public asset referenced by the current credential publication must not be claimed'
 );
 
 reset role;
@@ -1074,12 +1894,11 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-  (
-    select pg_catalog.count(*) = 1
-    from public.current_cv_download()
-    where object_key = 'tests/admin-v1-cv.pdf'
-  ),
-  'anonymous CV downloads may resolve only the selected private object'
+  pg_catalog.to_regprocedure('public.current_cv_download()') is null
+  and not pg_catalog.has_table_privilege('anon', 'public.site_settings', 'SELECT')
+  and not pg_catalog.has_table_privilege('anon', 'public.cv_versions', 'SELECT')
+  and not pg_catalog.has_table_privilege('anon', 'public.assets', 'SELECT'),
+  'anonymous users must not resolve private CV object metadata'
 );
 
 reset role;
@@ -1215,12 +2034,12 @@ select pg_temp.assert_true(
   )
   and pg_catalog.has_function_privilege(
     'authenticated',
-    'public.finish_pending_asset_cleanup(uuid[],bigint,text,uuid)',
+    'public.finish_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
   and pg_catalog.has_function_privilege(
     'authenticated',
-    'public.release_pending_asset_cleanup(uuid[],bigint,text,uuid)',
+    'public.release_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
   and pg_catalog.has_function_privilege(
@@ -1230,12 +2049,12 @@ select pg_temp.assert_true(
   )
   and pg_catalog.has_function_privilege(
     'anon',
-    'public.finish_pending_asset_cleanup(uuid[],bigint,text,uuid)',
+    'public.finish_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
   and pg_catalog.has_function_privilege(
     'anon',
-    'public.release_pending_asset_cleanup(uuid[],bigint,text,uuid)',
+    'public.release_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
   and not pg_catalog.has_function_privilege(
@@ -1245,22 +2064,151 @@ select pg_temp.assert_true(
   )
   and not pg_catalog.has_function_privilege(
     'service_role',
-    'public.finish_pending_asset_cleanup(uuid[],bigint,text,uuid)',
+    'public.finish_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
   and not pg_catalog.has_function_privilege(
     'service_role',
-    'public.release_pending_asset_cleanup(uuid[],bigint,text,uuid)',
+    'public.release_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
   and not pg_catalog.has_function_privilege(
     'service_role',
-    'public.publish_asset(uuid,text,text,bigint,text)',
+    'public.claim_asset_publication(uuid,text,text,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.finish_asset_publication(uuid,text,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.release_asset_publication(uuid,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.claim_stale_asset_publications(integer,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.claim_asset_publication(uuid,text,text,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_asset_publication(uuid,text,text,bigint,text,uuid)',
     'EXECUTE'
   )
   and pg_catalog.has_function_privilege(
     'anon',
-    'public.current_cv_download()',
+    'public.finish_asset_publication(uuid,text,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_stale_asset_publications(integer,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.to_regprocedure('public.current_cv_download()') is null
+  and pg_catalog.to_regprocedure('public.set_current_cv(uuid)') is null
+  and pg_catalog.to_regprocedure('public.publish_asset(uuid,text,text,bigint,text)') is null
+  and pg_catalog.to_regprocedure('public.commit_current_cv(uuid,uuid,text,text,bigint,text)') is null
+  and pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.finish_current_cv_transition(uuid,uuid,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.confirm_current_cv_transition(uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_stale_current_cv_transition(bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.claim_asset_public_revert(uuid,text,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_asset_public_revert(uuid,text,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.claim_stale_asset_public_reverts(integer,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.finish_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and pg_catalog.has_function_privilege(
+    'anon',
+    'public.release_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.finish_current_cv_transition(uuid,uuid,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.confirm_current_cv_transition(uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.release_current_cv_transition(uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.claim_stale_current_cv_transition(bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.claim_asset_public_revert(uuid,text,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.finish_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.release_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
+    'EXECUTE'
+  )
+  and not pg_catalog.has_function_privilege(
+    'service_role',
+    'public.claim_stale_asset_public_reverts(integer,bigint,text,uuid)',
     'EXECUTE'
   )
   and not pg_catalog.has_function_privilege(
@@ -1273,7 +2221,7 @@ select pg_temp.assert_true(
     'public.create_project(text)',
     'EXECUTE'
   ),
-  'anonymous execution must be limited to attested cleanup and public CV reads'
+  'anonymous execution must be limited to attested cleanup and revert recovery'
 );
 
 set local role service_role;

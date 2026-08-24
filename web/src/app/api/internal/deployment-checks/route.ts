@@ -9,13 +9,34 @@ const SHA = /^[0-9a-f]{40}$/i;
 const DEPLOYMENT_ID = /^dpl_[A-Za-z0-9]+$/;
 const PROJECT_ID = /^prj_[A-Za-z0-9]+$/;
 const RUN_ID = /^\d+$/;
+const FAILURE_CATEGORIES = [
+  "application_error",
+  "browser_console_error",
+  "browser_navigation_error",
+  "browser_page_error",
+  "browser_unavailable",
+  "http_error",
+  "request_error",
+  "request_timeout",
+] as const;
+const BODY_KEYS = new Set([
+  "version",
+  "deploymentId",
+  "projectId",
+  "deploymentUrl",
+  "gitSha",
+  "runId",
+  "runNumber",
+  "runUrl",
+  "status",
+  "checkedAt",
+  "pagesChecked",
+  "brokenCount",
+  "failureCounts",
+]);
 
-type Failure = {
-  url: string;
-  source: string;
-  status?: number;
-  error?: string;
-};
+type FailureCategory = (typeof FAILURE_CATEGORIES)[number];
+type FailureCounts = Partial<Record<FailureCategory, number>>;
 
 type CheckBody = {
   version: 1;
@@ -30,7 +51,7 @@ type CheckBody = {
   checkedAt: string;
   pagesChecked: number;
   brokenCount: number;
-  failures: Failure[];
+  failureCounts: FailureCounts;
 };
 
 function error(code: string, status: number) {
@@ -66,32 +87,29 @@ function safeUrl(value: unknown) {
   }
 }
 
-function validFailure(value: unknown): value is Failure {
-  const item = object(value);
-  if (
-    !item ||
-    !boundedString(item.url, 2048) ||
-    !boundedString(item.source, 2048)
-  ) {
-    return false;
+function parseFailureCounts(value: unknown): FailureCounts | null {
+  const counts = object(value);
+  if (!counts) return null;
+  const allowed = new Set<string>(FAILURE_CATEGORIES);
+  for (const [category, count] of Object.entries(counts)) {
+    if (
+      !allowed.has(category) ||
+      !Number.isSafeInteger(count) ||
+      (count as number) < 1 ||
+      (count as number) > 100
+    ) {
+      return null;
+    }
   }
-  if (
-    item.status !== undefined &&
-    (!Number.isSafeInteger(item.status) ||
-      (item.status as number) < 100 ||
-      (item.status as number) > 599)
-  ) {
-    return false;
-  }
-  return item.error === undefined ||
-    (typeof item.error === "string" && item.error.length <= 500);
+  return counts as FailureCounts;
 }
 
 function parseBody(value: unknown): CheckBody | null {
   const body = object(value);
-  if (!body) return null;
+  if (!body || Object.keys(body).some((key) => !BODY_KEYS.has(key))) return null;
   const deploymentUrl = safeUrl(body.deploymentUrl);
   const runUrl = safeUrl(body.runUrl);
+  const failureCounts = parseFailureCounts(body.failureCounts);
   const checkedAt =
     typeof body.checkedAt === "string" ? Date.parse(body.checkedAt) : Number.NaN;
   if (
@@ -111,6 +129,8 @@ function parseBody(value: unknown): CheckBody | null {
     !Number.isSafeInteger(body.runNumber) ||
     (body.runNumber as number) < 1 ||
     !runUrl ||
+    runUrl.search ||
+    runUrl.hash ||
     !["running", "success", "failure"].includes(body.status as string) ||
     !Number.isFinite(checkedAt) ||
     Math.abs(Date.now() - checkedAt) > SIGNATURE_WINDOW_SECONDS * 1000 ||
@@ -120,24 +140,27 @@ function parseBody(value: unknown): CheckBody | null {
     !Number.isSafeInteger(body.brokenCount) ||
     (body.brokenCount as number) < 0 ||
     (body.brokenCount as number) > 100 ||
-    !Array.isArray(body.failures) ||
-    body.failures.length > 50 ||
-    !body.failures.every(validFailure)
+    !failureCounts
   ) {
     return null;
   }
+  const categorizedCount = Object.values(failureCounts).reduce(
+    (total, count) => total + (count ?? 0),
+    0,
+  );
   if (
     (body.status === "running" &&
       (body.pagesChecked !== 0 ||
         body.brokenCount !== 0 ||
-        body.failures.length !== 0)) ||
+        categorizedCount !== 0)) ||
     (body.status === "success" &&
-      (body.brokenCount !== 0 || body.failures.length !== 0)) ||
-    (body.status === "failure" && body.brokenCount === 0)
+      (body.brokenCount !== 0 || categorizedCount !== 0)) ||
+    (body.status === "failure" &&
+      (body.brokenCount === 0 || categorizedCount !== body.brokenCount))
   ) {
     return null;
   }
-  return body as CheckBody;
+  return { ...body, failureCounts } as CheckBody;
 }
 
 function validSignature(rawBody: string, secret: string, request: Request) {
@@ -160,6 +183,13 @@ function validSignature(rawBody: string, secret: string, request: Request) {
   return received.length === expected.length && timingSafeEqual(received, expected);
 }
 
+function accepted(status = 200, recovered = false) {
+  return Response.json(
+    { accepted: true, recovered },
+    { status, headers: { "cache-control": "no-store" } },
+  );
+}
+
 export async function POST(request: Request) {
   const secret = process.env.DEPLOY_CHECK_SECRET?.trim();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -169,6 +199,7 @@ export async function POST(request: Request) {
   const expectedHost = process.env.VERCEL_URL?.trim();
   if (
     !secret ||
+    Buffer.byteLength(secret, "utf8") < 32 ||
     !supabaseUrl ||
     !serviceRoleKey ||
     !expectedProject ||
@@ -223,7 +254,10 @@ export async function POST(request: Request) {
     checked_at: body.checkedAt,
     pages_checked: body.pagesChecked,
     broken_count: body.brokenCount,
-    failures: body.failures,
+    failures: Object.entries(body.failureCounts).map(([category, count]) => ({
+      category,
+      count,
+    })),
   };
 
   if (body.status === "running") {
@@ -231,15 +265,23 @@ export async function POST(request: Request) {
       .from("deployment_checks")
       .insert({ ...identity, status: "running" });
     if (insertError) {
-      return error(
-        insertError.code === "23505" ? "check_already_received" : "storage_unavailable",
-        insertError.code === "23505" ? 409 : 503,
-      );
+      if (insertError.code !== "23505") return error("storage_unavailable", 503);
+      const { data: existing, error: readError } = await supabase
+        .from("deployment_checks")
+        .select("deployment_id,project_id,git_sha,run_id,status")
+        .eq("deployment_id", body.deploymentId)
+        .maybeSingle();
+      if (readError) return error("storage_unavailable", 503);
+      if (
+        existing?.project_id === body.projectId &&
+        existing.git_sha === body.gitSha &&
+        existing.run_id === body.runId
+      ) {
+        return accepted();
+      }
+      return error("check_already_received", 409);
     }
-    return Response.json(
-      { accepted: true },
-      { status: 201, headers: { "cache-control": "no-store" } },
-    );
+    return accepted(201);
   }
 
   const { data, error: updateError } = await supabase
@@ -249,7 +291,7 @@ export async function POST(request: Request) {
       checked_at: body.checkedAt,
       pages_checked: body.pagesChecked,
       broken_count: body.brokenCount,
-      failures: body.failures,
+      failures: identity.failures,
     })
     .eq("deployment_id", body.deploymentId)
     .eq("run_id", body.runId)
@@ -258,9 +300,27 @@ export async function POST(request: Request) {
     .eq("status", "running")
     .select("deployment_id");
   if (updateError) return error("storage_unavailable", 503);
-  if (data.length !== 1) return error("check_not_running", 409);
-  return Response.json(
-    { accepted: true },
-    { headers: { "cache-control": "no-store" } },
-  );
+  if (data.length === 1) return accepted();
+
+  const { error: insertError } = await supabase
+    .from("deployment_checks")
+    .insert({ ...identity, status: body.status });
+  if (!insertError) return accepted(201, true);
+  if (insertError.code !== "23505") return error("storage_unavailable", 503);
+
+  const { data: existing, error: readError } = await supabase
+    .from("deployment_checks")
+    .select("deployment_id,project_id,git_sha,run_id,status")
+    .eq("deployment_id", body.deploymentId)
+    .maybeSingle();
+  if (readError) return error("storage_unavailable", 503);
+  if (
+    existing?.project_id === body.projectId &&
+    existing.git_sha === body.gitSha &&
+    existing.run_id === body.runId &&
+    existing.status === body.status
+  ) {
+    return accepted();
+  }
+  return error("check_state_conflict", 409);
 }

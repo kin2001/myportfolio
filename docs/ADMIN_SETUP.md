@@ -1,9 +1,10 @@
 # Admin v1 external setup
 
-The repository contains the admin application, database migration, R2 upload
-pipeline, monitoring integrations, and deployment checks. The external
-resources below still need to be created in their respective dashboards. No
-credential or secret belongs in this document or in Git.
+The repository contains the admin application, database migrations, R2 upload
+pipeline, monitoring integrations, and deployment checks. Supabase is created
+and migrated; the remaining provider resources below still need setup in their
+respective dashboards. No credential or secret belongs in this document or in
+Git.
 
 ## 1. Supabase
 
@@ -14,7 +15,10 @@ credential or secret belongs in this document or in Git.
    Supabase dashboard before any later database change.
 4. Migration `20260814045615_admin_v1` has been applied from
    `supabase/migrations/20260814045615_admin_v1.sql`.
-5. Run `supabase/tests/admin_v1_rls.sql` against a disposable or reset test
+5. Migration `20260814053000_r2_reliability.sql` has been applied.
+6. Migration `20260814140428_monitoring_snapshots.sql` has been applied.
+7. Run `supabase/tests/admin_v1_rls.sql`, then
+   `supabase/tests/monitoring_snapshots_rls.sql`, against a disposable or reset test
    database. Never run the test script against production data.
 
 The older `artkin-portfolio` project in Mumbai remains unused and empty. Do
@@ -33,8 +37,10 @@ move later SQL changes into a new forward migration instead of rerunning it.
    `https://<project-ref>.supabase.co/auth/v1/callback`.
 4. Enable Google under Supabase Authentication > Sign In / Providers and enter
    the Google client ID and secret.
-5. Set the Supabase Site URL to the Vercel production URL.
-6. Add these redirect URLs:
+5. While testing locally, set the Supabase Site URL to
+   `http://localhost:3000`. Change it to the verified Vercel production URL
+   only after the first successful deployment.
+6. Add these redirect URLs before testing either environment:
    - `http://localhost:3000/auth/callback`
    - `https://artkincarreon.vercel.app/auth/callback`
 
@@ -163,6 +169,7 @@ daily cron jobs and sends `Authorization: Bearer $CRON_SECRET`; see
 | `VERCEL_TOKEN` | Server | Read-only project monitoring access |
 | `VERCEL_PROJECT_ID` | Server | Vercel project ID |
 | `VERCEL_TEAM_ID` | Server | Optional for a personal project |
+| `VERCEL_PROJECT_DASHBOARD_URL` | Server | Exact `https://vercel.com/<team>/<project>` URL used for dashboard links |
 | `BETTER_STACK_API_TOKEN` | Server | Reads uptime monitor state |
 | `BETTER_STACK_HOME_MONITOR_ID` | Server | Homepage monitor |
 | `BETTER_STACK_CONTACT_MONITOR_ID` | Server | Contact monitor |
@@ -173,10 +180,12 @@ daily cron jobs and sends `Authorization: Bearer $CRON_SECRET`; see
 | `BETTER_STACK_QUERY_USERNAME` | Server | Read-only query user |
 | `BETTER_STACK_QUERY_PASSWORD` | Server | Read-only query password |
 | `BETTER_STACK_QUERY_TABLE` | Server | Better Stack log table name |
-| `DEPLOY_CHECK_SECRET` | Server | HMAC key shared with GitHub Actions |
+| `DEPLOY_CHECK_SECRET` | Server | HMAC key of at least 32 bytes shared with GitHub Actions |
 
 Vercel provides deployment IDs, URLs, and environment markers automatically;
-do not create lookalike values manually.
+do not create lookalike values manually. Keep **Automatically expose System
+Environment Variables** enabled and verify `VERCEL_DEPLOYMENT_ID` and
+`VERCEL_URL` exist in the first production deployment.
 
 Keep `NEXT_PUBLIC_API_URL` empty until the deferred contact backend exists.
 
@@ -205,7 +214,7 @@ repository's default branch before Vercel can dispatch to it.
 
 Add these GitHub Actions secrets:
 
-- `DEPLOY_CHECK_SECRET`: identical to the Vercel value.
+- `DEPLOY_CHECK_SECRET`: identical to the Vercel value and at least 32 bytes.
 - `VERCEL_AUTOMATION_BYPASS_SECRET`: only when deployment protection requires
   it; otherwise omit it.
 

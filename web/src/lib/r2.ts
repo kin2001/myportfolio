@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -10,6 +11,8 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let client: S3Client | undefined;
+
+export const CURRENT_CV_POINTER_KEY = "current-cv.json";
 
 function getR2() {
   const accountId = process.env.R2_ACCOUNT_ID?.trim();
@@ -67,7 +70,33 @@ export async function readPrivateObject(key: string) {
   return response.Body ? Buffer.from(await response.Body.transformToByteArray()) : null;
 }
 
-export async function writePrivateObject(key: string, body: Buffer, contentType: string) {
+export async function readVerifiedPrivatePdf({
+  key,
+  sizeBytes,
+  checksumSha256,
+}: {
+  key: string;
+  sizeBytes: number;
+  checksumSha256: string;
+}) {
+  const body = await readPrivateObject(key);
+  if (
+    !body ||
+    body.byteLength !== sizeBytes ||
+    body.subarray(0, 5).toString("ascii") !== "%PDF-" ||
+    createHash("sha256").update(body).digest("hex") !== checksumSha256
+  ) {
+    return null;
+  }
+  return body;
+}
+
+export async function writePrivateObject(
+  key: string,
+  body: Buffer,
+  contentType: string,
+  condition?: { etag: string } | { absent: true },
+) {
   const r2 = getR2();
   if (!r2) return false;
   await r2.client.send(
@@ -77,6 +106,8 @@ export async function writePrivateObject(key: string, body: Buffer, contentType:
       Body: body,
       ContentLength: body.byteLength,
       ContentType: contentType,
+      IfMatch: condition && "etag" in condition ? condition.etag : undefined,
+      IfNoneMatch: condition && "absent" in condition ? "*" : undefined,
     }),
   );
   return true;
@@ -135,6 +166,76 @@ export async function copyPrivateObjectToPublic({
   return true;
 }
 
+export async function writePublicObject({
+  key,
+  body,
+  contentType,
+  cacheControl,
+  contentDisposition,
+  condition,
+  metadata,
+}: {
+  key: string;
+  body: Buffer;
+  contentType: string;
+  cacheControl: string;
+  contentDisposition?: string;
+  condition?: { etag: string } | { absent: true };
+  metadata?: Record<string, string>;
+}) {
+  const r2 = getR2();
+  if (!r2) return false;
+  await r2.client.send(
+    new PutObjectCommand({
+      Bucket: r2.publicBucket,
+      Key: key,
+      Body: body,
+      ContentLength: body.byteLength,
+      ContentType: contentType,
+      CacheControl: cacheControl,
+      ContentDisposition: contentDisposition,
+      IfMatch: condition && "etag" in condition ? condition.etag : undefined,
+      IfNoneMatch: condition && "absent" in condition ? "*" : undefined,
+      Metadata: metadata,
+    }),
+  );
+  return true;
+}
+
+export async function headPublicObjectVersion(
+  key: string,
+): Promise<{ etag: string; retired: boolean } | { absent: true } | null> {
+  const r2 = getR2();
+  if (!r2) return null;
+  try {
+    const response = await r2.client.send(
+      new HeadObjectCommand({ Bucket: r2.publicBucket, Key: key }),
+    );
+    return response.ETag
+      ? { etag: response.ETag, retired: response.Metadata?.retired === "true" }
+      : null;
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+      ?.httpStatusCode;
+    if (status === 404) return { absent: true };
+    throw error;
+  }
+}
+
+export async function retirePublicObject(key: string) {
+  const version = await headPublicObjectVersion(key);
+  if (!version) return false;
+  if ("etag" in version && version.retired) return true;
+  return writePublicObject({
+    key,
+    body: Buffer.alloc(0),
+    contentType: "application/octet-stream",
+    cacheControl: "no-store",
+    condition: "etag" in version ? { etag: version.etag } : { absent: true },
+    metadata: { retired: "true" },
+  });
+}
+
 export async function deletePublicObject(key: string) {
   const r2 = getR2();
   if (!r2) return false;
@@ -166,6 +267,66 @@ export async function getPublicObject(
     const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata
       ?.httpStatusCode;
     if (status === 404) return null;
+    throw error;
+  }
+}
+
+export async function readCurrentCvPointer(): Promise<{
+  etag: string;
+  versionId: string;
+  objectKey: string;
+  sizeBytes: number;
+  checksumSha256: string;
+  generation: string;
+} | { absent: true } | { invalid: true; etag: string } | null> {
+  const r2 = getR2();
+  if (!r2) return null;
+  try {
+    const response = await r2.client.send(
+      new GetObjectCommand({
+        Bucket: r2.privateBucket,
+        Key: CURRENT_CV_POINTER_KEY,
+      }),
+    );
+    if (!response.ETag) return null;
+    if (
+      !response.Body ||
+      (response.ContentLength ?? 0) < 1 ||
+      (response.ContentLength ?? 0) > 1024
+    ) return { invalid: true, etag: response.ETag };
+    const raw = Buffer.from(await response.Body.transformToByteArray()).toString("utf8");
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return { invalid: true, etag: response.ETag };
+    }
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (
+      typeof parsed.versionId !== "string" ||
+      !uuid.test(parsed.versionId) ||
+      typeof parsed.objectKey !== "string" ||
+      !/^pending\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/original$/i.test(parsed.objectKey) ||
+      !Number.isSafeInteger(parsed.sizeBytes) ||
+      (parsed.sizeBytes as number) < 1 ||
+      (parsed.sizeBytes as number) > 10 * 1024 * 1024 ||
+      typeof parsed.checksumSha256 !== "string" ||
+      !/^[0-9a-f]{64}$/.test(parsed.checksumSha256) ||
+      typeof parsed.generation !== "string" ||
+      !uuid.test(parsed.generation)
+    ) return { invalid: true, etag: response.ETag };
+    return {
+      etag: response.ETag,
+      versionId: parsed.versionId,
+      objectKey: parsed.objectKey,
+      sizeBytes: parsed.sizeBytes as number,
+      checksumSha256: parsed.checksumSha256,
+      generation: parsed.generation,
+    };
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+      ?.httpStatusCode;
+    if (status === 404) return { absent: true };
     throw error;
   }
 }
