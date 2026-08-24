@@ -46,14 +46,10 @@ async function uploadPdf(file: File): Promise<string> {
 
   await uploadSignedAsset(upload, file);
 
-  const checksumSha256 = Array.from(
-    new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())),
-    (byte) => byte.toString(16).padStart(2, "0"),
-  ).join("");
   const finalize = await fetch("/api/admin/assets/finalize", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ assetId: upload.assetId, checksumSha256 }),
+    body: JSON.stringify({ assetId: upload.assetId }),
   });
   const finalized = await finalize.json() as MutationResult<{ assetId: string }>;
   if (!finalize.ok || !finalized.ok) {

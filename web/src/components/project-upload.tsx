@@ -11,10 +11,6 @@ type UploadReady = SignedAssetUpload;
 
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 
-function hex(buffer: ArrayBuffer) {
-  return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 export function ProjectUpload({
   label,
   onReady,
@@ -66,11 +62,10 @@ export function ProjectUpload({
       await uploadSignedAsset(initiate.data, file);
 
       setStatus("Validating image…");
-      const checksumSha256 = hex(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
       const finalizeResponse = await fetch("/api/admin/assets/finalize", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ assetId: initiate.data.assetId, checksumSha256 }),
+        body: JSON.stringify({ assetId: initiate.data.assetId }),
       });
       const finalized =
         (await finalizeResponse.json()) as MutationResult<{ assetId: string }>;
