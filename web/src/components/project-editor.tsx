@@ -49,7 +49,7 @@ const linkKinds: ProjectLink["kind"][] = [
 ];
 
 function id() {
-  return crypto.randomUUID();
+  return crypto.getRandomValues(new Uint32Array(4)).join("-");
 }
 
 function formatDate(value: string) {
