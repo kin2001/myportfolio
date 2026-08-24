@@ -1799,27 +1799,27 @@ select pg_temp.assert_true(
     'public.release_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.claim_pending_assets_for_cleanup(integer,bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.finish_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.release_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
   )
-  and not pg_catalog.has_function_privilege(
+  and pg_catalog.has_function_privilege(
     'service_role',
     'public.claim_pending_assets_for_cleanup(integer,bigint,text,uuid)',
     'EXECUTE'
   )
-  and not pg_catalog.has_function_privilege(
+  and pg_catalog.has_function_privilege(
     'service_role',
     'public.finish_pending_asset_cleanup(uuid[],uuid[],bigint,text,uuid)',
     'EXECUTE'
@@ -1834,7 +1834,7 @@ select pg_temp.assert_true(
     'public.claim_asset_publication(uuid,text,text,bigint,text,uuid)',
     'EXECUTE'
   )
-  and not pg_catalog.has_function_privilege(
+  and pg_catalog.has_function_privilege(
     'service_role',
     'public.finish_asset_publication(uuid,text,text,uuid,bigint,text,uuid)',
     'EXECUTE'
@@ -1844,7 +1844,7 @@ select pg_temp.assert_true(
     'public.release_asset_publication(uuid,uuid,bigint,text,uuid)',
     'EXECUTE'
   )
-  and not pg_catalog.has_function_privilege(
+  and pg_catalog.has_function_privilege(
     'service_role',
     'public.claim_stale_asset_publications(integer,bigint,text,uuid)',
     'EXECUTE'
@@ -1859,12 +1859,12 @@ select pg_temp.assert_true(
     'public.claim_asset_publication(uuid,text,text,bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.finish_asset_publication(uuid,text,text,uuid,bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.claim_stale_asset_publications(integer,bigint,text,uuid)',
     'EXECUTE'
@@ -1908,17 +1908,17 @@ select pg_temp.assert_true(
     'public.claim_asset_public_revert(uuid,text,bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.claim_stale_asset_public_reverts(integer,bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.finish_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
     'EXECUTE'
   )
-  and pg_catalog.has_function_privilege(
+  and not pg_catalog.has_function_privilege(
     'anon',
     'public.release_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
     'EXECUTE'
@@ -1933,7 +1933,7 @@ select pg_temp.assert_true(
     'public.claim_asset_public_revert(uuid,text,bigint,text,uuid)',
     'EXECUTE'
   )
-  and not pg_catalog.has_function_privilege(
+  and pg_catalog.has_function_privilege(
     'service_role',
     'public.finish_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
     'EXECUTE'
@@ -1943,7 +1943,7 @@ select pg_temp.assert_true(
     'public.release_asset_public_revert(uuid,text,uuid,bigint,text,uuid)',
     'EXECUTE'
   )
-  and not pg_catalog.has_function_privilege(
+  and pg_catalog.has_function_privilege(
     'service_role',
     'public.claim_stale_asset_public_reverts(integer,bigint,text,uuid)',
     'EXECUTE'
@@ -1958,7 +1958,7 @@ select pg_temp.assert_true(
     'public.create_project(text)',
     'EXECUTE'
   ),
-  'anonymous execution must be limited to attested cleanup and revert recovery'
+  'recovery RPCs require an authenticated administrator or the server-only service role'
 );
 
 set local role service_role;

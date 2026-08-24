@@ -12,7 +12,7 @@ export { PRIVATE_ASSET_BUCKET, PUBLIC_ASSET_BUCKET };
 
 let serviceClient: SupabaseClient | undefined;
 
-function getStorageClient() {
+export function getStorageClient() {
   const config = getSupabasePublicConfig();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!config || !serviceRoleKey) return null;

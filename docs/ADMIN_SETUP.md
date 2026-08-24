@@ -18,7 +18,8 @@ this document or in Git.
 5. Migration `20260814053000_r2_reliability.sql` has been applied.
 6. Migration `20260814140428_monitoring_snapshots.sql` has been applied.
 7. Migration `20260824122455_supabase_storage_cutover.sql` has been applied.
-8. Run `supabase/tests/admin_v1_rls.sql`,
+8. Migration `20260824131126_harden_recovery_rpc_grants.sql` has been applied.
+9. Run `supabase/tests/admin_v1_rls.sql`,
    `supabase/tests/monitoring_snapshots_rls.sql`, and
    `supabase/tests/supabase_storage_cutover.sql` against a disposable or reset
    test database. Never run the test scripts against production data.

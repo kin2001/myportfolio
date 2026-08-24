@@ -1,13 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
 import {
   assetMutationAttestation,
   type ClaimedPublicationSource,
   writeClaimedPublicationSource,
 } from "@/lib/assets";
-import { getSupabasePublicConfig } from "@/lib/env";
 import {
   deletePrivateObject,
+  getStorageClient,
   retirePublicObject,
 } from "@/lib/supabase/storage";
 
@@ -60,10 +59,10 @@ function validCronSecret(request: Request) {
 export async function GET(request: Request) {
   if (!validCronSecret(request)) return response({ error: "unauthorized" }, 401);
 
-  const config = getSupabasePublicConfig();
+  const supabase = getStorageClient();
   const configuredAdministratorId =
     process.env.CLEANUP_ADMIN_USER_ID?.trim() ?? "";
-  if (!config || !UUID.test(configuredAdministratorId)) {
+  if (!supabase || !UUID.test(configuredAdministratorId)) {
     return response({ error: "cleanup_not_configured" }, 503);
   }
   const administratorId = configuredAdministratorId.toLowerCase();
@@ -79,13 +78,6 @@ export async function GET(request: Request) {
     return response({ error: "cleanup_not_configured" }, 503);
   }
 
-  const supabase = createClient(config.url, config.publishableKey, {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  });
   const { data: candidates, error: claimError } = await supabase.rpc(
     "claim_pending_assets_for_cleanup",
     {
