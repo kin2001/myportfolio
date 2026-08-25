@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ProjectList } from "@/components/project-editor";
+import { NewProjectButton, ProjectList } from "@/components/project-editor";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function ProjectsAdminPage() {
@@ -50,7 +49,7 @@ export default async function ProjectsAdminPage() {
           <p className="mono-meta accent">[ PROJECT_REGISTRY ]</p>
           <h1 className="mt-4 text-4xl font-semibold">Projects</h1>
         </div>
-        <Link href="/admin/projects/new" className="button-primary">New project</Link>
+        <NewProjectButton />
       </div>
       <ProjectList projects={projects} deployment={deployment} />
     </div>

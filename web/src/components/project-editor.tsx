@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   archiveProjectAction,
@@ -39,17 +39,24 @@ type ListedProject = {
   updatedAt: string;
 };
 
-const linkKinds: ProjectLink["kind"][] = [
-  "github",
-  "demo",
-  "video",
-  "file",
-  "documentation",
-  "other",
-];
+type SaveState = "saved" | "unsaved" | "saving" | "blocked" | "error";
 
 function id() {
   return crypto.getRandomValues(new Uint32Array(4)).join("-");
+}
+
+function isHttpsUrl(value: string) {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function canAutosaveDraft(draft: { title: string; links: ProjectLink[] }) {
+  return Boolean(draft.title.trim()) && draft.links.every(
+    (link) => Boolean(link.label.trim()) && isHttpsUrl(link.url),
+  );
 }
 
 function formatDate(value: string) {
@@ -89,49 +96,37 @@ function ErrorSummary({ error }: { error: MutationError | null }) {
   );
 }
 
-export function NewProjectForm() {
+export function NewProjectButton() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
   const [error, setError] = useState<MutationError | null>(null);
   const [pending, startTransition] = useTransition();
 
   return (
-    <form
-      className="module mt-8 max-w-2xl p-7"
-      onSubmit={(event) => {
-        event.preventDefault();
+    <div className="flex flex-col items-start gap-2 md:items-end">
+      <button
+        className="button-primary"
+        disabled={pending}
+        type="button"
+        onClick={() => {
+          setError(null);
         startTransition(async () => {
-          const result = await createProjectAction(title);
+          const result = await createProjectAction("Untitled project");
           if (!result.ok) {
             setError(result.error);
             return;
           }
           router.push(`/admin/projects/${result.data.projectId}`);
         });
-      }}
-    >
-      <ErrorSummary error={error} />
-      <label className="mt-6 block">
-        <span className="mono-label">Project title</span>
-        <input
-          aria-describedby={error?.fieldErrors?.title ? "project-error-summary" : undefined}
-          aria-invalid={Boolean(error?.fieldErrors?.title)}
-          autoFocus
-          className="field mt-3"
-          id="project-title"
-          maxLength={160}
-          required
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-      </label>
-      <p className="mono-meta muted mt-4">
-        The private draft is created now. Documentation and images are added next.
-      </p>
-      <button className="button-primary mt-7" disabled={pending} type="submit">
-        {pending ? "Creating…" : "Create draft"}
+        }}
+      >
+        {pending ? "Opening editor…" : "New project"}
       </button>
-    </form>
+      {error ? (
+        <p className="max-w-xs text-sm text-[var(--danger)]" role="alert">
+          {error.message}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -280,16 +275,115 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
   const [links, setLinks] = useState(initial.links);
   const [lockVersion, setLockVersion] = useState(initial.lockVersion);
   const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(initial.updatedAt);
+  const [saveState, setSaveState] = useState<SaveState>("saved");
   const [mediaPermission, setMediaPermission] = useState(false);
   const [error, setError] = useState<MutationError | null>(null);
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
+  const dirtyRef = useRef(false);
+  const editRevisionRef = useRef(0);
+  const saveInFlightRef = useRef(false);
+  const lockVersionRef = useRef(initial.lockVersion);
+  const draftRef = useRef({ title, blocks, coverAssetId, coverAlt, links });
   const hasMedia =
     Boolean(coverAssetId) || blocks.some((block) => block.type === "image");
+  const hasTitle = Boolean(title.trim());
+  const hasDocumentation = blocks.some(
+    (block) => block.type === "text" && block.body.trim(),
+  );
+  const imageAltsReady = blocks.every(
+    (block) => block.type !== "image" || block.alt.trim(),
+  );
+  const coverReady = !coverAssetId || Boolean(coverAlt.trim());
+  const linksReady = links.every(
+    (link) => Boolean(link.label.trim()) && isHttpsUrl(link.url),
+  );
+  const draftCanAutosave = hasTitle && linksReady;
+  const publishReady =
+    hasTitle && hasDocumentation && imageAltsReady && coverReady && linksReady;
+
+  useEffect(() => {
+    draftRef.current = { title, blocks, coverAssetId, coverAlt, links };
+  }, [blocks, coverAlt, coverAssetId, links, title]);
+
+  const save = useCallback(async () => {
+    if (!dirtyRef.current) return;
+    if (!canAutosaveDraft(draftRef.current)) {
+      setSaveState("blocked");
+      return;
+    }
+    if (saveInFlightRef.current) {
+      return;
+    }
+    const revision = editRevisionRef.current;
+    const draft = draftRef.current;
+    let needsAnotherSave = false;
+    saveInFlightRef.current = true;
+    setSaveState("saving");
+
+    try {
+      const result = await saveProjectAction({
+        projectId: initial.projectId,
+        expectedLockVersion: lockVersionRef.current,
+        title: draft.title,
+        document: draft.blocks,
+        coverAssetId: draft.coverAssetId,
+        coverAlt: draft.coverAlt,
+        links: draft.links,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        setSaveState("error");
+        return;
+      }
+
+      lockVersionRef.current = result.data.lockVersion;
+      setLockVersion(result.data.lockVersion);
+      setLastSavedAt(result.data.updatedAt);
+      setError(null);
+      if (editRevisionRef.current === revision) {
+        dirtyRef.current = false;
+        setDirty(false);
+        setSaveState("saved");
+      } else {
+        needsAnotherSave = true;
+      }
+    } catch {
+      setError({
+        code: "autosave_failed",
+        message: "The draft could not save. Check your connection and retry.",
+      });
+      setSaveState("error");
+    } finally {
+      saveInFlightRef.current = false;
+      if (needsAnotherSave && dirtyRef.current) {
+        queueMicrotask(() => void save());
+      }
+    }
+  }, [initial.projectId]);
+
+  useEffect(() => {
+    if (!dirty || saveState === "saving") return;
+    if (!draftCanAutosave) {
+      setSaveState("blocked");
+      return;
+    }
+    const timer = window.setTimeout(() => void save(), 800);
+    return () => window.clearTimeout(timer);
+  }, [blocks, coverAlt, coverAssetId, dirty, draftCanAutosave, links, save, saveState, title]);
+
+  useEffect(() => {
+    const saveWhenHidden = () => {
+      if (document.visibilityState === "hidden") void save();
+    };
+    document.addEventListener("visibilitychange", saveWhenHidden);
+    return () => document.removeEventListener("visibilitychange", saveWhenHidden);
+  }, [save]);
 
   useEffect(() => {
     if (!dirty) return;
-    const prompt = "Leave without saving your project changes?";
+    const prompt = "Your latest changes are still saving. Leave anyway?";
     let restoringHistory = false;
     const beforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
     const beforeNavigation = (event: MouseEvent) => {
@@ -336,7 +430,11 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
   }, [dirty]);
 
   function changed() {
+    dirtyRef.current = true;
+    editRevisionRef.current += 1;
     setDirty(true);
+    setSaveState("unsaved");
+    setError(null);
     setMessage("");
   }
 
@@ -358,29 +456,6 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
     });
     changed();
     setMessage(`${label} moved to position ${target + 1}.`);
-  }
-
-  function save() {
-    startTransition(async () => {
-      const result = await saveProjectAction({
-        projectId: initial.projectId,
-        expectedLockVersion: lockVersion,
-        title,
-        document: blocks,
-        coverAssetId,
-        coverAlt,
-        links,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setError(null);
-      setLockVersion(result.data.lockVersion);
-      setDirty(false);
-      setMessage(`Draft saved ${formatDate(result.data.updatedAt)}.`);
-      router.refresh();
-    });
   }
 
   function publish() {
@@ -414,38 +489,83 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
             {initial.lifecycleState.toUpperCase()} · /{initial.slug}
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            className="button-secondary"
-            type="button"
-            onClick={() => window.open(`/admin/projects/${initial.projectId}/preview`, "_blank", "noopener,noreferrer")}
+        <div className="flex flex-col items-start gap-3 md:items-end">
+          <p
+            className={`mono-meta ${saveState === "error" || saveState === "blocked" ? "text-[var(--danger)]" : saveState === "saved" ? "accent" : "muted"}`}
+            role="status"
           >
-            Preview saved draft
-          </button>
-          <button className="button-primary" disabled={pending || !dirty} type="button" onClick={save}>
-            {pending ? "Working…" : "Save draft"}
-          </button>
+            {saveState === "saving"
+              ? "SAVING DRAFT…"
+              : saveState === "error"
+                ? "AUTOSAVE NEEDS ATTENTION"
+                : saveState === "blocked"
+                  ? "COMPLETE REQUIRED FIELDS TO SAVE"
+                  : dirty
+                  ? "AUTOSAVE PENDING"
+                  : `SAVED / ${formatDate(lastSavedAt)}`}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {saveState === "error" ? (
+              <button className="button-secondary" type="button" onClick={() => void save()}>
+                Retry save
+              </button>
+            ) : null}
+            <button
+              className="button-secondary"
+              disabled={dirty || saveState === "saving"}
+              type="button"
+              onClick={() => window.open(`/admin/projects/${initial.projectId}/preview`, "_blank", "noopener,noreferrer")}
+            >
+              Preview
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="mt-8 space-y-5">
         <ErrorSummary error={error} />
         {message ? <p className="mono-meta accent" role="status">{message}</p> : null}
-        {dirty ? <p className="mono-meta text-[var(--danger)]" role="status">UNSAVED CHANGES</p> : null}
       </div>
+
+      <nav
+        aria-label="Project editor sections"
+        className="module mt-6 grid grid-cols-2 gap-px overflow-hidden bg-[var(--line)] md:grid-cols-4"
+      >
+        {[
+          ["01", "Details", "#project-details"],
+          ["02", "Project story", "#project-document"],
+          ["03", "Media & links", "#project-cover"],
+          ["04", "Publish", "#project-publish"],
+        ].map(([number, label, href]) => (
+          <a
+            className="bg-[var(--paper-pure)] p-4 transition-colors hover:text-[var(--accent)] focus-visible:text-[var(--accent)]"
+            href={href}
+            key={href}
+          >
+            <span className="mono-meta accent block">{number}</span>
+            <span className="mt-2 block text-sm font-medium">{label}</span>
+          </a>
+        ))}
+      </nav>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-8">
-          <section className="module p-7">
-            <h2 className="mono-label">Project identity</h2>
-            <label className="mt-7 block">
-              <span className="mono-label muted">Title</span>
+          <section className="module scroll-mt-24 p-7" id="project-details">
+            <p className="mono-meta accent">01 / DETAILS</p>
+            <h2 className="mt-3 text-2xl font-medium">Name the project</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 ink-soft">
+              Use a clear name. The draft saves automatically while you work.
+            </p>
+            <label className="mt-6 block">
+              <span className="mono-label muted">Project title</span>
               <input
                 aria-describedby={error?.fieldErrors?.title ? "project-error-summary" : undefined}
                 aria-invalid={Boolean(error?.fieldErrors?.title)}
+                autoFocus={initial.title === "Untitled project"}
                 className="field mt-2"
                 id="project-title"
                 maxLength={160}
+                placeholder="Example: Clinic receptionist automation"
                 required
                 value={title}
                 onChange={(event) => {
@@ -456,11 +576,14 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
             </label>
           </section>
 
-          <section id="project-document">
+          <section className="scroll-mt-24" id="project-document">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="mono-label">Documentation</h2>
-                <p className="mono-meta muted mt-2">At least one nonempty text block is required to publish.</p>
+                <p className="mono-meta accent">02 / PROJECT STORY</p>
+                <h2 className="mt-3 text-2xl font-medium">Explain what you built</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 ink-soft">
+                  Describe the problem, your approach, how the system works, and the result. Add another section only when it improves the story.
+                </p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -474,7 +597,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                     changed();
                   }}
                 >
-                  Add text
+                  Add section
                 </button>
               </div>
             </div>
@@ -493,7 +616,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                         type="button"
                         onClick={() => moveBlock(index, -1)}
                       >
-                        Move up
+                        Move earlier
                       </button>
                       <button
                         aria-label={`Move ${block.type} block ${index + 1} down`}
@@ -502,7 +625,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                         type="button"
                         onClick={() => moveBlock(index, 1)}
                       >
-                        Move down
+                        Move later
                       </button>
                       <button
                         aria-label={`Remove ${block.type} block ${index + 1}`}
@@ -521,7 +644,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                   {block.type === "text" ? (
                     <div className="mt-5 grid gap-5">
                       <label>
-                        <span className="mono-label muted">Heading (optional)</span>
+                        <span className="mono-label muted">Section heading (optional)</span>
                         <input
                           className="field mt-2"
                           maxLength={160}
@@ -532,7 +655,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                         />
                       </label>
                       <label>
-                        <span className="mono-label muted">Format</span>
+                        <span className="mono-label muted">Content style</span>
                         <select
                           className="field mt-2"
                           value={block.format}
@@ -543,10 +666,10 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                             })
                           }
                         >
-                          <option value="paragraph">Paragraph</option>
-                          <option value="bullets">Bullets</option>
-                          <option value="numbered">Numbered</option>
-                          <option value="code">Code</option>
+                          <option value="paragraph">Normal text</option>
+                          <option value="bullets">Bullet list</option>
+                          <option value="numbered">Numbered list</option>
+                          <option value="code">Code block</option>
                         </select>
                       </label>
                       {block.format === "code" ? (
@@ -563,12 +686,15 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                         </label>
                       ) : null}
                       <label>
-                        <span className="mono-label muted">Body</span>
+                        <span className="mono-label muted">
+                          {index === 0 ? "Project documentation" : "Section content"}
+                        </span>
                         <textarea
                           aria-describedby={error?.fieldErrors?.document ? "project-error-summary" : undefined}
                           aria-invalid={Boolean(error?.fieldErrors?.document)}
                           className="field mt-2 min-h-40"
                           maxLength={100000}
+                          placeholder="Describe the challenge, workflow, implementation, and what changed."
                           value={block.body}
                           onChange={(event) => updateBlock(index, { ...block, body: event.target.value })}
                         />
@@ -583,11 +709,12 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                         src={`/api/admin/assets/${block.assetId}/preview`}
                       />
                       <label>
-                        <span className="mono-label muted">Alt text</span>
+                        <span className="mono-label muted">Image description</span>
                         <input
                           aria-invalid={Boolean(error?.fieldErrors?.document && !block.alt.trim())}
                           className="field mt-2"
                           maxLength={300}
+                          placeholder="Describe what the image shows"
                           required
                           value={block.alt}
                           onChange={(event) => updateBlock(index, { ...block, alt: event.target.value })}
@@ -611,7 +738,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
             </div>
             <div className="module mt-4 p-5">
               <ProjectUpload
-                label="Add documentation image"
+                label="Add project image"
                 onReady={(assetId) => {
                   setBlocks((current) => [...current, { id: id(), type: "image", assetId, alt: "" }]);
                   changed();
@@ -623,8 +750,11 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
           <section className="module p-7" id="project-links">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="mono-label">Optional links</h2>
-                <p className="mono-meta muted mt-2">Only labeled HTTPS links are accepted.</p>
+                <p className="mono-meta accent">03 / LINKS</p>
+                <h2 className="mt-3 text-xl font-medium">Add a link only if it helps</h2>
+                <p className="mt-2 text-sm leading-6 ink-soft">
+                  This section is optional. Use a short label and a secure HTTPS address.
+                </p>
               </div>
               <button
                 className="button-secondary"
@@ -632,7 +762,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                 onClick={() => {
                   setLinks((current) => [
                     ...current,
-                    { id: id(), label: "", url: "https://", kind: "other" },
+                    { id: id(), label: "", url: "", kind: "other" },
                   ]);
                   changed();
                 }}
@@ -642,13 +772,14 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
             </div>
             <div className="mt-5 space-y-4">
               {links.map((link, index) => (
-                <div className="grid gap-4 border-t border-[var(--line)] pt-5 xl:grid-cols-[1fr_1.5fr_160px_auto]" key={link.id}>
+                <div className="grid gap-4 border-t border-[var(--line)] pt-5 xl:grid-cols-[1fr_1.5fr_auto]" key={link.id}>
                   <label>
                     <span className="mono-label muted">Label</span>
                     <input
                       aria-describedby={error?.fieldErrors?.links ? "project-error-summary" : undefined}
                       className="field mt-2"
                       maxLength={100}
+                      placeholder="Live project"
                       value={link.label}
                       onChange={(event) => {
                         setLinks((current) => current.map((item, itemIndex) =>
@@ -665,6 +796,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                       className="field mt-2"
                       maxLength={2048}
                       pattern="https://.*"
+                      placeholder="https://example.com"
                       type="url"
                       value={link.url}
                       onChange={(event) => {
@@ -674,23 +806,6 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                         changed();
                       }}
                     />
-                  </label>
-                  <label>
-                    <span className="mono-label muted">Kind</span>
-                    <select
-                      className="field mt-2"
-                      value={link.kind}
-                      onChange={(event) => {
-                        setLinks((current) => current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? { ...item, kind: event.target.value as ProjectLink["kind"] }
-                            : item,
-                        ));
-                        changed();
-                      }}
-                    >
-                      {linkKinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}
-                    </select>
                   </label>
                   <button
                     aria-label={`Remove link ${index + 1}`}
@@ -710,15 +825,22 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
         </div>
 
         <aside className="space-y-5">
-          <div className="module p-5" id="project-cover">
+          <div className="module scroll-mt-24 p-5" id="project-cover">
+            <p className="mono-meta accent">03 / MEDIA</p>
+            <h2 className="mt-3 text-xl font-medium">Cover image</h2>
+            <p className="mt-2 text-sm leading-6 ink-soft">
+              Optional. It appears at the top of the full project page.
+            </p>
+            <div className="mt-5">
             <ProjectUpload
-              label="Optional cover image"
+              label="Choose cover image"
                 onReady={(assetId) => {
                   setCoverAssetId(assetId);
                   setCoverAlt("");
                   changed();
                 }}
             />
+            </div>
             {coverAssetId ? (
               <div className="mt-5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -756,13 +878,18 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
               </div>
             ) : null}
           </div>
-          <div className="module p-5">
-            <h2 className="mono-label">Publish gate</h2>
+          <div className="module scroll-mt-24 p-5" id="project-publish">
+            <p className="mono-meta accent">04 / PUBLISH</p>
+            <h2 className="mt-3 text-xl font-medium">Ready to publish?</h2>
+            <p className="mt-2 text-sm leading-6 ink-soft">
+              Complete the checklist. Publishing creates the public snapshot.
+            </p>
             <ul className="mono-meta muted mt-5 space-y-3">
-              <li>{title.trim() ? "●" : "○"} Project title</li>
-              <li>{blocks.some((block) => block.type === "text" && block.body.trim()) ? "●" : "○"} Documentation text</li>
-              <li>{blocks.every((block) => block.type !== "image" || block.alt.trim()) ? "●" : "○"} Image alt text</li>
-              <li>{!coverAssetId || coverAlt.trim() ? "●" : "○"} Cover alt text</li>
+              <li>{hasTitle ? "●" : "○"} Project title</li>
+              <li>{hasDocumentation ? "●" : "○"} Project documentation</li>
+              <li>{imageAltsReady ? "●" : "○"} Image descriptions</li>
+              <li>{coverReady ? "●" : "○"} Cover description</li>
+              <li>{linksReady ? "●" : "○"} Optional links complete</li>
               <li>{dirty ? "○" : "●"} Saved draft</li>
             </ul>
             {hasMedia ? (
@@ -783,13 +910,14 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
               disabled={
                 pending ||
                 dirty ||
+                !publishReady ||
                 (hasMedia && !mediaPermission) ||
-                Boolean(coverAssetId && !coverAlt.trim())
+                saveState === "saving"
               }
               type="button"
               onClick={publish}
             >
-              Publish
+              Publish project
             </button>
           </div>
           <div className="module p-5">
