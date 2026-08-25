@@ -117,41 +117,26 @@ export function ProjectUpload({
 
   return (
     <div>
-      <input
-        accept="image/jpeg,image/png,image/webp,image/avif"
-        aria-describedby={error ? `${id}-error` : undefined}
-        aria-invalid={Boolean(error)}
-        className="peer sr-only"
-        disabled={uploading}
-        id={id}
-        type="file"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void upload(file);
-          event.currentTarget.value = "";
-        }}
-      />
-      <label
-        className={`flex min-h-40 flex-col justify-center border border-[var(--line)] p-5 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--accent)] ${
-          uploading
-            ? "cursor-wait bg-[var(--paper)]"
-            : "cursor-pointer bg-[var(--paper-pure)] hover:border-[var(--accent)]"
-        }`}
-        htmlFor={id}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          if (uploading) return;
-          const file = event.dataTransfer.files?.[0];
-          if (file) void upload(file);
-        }}
-      >
-        <span className="mono-label accent">{uploading ? "Upload in progress" : label}</span>
-        <strong className="mt-3 text-base">
-          {phase === "ready" ? "Choose another image" : "Choose an image or drop it here"}
-        </strong>
-        <span className="mono-meta muted mt-3">JPG, PNG, WebP or AVIF · 8 MB maximum · 2400px longest edge</span>
+      <label>
+        <span className="mono-label muted">{uploading ? "Upload in progress" : label}</span>
+        <input
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          aria-describedby={error ? `${id}-help ${id}-error` : `${id}-help`}
+          aria-invalid={Boolean(error)}
+          className="field mt-2"
+          disabled={uploading}
+          id={id}
+          type="file"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void upload(file);
+            event.currentTarget.value = "";
+          }}
+        />
       </label>
+      <p className="mono-meta muted mt-2" id={`${id}-help`}>
+        JPG, PNG, WebP or AVIF · 8 MB maximum · 2400px longest edge
+      </p>
 
       {fileDetails && (uploading || phase === "ready") ? (
         <div className="mt-4 border border-[var(--line)] p-4">
