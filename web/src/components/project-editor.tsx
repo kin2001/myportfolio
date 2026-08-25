@@ -40,6 +40,8 @@ type ListedProject = {
 };
 
 type SaveState = "saved" | "unsaved" | "saving" | "blocked" | "error";
+type PublishState = "idle" | "publishing" | "published" | "error";
+type EditorAction = "publish" | "archive" | null;
 
 function id() {
   return crypto.getRandomValues(new Uint32Array(4)).join("-");
@@ -277,6 +279,12 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(initial.updatedAt);
   const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [publishState, setPublishState] = useState<PublishState>("idle");
+  const [publishDetail, setPublishDetail] = useState("");
+  const [activeAction, setActiveAction] = useState<EditorAction>(null);
+  const [coverPreviewState, setCoverPreviewState] = useState<"loading" | "ready" | "error">(
+    initial.coverAssetId ? "loading" : "ready",
+  );
   const [mediaPermission, setMediaPermission] = useState(false);
   const [error, setError] = useState<MutationError | null>(null);
   const [message, setMessage] = useState("");
@@ -434,6 +442,10 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
     editRevisionRef.current += 1;
     setDirty(true);
     setSaveState("unsaved");
+    if (activeAction !== "publish") {
+      setPublishState("idle");
+      setPublishDetail("");
+    }
     setError(null);
     setMessage("");
   }
@@ -459,23 +471,48 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
   }
 
   function publish() {
+    const revision = editRevisionRef.current;
+    setActiveAction("publish");
+    setPublishState("publishing");
+    setPublishDetail("");
+    setError(null);
     startTransition(async () => {
-      const result = await publishProjectAction({
-        projectId: initial.projectId,
-        expectedLockVersion: lockVersion,
-        mediaPermissionConfirmed: mediaPermission,
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      try {
+        const result = await publishProjectAction({
+          projectId: initial.projectId,
+          expectedLockVersion: lockVersion,
+          mediaPermissionConfirmed: mediaPermission,
+        });
+        if (!result.ok) {
+          setError(result.error);
+          setPublishState("error");
+          setPublishDetail("Publishing stopped. Review the issue above and try again.");
+          return;
+        }
+        setError(null);
+        if (editRevisionRef.current === revision) {
+          setPublishState("published");
+          setPublishDetail(
+            result.data.deploymentTriggered
+              ? "The public snapshot is ready. A production build was started."
+              : "The public snapshot is ready, but the production build could not be started.",
+          );
+        } else {
+          setPublishState("idle");
+          setPublishDetail("");
+          setMessage("The previous snapshot was published. Your newer changes remain in the draft.");
+        }
+        router.refresh();
+      } catch {
+        setError({
+          code: "publish_failed",
+          message: "The project could not be published. Check your connection and try again.",
+        });
+        setPublishState("error");
+        setPublishDetail("Publishing stopped. Review the issue above and try again.");
+      } finally {
+        setActiveAction(null);
       }
-      setError(null);
-      setMessage(
-        result.data.deploymentTriggered
-          ? "Published snapshot created. A production build was started."
-          : "Published snapshot created, but the production build could not be started.",
-      );
-      router.refresh();
     });
   }
 
@@ -526,27 +563,6 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
         <ErrorSummary error={error} />
         {message ? <p className="mono-meta accent" role="status">{message}</p> : null}
       </div>
-
-      <nav
-        aria-label="Project editor sections"
-        className="module mt-6 grid grid-cols-2 gap-px overflow-hidden bg-[var(--line)] md:grid-cols-4"
-      >
-        {[
-          ["01", "Details", "#project-details"],
-          ["02", "Project story", "#project-document"],
-          ["03", "Media & links", "#project-cover"],
-          ["04", "Publish", "#project-publish"],
-        ].map(([number, label, href]) => (
-          <a
-            className="bg-[var(--paper-pure)] p-4 transition-colors hover:text-[var(--accent)] focus-visible:text-[var(--accent)]"
-            href={href}
-            key={href}
-          >
-            <span className="mono-meta accent block">{number}</span>
-            <span className="mt-2 block text-sm font-medium">{label}</span>
-          </a>
-        ))}
-      </nav>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-8">
@@ -739,6 +755,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
             <div className="module mt-4 p-5">
               <ProjectUpload
                 label="Add project image"
+                resetKey={blocks.filter((item) => item.type === "image").length}
                 onReady={(assetId) => {
                   setBlocks((current) => [...current, { id: id(), type: "image", assetId, alt: "" }]);
                   changed();
@@ -832,23 +849,44 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
               Optional. It appears at the top of the full project page.
             </p>
             <div className="mt-5">
-            <ProjectUpload
-              label="Choose cover image"
+              <ProjectUpload
+                label={coverAssetId ? "Replace cover image" : "Choose cover image"}
+                resetKey={coverAssetId ?? "empty-cover"}
                 onReady={(assetId) => {
                   setCoverAssetId(assetId);
                   setCoverAlt("");
+                  setCoverPreviewState("loading");
                   changed();
                 }}
-            />
+              />
             </div>
             {coverAssetId ? (
               <div className="mt-5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  alt={coverAlt}
-                  className="max-h-56 w-full border border-[var(--line)] object-contain"
-                  src={`/api/admin/assets/${coverAssetId}/preview`}
-                />
+                <div className="relative flex min-h-48 items-center justify-center overflow-hidden border border-[var(--line)] bg-[var(--paper)]">
+                  {coverPreviewState === "loading" ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-5" role="status">
+                      <span className="mono-label accent">Loading preview</span>
+                      <div aria-hidden="true" className="mt-4 h-0.5 w-32 max-w-full overflow-hidden bg-[var(--line)]">
+                        <span className="operation-progress block h-full w-1/3 bg-[var(--accent)]" />
+                      </div>
+                    </div>
+                  ) : null}
+                  {coverPreviewState === "error" ? (
+                    <p className="p-5 text-center text-sm text-[var(--danger)]" role="alert">
+                      The preview could not load. The image is still attached.
+                    </p>
+                  ) : null}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    alt={coverAlt}
+                    className={`max-h-56 w-full object-contain transition-opacity duration-200 motion-reduce:transition-none ${
+                      coverPreviewState === "ready" ? "opacity-100" : "opacity-0"
+                    }`}
+                    src={`/api/admin/assets/${coverAssetId}/preview`}
+                    onError={() => setCoverPreviewState("error")}
+                    onLoad={() => setCoverPreviewState("ready")}
+                  />
+                </div>
                 <label className="mt-4 block">
                   <span className="mono-label muted">Cover alt text</span>
                   <input
@@ -870,6 +908,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                   onClick={() => {
                     setCoverAssetId(null);
                     setCoverAlt("");
+                    setCoverPreviewState("ready");
                     changed();
                   }}
                 >
@@ -905,6 +944,33 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                 <span>I confirm I have permission to publish these project images.</span>
               </label>
             ) : null}
+            {publishState !== "idle" ? (
+              <div
+                aria-live="polite"
+                className={`mt-6 border p-4 ${
+                  publishState === "error" ? "border-[var(--danger)]" : "border-[var(--accent)]"
+                }`}
+                role="status"
+              >
+                <p className={`mono-label ${publishState === "error" ? "text-[var(--danger)]" : "accent"}`}>
+                  {publishState === "publishing"
+                    ? "Publishing project"
+                    : publishState === "published"
+                      ? "Project published"
+                      : "Publishing stopped"}
+                </p>
+                <p className="mt-3 text-sm leading-6 ink-soft">
+                  {publishState === "publishing"
+                    ? "Preparing the public project and its images. Please keep this page open."
+                    : publishDetail}
+                </p>
+                {publishState === "publishing" ? (
+                  <div aria-hidden="true" className="mt-4 h-0.5 overflow-hidden bg-[var(--line)]">
+                    <span className="operation-progress block h-full w-1/3 bg-[var(--accent)]" />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <button
               className="button-primary mt-6 w-full"
               disabled={
@@ -912,12 +978,19 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                 dirty ||
                 !publishReady ||
                 (hasMedia && !mediaPermission) ||
-                saveState === "saving"
+                saveState === "saving" ||
+                publishState === "published"
               }
               type="button"
               onClick={publish}
             >
-              Publish project
+              {activeAction === "publish"
+                ? "Publishing project…"
+                : publishState === "published"
+                  ? "Published"
+                  : publishState === "error"
+                    ? "Try publishing again"
+                    : "Publish project"}
             </button>
           </div>
           <div className="module p-5">
@@ -929,22 +1002,27 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
               type="button"
               onClick={() => {
                 if (!window.confirm("Archive this project? It will be retained.")) return;
+                setActiveAction("archive");
                 startTransition(async () => {
-                  const result = await archiveProjectAction(initial.projectId);
-                  if (!result.ok) setError(result.error);
-                  else {
-                    setError(null);
-                    setMessage(
-                      result.data.deploymentTriggered
-                        ? "Project archived. A production build was started."
-                        : "Project archived, but the production build could not be started.",
-                    );
-                    router.refresh();
+                  try {
+                    const result = await archiveProjectAction(initial.projectId);
+                    if (!result.ok) setError(result.error);
+                    else {
+                      setError(null);
+                      setMessage(
+                        result.data.deploymentTriggered
+                          ? "Project archived. A production build was started."
+                          : "Project archived, but the production build could not be started.",
+                      );
+                      router.refresh();
+                    }
+                  } finally {
+                    setActiveAction(null);
                   }
                 });
               }}
             >
-              Archive project
+              {activeAction === "archive" ? "Archiving project…" : "Archive project"}
             </button>
           </div>
         </aside>
