@@ -179,6 +179,33 @@ button, a { -webkit-tap-highlight-color: transparent; }
   will-change: transform;
 }
 
+@keyframes loading-ring {
+  to { transform: rotate(1turn); }
+}
+
+.loading-ring {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 999px;
+  animation: loading-ring 750ms linear infinite;
+}
+
+.button-primary[data-operation-state="working"]:disabled {
+  cursor: wait;
+  opacity: 1;
+}
+.button-primary[data-operation-state="complete"]:disabled {
+  border-color: var(--line);
+  background: var(--paper-soft);
+  color: var(--accent);
+  cursor: default;
+  opacity: 1;
+}
+
 @media (max-width: 767px) {
   .content-canvas { padding: 40px 20px 72px; }
   .section-space { margin-top: 80px; }
@@ -192,4 +219,5 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   .operation-progress { animation: none !important; transform: translateX(100%); }
+  .loading-ring { animation: none !important; }
 }

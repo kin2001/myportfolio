@@ -98,6 +98,50 @@ function ErrorSummary({ error }: { error: MutationError | null }) {
   );
 }
 
+function ProjectImagePreview({
+  alt,
+  className,
+  src,
+}: {
+  alt: string;
+  className: string;
+  src: string;
+}) {
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+
+  return (
+    <div className="relative flex min-h-48 items-center justify-center overflow-hidden border border-[var(--line)] bg-[var(--paper)]">
+      {state === "loading" ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="loading-ring text-[var(--accent)]" aria-hidden="true" />
+        </div>
+      ) : null}
+      {state === "error" ? (
+        <p className="p-5 text-center text-sm text-[var(--danger)]" role="alert">
+          Preview unavailable. The image is still attached.
+        </p>
+      ) : null}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        alt={alt}
+        className={`${className} transition-opacity duration-200 motion-reduce:transition-none ${
+          state === "ready" ? "opacity-100" : "opacity-0"
+        }`}
+        src={src}
+        onError={() => setState("error")}
+        onLoad={() => setState("ready")}
+      />
+      <span aria-live="polite" className="sr-only" role="status">
+        {state === "loading"
+          ? "Loading image preview"
+          : state === "ready"
+            ? "Image preview loaded"
+            : ""}
+      </span>
+    </div>
+  );
+}
+
 export function NewProjectButton() {
   const router = useRouter();
   const [error, setError] = useState<MutationError | null>(null);
@@ -282,9 +326,6 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
   const [publishState, setPublishState] = useState<PublishState>("idle");
   const [publishDetail, setPublishDetail] = useState("");
   const [activeAction, setActiveAction] = useState<EditorAction>(null);
-  const [coverPreviewState, setCoverPreviewState] = useState<"loading" | "ready" | "error">(
-    initial.coverAssetId ? "loading" : "ready",
-  );
   const [mediaPermission, setMediaPermission] = useState(false);
   const [error, setError] = useState<MutationError | null>(null);
   const [message, setMessage] = useState("");
@@ -718,10 +759,9 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                     </div>
                   ) : (
                     <div className="mt-5 grid gap-5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <ProjectImagePreview
                         alt=""
-                        className="max-h-80 w-full border border-[var(--line)] object-contain"
+                        className="max-h-80 w-full object-contain"
                         src={`/api/admin/assets/${block.assetId}/preview`}
                       />
                       <label>
@@ -855,38 +895,18 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                 onReady={(assetId) => {
                   setCoverAssetId(assetId);
                   setCoverAlt("");
-                  setCoverPreviewState("loading");
                   changed();
                 }}
               />
             </div>
             {coverAssetId ? (
               <div className="mt-5">
-                <div className="relative flex min-h-48 items-center justify-center overflow-hidden border border-[var(--line)] bg-[var(--paper)]">
-                  {coverPreviewState === "loading" ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-5" role="status">
-                      <span className="mono-label accent">Loading preview</span>
-                      <div aria-hidden="true" className="mt-4 h-0.5 w-32 max-w-full overflow-hidden bg-[var(--line)]">
-                        <span className="operation-progress block h-full w-1/3 bg-[var(--accent)]" />
-                      </div>
-                    </div>
-                  ) : null}
-                  {coverPreviewState === "error" ? (
-                    <p className="p-5 text-center text-sm text-[var(--danger)]" role="alert">
-                      The preview could not load. The image is still attached.
-                    </p>
-                  ) : null}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    alt={coverAlt}
-                    className={`max-h-56 w-full object-contain transition-opacity duration-200 motion-reduce:transition-none ${
-                      coverPreviewState === "ready" ? "opacity-100" : "opacity-0"
-                    }`}
-                    src={`/api/admin/assets/${coverAssetId}/preview`}
-                    onError={() => setCoverPreviewState("error")}
-                    onLoad={() => setCoverPreviewState("ready")}
-                  />
-                </div>
+                <ProjectImagePreview
+                  alt={coverAlt}
+                  className="max-h-56 w-full object-contain"
+                  key={coverAssetId}
+                  src={`/api/admin/assets/${coverAssetId}/preview`}
+                />
                 <label className="mt-4 block">
                   <span className="mono-label muted">Cover alt text</span>
                   <input
@@ -908,7 +928,6 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                   onClick={() => {
                     setCoverAssetId(null);
                     setCoverAlt("");
-                    setCoverPreviewState("ready");
                     changed();
                   }}
                 >
@@ -944,35 +963,16 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                 <span>I confirm I have permission to publish these project images.</span>
               </label>
             ) : null}
-            {publishState !== "idle" ? (
-              <div
-                aria-live="polite"
-                className={`mt-6 border p-4 ${
-                  publishState === "error" ? "border-[var(--danger)]" : "border-[var(--accent)]"
-                }`}
-                role="status"
-              >
-                <p className={`mono-label ${publishState === "error" ? "text-[var(--danger)]" : "accent"}`}>
-                  {publishState === "publishing"
-                    ? "Publishing project"
-                    : publishState === "published"
-                      ? "Project published"
-                      : "Publishing stopped"}
-                </p>
-                <p className="mt-3 text-sm leading-6 ink-soft">
-                  {publishState === "publishing"
-                    ? "Preparing the public project and its images. Please keep this page open."
-                    : publishDetail}
-                </p>
-                {publishState === "publishing" ? (
-                  <div aria-hidden="true" className="mt-4 h-0.5 overflow-hidden bg-[var(--line)]">
-                    <span className="operation-progress block h-full w-1/3 bg-[var(--accent)]" />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
             <button
+              aria-busy={activeAction === "publish"}
               className="button-primary mt-6 w-full"
+              data-operation-state={
+                activeAction === "publish"
+                  ? "working"
+                  : publishState === "published"
+                    ? "complete"
+                    : undefined
+              }
               disabled={
                 pending ||
                 dirty ||
@@ -984,14 +984,31 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
               type="button"
               onClick={publish}
             >
-              {activeAction === "publish"
-                ? "Publishing project…"
+              {activeAction === "publish" ? (
+                <>
+                  <span className="loading-ring" aria-hidden="true" />
+                  Publishing project…
+                </>
+              )
                 : publishState === "published"
                   ? "Published"
                   : publishState === "error"
                     ? "Try publishing again"
                     : "Publish project"}
             </button>
+            {publishState !== "idle" ? (
+              <p
+                aria-live="polite"
+                className={`mt-3 text-sm leading-6 ${
+                  publishState === "error" ? "text-[var(--danger)]" : "ink-soft"
+                }`}
+                role="status"
+              >
+                {publishState === "publishing"
+                  ? "Preparing the public project and its images. Keep this page open."
+                  : publishDetail}
+              </p>
+            ) : null}
           </div>
           <div className="module p-5">
             <h2 className="mono-label">Archive</h2>
