@@ -154,8 +154,12 @@ export async function readCurrentCv(): Promise<
 export async function publicObjectExists(key: string) {
   const client = getStorageClient();
   if (!client) return null;
-  const { data, error } = await client.storage.from(PUBLIC_ASSET_BUCKET).exists(key);
-  return error ? null : data;
+  try {
+    const { data } = await client.storage.from(PUBLIC_ASSET_BUCKET).exists(key);
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export async function writePublicObject({
