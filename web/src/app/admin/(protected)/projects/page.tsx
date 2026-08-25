@@ -3,14 +3,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function ProjectsAdminPage() {
   const supabase = await createSupabaseServerClient();
-  const [projectsResult, draftsResult, deploymentResult] = supabase
+  const [projectsResult, deploymentResult] = supabase
     ? await Promise.all([
         supabase
           .from("projects")
-          .select("id,slug,lifecycle_state,display_order,updated_at")
+          .select("id,slug,lifecycle_state,display_order,updated_at,draft:project_drafts(title)")
           .order("display_order")
           .order("updated_at", { ascending: false }),
-        supabase.from("project_drafts").select("project_id,title"),
         supabase
           .from("deployment_checks")
           .select("status,checked_at")
@@ -20,21 +19,20 @@ export default async function ProjectsAdminPage() {
       ])
     : [
         { data: [], error: null },
-        { data: [], error: null },
         { data: null, error: null },
       ];
 
-  const titles = new Map(
-    (draftsResult.data ?? []).map((draft) => [draft.project_id, draft.title]),
-  );
-  const projects = (projectsResult.data ?? []).map((project) => ({
-    id: project.id,
-    title: titles.get(project.id) ?? "Untitled project",
-    slug: project.slug,
-    lifecycleState: project.lifecycle_state as "draft" | "published" | "archived",
-    displayOrder: project.display_order,
-    updatedAt: project.updated_at,
-  }));
+  const projects = (projectsResult.data ?? []).map((project) => {
+    const draft = project.draft as unknown as { title: string } | { title: string }[] | null;
+    return {
+      id: project.id,
+      title: (Array.isArray(draft) ? draft[0]?.title : draft?.title) ?? "Untitled project",
+      slug: project.slug,
+      lifecycleState: project.lifecycle_state as "draft" | "published" | "archived",
+      displayOrder: project.display_order,
+      updatedAt: project.updated_at,
+    };
+  });
   const deployment = deploymentResult.data
     ? {
         status: deploymentResult.data.status,

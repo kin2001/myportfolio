@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
@@ -12,6 +12,22 @@ const links = [
   ["Credentials", "/admin/credentials"],
   ["Activity & Export", "/admin/activity"],
 ] as const;
+
+function NavigationPendingIndicator({ label }: { label: string }) {
+  const { pending } = useLinkStatus();
+
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className={`ml-auto h-1.5 w-1.5 shrink-0 bg-current transition-opacity delay-100 motion-reduce:transition-none ${
+          pending ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <span className="sr-only" role="status">{pending ? `Loading ${label}.` : ""}</span>
+    </>
+  );
+}
 
 function AdminNav({ close }: { close?: () => void }) {
   const pathname = usePathname();
@@ -32,6 +48,7 @@ function AdminNav({ close }: { close?: () => void }) {
             }`}
           >
             <span className="mono-label">{label}</span>
+            <NavigationPendingIndicator label={label} />
           </Link>
         );
       })}
