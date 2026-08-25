@@ -132,10 +132,10 @@ export function ProjectUpload({
         }}
       />
       <label
-        className={`flex min-h-16 flex-col gap-4 border border-[var(--line)] bg-[var(--paper-pure)] p-4 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--accent)] sm:flex-row sm:items-center sm:justify-between ${
+        className={`flex min-h-40 flex-col justify-center border border-[var(--line)] p-5 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--accent)] ${
           uploading
             ? "cursor-wait bg-[var(--paper)]"
-            : "cursor-pointer hover:border-[var(--accent)]"
+            : "cursor-pointer bg-[var(--paper-pure)] hover:border-[var(--accent)]"
         }`}
         htmlFor={id}
         onDragOver={(event) => event.preventDefault()}
@@ -146,13 +146,11 @@ export function ProjectUpload({
           if (file) void upload(file);
         }}
       >
-        <span className="min-w-0">
-          <span className="mono-label accent block">{uploading ? "Upload in progress" : label}</span>
-          <span className="mono-meta muted mt-2 block">JPG, PNG, WebP or AVIF · 8 MB · 2400px maximum</span>
-        </span>
-        <span className="button-secondary w-full shrink-0 sm:w-auto">
-          {uploading ? "Uploading…" : phase === "ready" ? "Replace image" : "Select image"}
-        </span>
+        <span className="mono-label accent">{uploading ? "Upload in progress" : label}</span>
+        <strong className="mt-3 text-base">
+          {phase === "ready" ? "Choose another image" : "Choose an image or drop it here"}
+        </strong>
+        <span className="mono-meta muted mt-3">JPG, PNG, WebP or AVIF · 8 MB maximum · 2400px longest edge</span>
       </label>
 
       {fileDetails && (uploading || phase === "ready") ? (
