@@ -32,6 +32,37 @@ Any intentional visual or motion change must be compared with the baseline at
 360px, 768px, 1024px, and 1440px and reported to the user. After explicit user
 approval, the lead updates `docs/APPROVED_BASELINE.md` to the new commit.
 
+## Impeccable and Ponytail workflow
+
+Use both skills for frontend, interaction, responsive, or UX work:
+
+- `impeccable` owns design consistency, hierarchy, usability, accessibility,
+  responsive behavior, UX copy, and the bounded visual review.
+- `ponytail:ponytail` in full mode owns implementation simplicity: reuse the
+  current system, prefer native platform behavior, avoid new dependencies, and
+  write the smallest coherent change that preserves the design decision.
+- The user's request and this repository's visual contract override generic
+  skill preferences. Ponytail must not simplify away accessibility, security,
+  data safety, or approved motion and responsive behavior.
+
+For each UI task:
+
+1. Run Impeccable's context loader once for the affected route or source file.
+2. Treat public portfolio surfaces as `Experience` mode and admin/editor
+   surfaces as `Operate` mode.
+3. Load only the Impeccable playbook that owns the task. Prefer `distill` and
+   `clarify` for confusing workflows, `adapt` for responsive fixes, and
+   `audit` or `polish` for the final bounded review.
+4. Inspect the approved baseline, `DESIGN.md`, and one implemented source of
+   visual truth before editing.
+5. Apply Ponytail's ladder while implementing the approved direction.
+6. After UI edits, run the Impeccable detector once on the changed targets,
+   then verify desktop and mobile together. Fix findings in one batch and do
+   at most one confirmation pass.
+
+Do not let either skill trigger an unsolicited redesign, invented content, an
+open-ended polish loop, or a new dependency when the existing system suffices.
+
 ## Agent workflow
 
 - The lead task is the orchestrator and integration owner; it does not compete
