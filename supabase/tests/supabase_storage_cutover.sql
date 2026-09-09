@@ -28,6 +28,15 @@ begin
   if has_function_privilege('service_role', 'public.set_current_cv(uuid)', 'EXECUTE') then
     raise exception 'service_role_can_set_current_cv';
   end if;
+  if not has_table_privilege('service_role', 'public.site_settings', 'SELECT') then
+    raise exception 'service_role_cannot_read_site_settings';
+  end if;
+  if not has_table_privilege('service_role', 'public.cv_versions', 'SELECT') then
+    raise exception 'service_role_cannot_read_cv_versions';
+  end if;
+  if not has_table_privilege('service_role', 'public.assets', 'SELECT') then
+    raise exception 'service_role_cannot_read_assets';
+  end if;
 
   if to_regprocedure('public.claim_current_cv_transition(uuid,uuid,uuid,text,text,boolean,bigint,text)') is not null then
     raise exception 'obsolete_cv_transition_function_exists';
