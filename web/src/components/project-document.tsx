@@ -36,7 +36,7 @@ function TextBlock({
   return (
     <section
       id={projectSectionId(block.id)}
-      className="grid scroll-mt-24 gap-8 border-t border-[var(--line)] py-10 md:py-14 lg:grid-cols-[minmax(220px,.75fr)_minmax(0,1.75fr)] lg:gap-16"
+      className="project-document-section grid scroll-mt-24 gap-6 border-t border-[var(--line)] py-8 md:py-12 lg:grid-cols-[minmax(180px,.65fr)_minmax(0,1.75fr)] lg:gap-10"
       data-phone-layout="document-row"
       data-reveal="record"
     >

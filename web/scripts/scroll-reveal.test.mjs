@@ -75,8 +75,9 @@ function setup({ pathname = "/", reducedMotion = false, supported = true } = {})
   return { visible, offscreen, observer, document, listeners, preference, cleanup };
 }
 
-test("Home observes visible and offscreen groups and replays each re-entry", () => {
+test("Home keeps revealed content visible, while the hero still replays", () => {
   const { visible, offscreen, observer } = setup();
+  visible.dataset.reveal = "hero";
   assert.equal(visible.dataset.revealState, "revealed");
   assert.equal(offscreen.dataset.revealState, "waiting");
   assert.equal(observer.options.rootMargin, "0px");
@@ -85,7 +86,7 @@ test("Home observes visible and offscreen groups and replays each re-entry", () 
     observer.enter(offscreen, true);
     assert.equal(offscreen.dataset.revealState, "revealed");
     observer.enter(offscreen, false);
-    assert.equal(offscreen.dataset.revealState, "waiting");
+    assert.equal(offscreen.dataset.revealState, "revealed");
   }
   observer.enter(visible, false);
   assert.equal(visible.dataset.revealState, "waiting");
@@ -94,7 +95,7 @@ test("Home observes visible and offscreen groups and replays each re-entry", () 
   assert.equal(observer.observed.size, 2);
 });
 
-test("Other public routes replay reveals on each re-entry", () => {
+test("Other public routes reveal reading content once", () => {
   const { visible, offscreen, observer } = setup({ pathname: "/work" });
   assert.equal(observer.options.rootMargin, "0px");
   assert.equal(observer.observed.has(visible), true);
@@ -102,9 +103,18 @@ test("Other public routes replay reveals on each re-entry", () => {
   assert.equal(offscreen.dataset.revealState, "revealed");
   assert.equal(observer.observed.has(offscreen), true);
   observer.enter(offscreen, false);
-  assert.equal(offscreen.dataset.revealState, "waiting");
+  assert.equal(offscreen.dataset.revealState, "revealed");
   observer.enter(offscreen, true);
   assert.equal(offscreen.dataset.revealState, "revealed");
+});
+
+test("Media still replays its original entry motion", () => {
+  const { offscreen, observer } = setup({ pathname: "/work/example" });
+  offscreen.dataset.reveal = "media";
+  observer.enter(offscreen, true);
+  assert.equal(offscreen.dataset.revealState, "revealed");
+  observer.enter(offscreen, false);
+  assert.equal(offscreen.dataset.revealState, "waiting");
 });
 
 test("Keyboard focus reveals a group and prevents offscreen hiding", () => {

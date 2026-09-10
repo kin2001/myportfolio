@@ -6,7 +6,8 @@ const publicRoutes = ["/", ...secondaryPublicRoutes] as const;
 const responsiveRoutes = publicRoutes;
 const approvedWidths = [360, 768, 1024, 1440] as const;
 
-test.describe.configure({ mode: "serial", timeout: 120_000 });
+test.describe.configure({ mode: "default", timeout: 120_000 });
+test.use({ contextOptions: { reducedMotion: "reduce" } });
 
 async function firstPublishedDetailPath(
   page: Page,
@@ -53,15 +54,16 @@ async function expectGridColumns(page: Page, layout: string, count: number) {
 async function expectMobileTypeScale(page: Page) {
   const offenders = await page.evaluate(() => {
     const limits = [
-      { selector: ".public-body, .public-prose, .text-sm", max: 12.1 },
-      { selector: ".public-card-title, .text-lg", max: 14.5 },
-      { selector: ".mono-label, .mono-meta, .hero-link, .button-primary, .button-secondary, .public-index-link", max: 8.1 },
+      { selector: ".public-body", min: 12.9 },
+      { selector: ".public-prose", min: 15.9 },
+      { selector: ".public-card-title", min: 15.9 },
+      { selector: ".mono-label, .mono-meta, .hero-link, .button-primary, .button-secondary", min: 10.9 },
     ];
 
     const main = document.querySelector("#main-content");
     if (!main) return [{ className: "", fontSize: 0, max: 0, text: "Missing main content" }];
 
-    return limits.flatMap(({ selector, max }) =>
+    return limits.flatMap(({ selector, min }) =>
       [...main.querySelectorAll<HTMLElement>(selector)]
         .filter((element) => {
           const bounds = element.getBoundingClientRect();
@@ -70,10 +72,10 @@ async function expectMobileTypeScale(page: Page) {
         .map((element) => ({
           className: element.className,
           fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
-          max,
+          min,
           text: element.textContent?.trim().slice(0, 48),
         }))
-        .filter(({ fontSize, max: maximum }) => fontSize > maximum),
+        .filter(({ fontSize, min: minimum }) => fontSize < minimum),
     );
   });
 
@@ -194,7 +196,7 @@ test("secondary public pages start with a compact Back control", async ({ page }
   await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
 });
 
-test("every public route preserves its desktop composition at phone width", async ({ page }) => {
+test("phone layouts preserve peer cards and give reading content usable width", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 360, height: 900 });
 
@@ -202,8 +204,8 @@ test("every public route preserves its desktop composition at phone width", asyn
     ["/work", [["project-grid", 2]]],
     ["/credentials", [["card-grid", 2]]],
     ["/about", [["about-hero", 2], ["fact-row", 4], ["content-pair", 2], ["toolkit-grid", 3]]],
-    ["/contact", [["contact-hero", 2], ["form-grid", 2], ["service-grid", 3]]],
-    ["/privacy", [["privacy-hero", 2], ["privacy-body", 2], ["indexed-copy", 2]]],
+    ["/contact", [["contact-hero", 2], ["form-grid", 1], ["service-grid", 1]]],
+    ["/privacy", [["privacy-hero", 1], ["privacy-body", 1], ["indexed-copy", 2]]],
   ] as const;
 
   for (const [route, layouts] of routeLayouts) {
@@ -229,8 +231,8 @@ test("every public route preserves its desktop composition at phone width", asyn
   const projectDetail = await firstPublishedDetailPath(page, "/work");
   if (projectDetail) {
     await page.goto(projectDetail, { waitUntil: "domcontentloaded" });
-    await expectGridColumns(page, "project-hero", 2);
-    await expectGridColumns(page, "document-row", 2);
+    await expectGridColumns(page, "project-hero", 1);
+    await expectGridColumns(page, "document-row", 1);
     const relatedGrid = page.locator('[data-phone-layout="card-grid"]');
     if (await relatedGrid.count()) await expectGridColumns(page, "card-grid", 2);
     await expectMobileTypeScale(page);
@@ -242,8 +244,8 @@ test("every public route preserves its desktop composition at phone width", asyn
     await page.goto(credentialDetail, { waitUntil: "domcontentloaded" });
     const facts = page.locator('[data-phone-layout^="facts-"]');
     const factLayout = await facts.getAttribute("data-phone-layout");
-    await expectGridColumns(page, factLayout ?? "facts-three", factLayout === "facts-four" ? 4 : 3);
-    await expectGridColumns(page, "credential-record", 2);
+    await expectGridColumns(page, factLayout ?? "facts-three", 2);
+    await expect(page.locator(".credential-detail-layout")).toHaveCSS("grid-template-columns", /px$/);
     await expectMobileTypeScale(page);
     await expectNoHorizontalOverflow(page);
   }
@@ -338,7 +340,7 @@ test("a published credential detail is responsive, accessible, and keeps navigat
     if (/\.pdf(?:$|[?#])/i.test(href ?? "")) {
       const preview = evidence.locator('object[type="application/pdf"]');
       await expect(preview).toHaveCount(1);
-      await expect(preview).toHaveAttribute("data", /#view=FitH/);
+      await expect(preview).toHaveAttribute("data", /#view=Fit&/);
     } else if (/\.(?:avif|jpe?g|png|webp)(?:$|[?#])/i.test(href ?? "")) {
       await expect(evidence.locator("img")).toHaveCount(1);
     }
@@ -414,7 +416,78 @@ test("public sans typography uses Roboto while technical labels stay monospace",
   await expect(page.locator(".mono-label").first()).toHaveCSS("font-family", /Geist Mono/);
 });
 
-test("other public pages replay the shared reveal system on re-entry", async ({ page }) => {
+test("published records appear on the homepage, indexes and their detail routes", async ({ page }) => {
+  await page.goto("/");
+  for (const [section, index] of [["projects", "/work"], ["credentials", "/credentials"]]) {
+    const homeLinks = await page.locator(`#${section} article a`).evaluateAll((links) => links.map((link) => link.getAttribute("href")));
+    expect(homeLinks.length).toBeGreaterThan(0);
+    await page.goto(index);
+    for (const href of homeLinks) {
+      expect(href).toBeTruthy();
+      await expect(page.locator(`main a[href="${href}"]`)).toHaveCount(1);
+    }
+    for (const href of homeLinks) {
+      const response = await page.goto(href!);
+      expect(response?.status()).toBe(200);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      for (const icon of await page.locator(".credential-detail-record a svg").all()) {
+        await expect(icon).toHaveCSS("width", "16px");
+        await expect(icon).toHaveCSS("height", "16px");
+      }
+    }
+    await page.goto("/");
+  }
+});
+
+test("selected proposal details keep the current visual system", async ({ page }) => {
+  for (const width of approvedWidths) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.locator("#hero-title .accent")).toHaveText("moving.");
+    await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveAttribute("href", "/work");
+    await expect(page.locator('[data-reveal="hero"] .button-secondary')).toHaveAttribute("href", "/contact");
+    await expect(page.locator('[data-reveal="hero"] a[href*="github"]')).toHaveCount(0);
+    await expect(page.locator(".project-process-steps li")).toHaveCount(4);
+    await page.getByRole("button", { name: "Replay project process animation" }).click();
+    await expect(page.locator(".project-process-steps h3")).toHaveText(["Share", "Plan", "Build", "Handoff"]);
+    await expectNoHorizontalOverflow(page);
+  }
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  await expect(page.locator(".project-process-number").first()).toHaveCSS("animation-name", "none");
+  const response = await page.request.get("/resume.pdf");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("application/pdf");
+  const body = await response.body();
+  expect(body.length).toBeGreaterThan(1000);
+  expect(body.subarray(0,5).toString()).toBe("%PDF-");
+});
+
+test("public pages share footer socials and homepage sections alternate", async ({ page }) => {
+  for (const route of publicRoutes) {
+    await page.goto(route);
+    const footer = page.getByRole("contentinfo", { name: "Portfolio footer" });
+    await expect(footer.getByRole("link", { name: /GitHub/ })).toHaveAttribute("href", "https://github.com/kin2001");
+    await expect(footer.getByRole("link", { name: /LinkedIn/ })).toHaveAttribute("href", /linkedin.com/);
+  }
+  await page.goto("/");
+  for (const theme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    const surfaces = await page.evaluate(() => {
+      const tint = getComputedStyle(document.querySelector(".project-process")!).backgroundColor;
+      const credentials = getComputedStyle(document.querySelector("#credentials")!).backgroundColor;
+      const inquiry = getComputedStyle(document.querySelector("#contact")!).backgroundColor;
+      return { tint, credentials, inquiry, paper: getComputedStyle(document.body).backgroundColor };
+    });
+    expect(surfaces.tint).toBe(surfaces.credentials);
+    expect(surfaces.tint).toBe(surfaces.inquiry);
+    expect(surfaces.tint).not.toBe(surfaces.paper);
+  }
+});
+
+test("other public pages keep reading content revealed on re-entry", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/about");
@@ -423,10 +496,10 @@ test("other public pages replay the shared reveal system on re-entry", async ({ 
   const finalSection = page.locator('[data-reveal="actions"]');
   await finalSection.scrollIntoViewIfNeeded();
   await expect(finalSection).toHaveAttribute("data-reveal-state", "revealed");
-  await expect(header).toHaveAttribute("data-reveal-state", "waiting");
+  await expect(header).toHaveAttribute("data-reveal-state", "revealed");
   await header.scrollIntoViewIfNeeded();
   await expect(header).toHaveAttribute("data-reveal-state", "revealed");
-  await expect(finalSection).toHaveAttribute("data-reveal-state", "waiting");
+  await expect(finalSection).toHaveAttribute("data-reveal-state", "revealed");
   await finalSection.scrollIntoViewIfNeeded();
   await expect(finalSection).toHaveAttribute("data-reveal-state", "revealed");
 });
@@ -438,7 +511,7 @@ test("every public page title uses the shared word-and-rule animation", async ({
     const heading = page.getByRole("heading", { level: 1 });
     await expect(heading).toHaveAttribute("data-animated-heading", "true");
     await expect(heading.locator("[data-heading-word]").first()).toBeVisible();
-    await expect(heading.locator("[data-heading-rule]")).toBeVisible();
+    if (route !== "/") await expect(heading.locator("[data-heading-rule]")).toBeVisible();
   }
 });
 
@@ -463,7 +536,7 @@ test("Home replays on re-entry without hiding focused content", async ({ page })
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  const hero = page.getByRole("region", { name: "AI Automation & GoHighLevel Specialist" });
+  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
   await expect(hero).toHaveCSS("margin-top", "0px");
 
   const card = page.locator("#projects article[data-reveal]").first();
@@ -482,7 +555,7 @@ test("Home replays on re-entry without hiding focused content", async ({ page })
   }
   await hero.scrollIntoViewIfNeeded();
   await expect(hero).toHaveAttribute("data-reveal-state", "revealed");
-  await expect(credentials).toHaveAttribute("data-reveal-state", "waiting");
+  await expect(credentials).toHaveAttribute("data-reveal-state", "revealed");
   await credentials.scrollIntoViewIfNeeded();
   await expect(credentials).toHaveAttribute("data-reveal-state", "revealed");
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -496,7 +569,7 @@ test("Home reduced motion keeps content visible without entrance animation", asy
   await page.goto("/");
   await expect(page.locator("[data-reveal]").first()).toHaveAttribute("data-reveal-state", "revealed");
   await expect(page.locator('[data-reveal-state="waiting"]')).toHaveCount(0);
-  const hero = page.getByRole("region", { name: "AI Automation & GoHighLevel Specialist" });
+  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
   expect(await hero.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
   await expect(hero.getByRole("heading")).toBeVisible();
 });
@@ -504,7 +577,7 @@ test("Home reduced motion keeps content visible without entrance animation", asy
 test("Home motion finishes and the action fill preserves its accessible label", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  const hero = page.getByRole("region", { name: "AI Automation & GoHighLevel Specialist" });
+  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
   await expect.poll(() => hero.evaluate((element) =>
     element.getAnimations({ subtree: true }).every((animation) => animation.playState === "finished"),
   )).toBe(true);
@@ -611,11 +684,11 @@ test("Home credential cards are single full-card registry links with direct feed
 
 test("Home headline and portrait motion stay aligned at every approved width", async ({ page }) => {
   await page.goto("/");
-  const hero = page.getByRole("region", { name: "AI Automation & GoHighLevel Specialist" });
+  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
   for (const width of approvedWidths) {
     await page.setViewportSize({ width, height: 900 });
     await expectNoHorizontalOverflow(page);
-    await expect(hero.getByRole("heading")).toHaveText("AI Automation & GoHighLevel Specialist");
+    await expect(hero.getByRole("heading")).toHaveText("Automation that keeps work moving.");
     const portrait = await hero.getByRole("img").boundingBox();
     const circuit = await hero.locator('svg[viewBox="0 0 1024 1024"]').boundingBox();
     expect(portrait).not.toBeNull();

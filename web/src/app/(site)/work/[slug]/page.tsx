@@ -12,12 +12,6 @@ import {
   publicAssetUrl,
 } from "@/lib/public-content";
 
-export const dynamicParams = false;
-
-export async function generateStaticParams() {
-  return (await getPublishedProjects()).map(({ slug }) => ({ slug }));
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const project = (await getPublishedProjects()).find((item) => item.slug === slug);
@@ -119,7 +113,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   };
 
   return (
-    <article className="content-canvas">
+    <article className="content-canvas detail-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c") }}
@@ -133,13 +127,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             <li aria-current="page" className="min-w-0 truncate">{project.title}</li>
           </ol>
         </nav>
-        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end lg:gap-16" data-phone-layout="project-hero">
+        <div className="detail-project-intro mt-8 grid gap-8" data-phone-layout="project-hero">
           <div className="max-w-4xl">
             <p className="mono-meta accent">[ PUBLISHED_CASE_STUDY ]</p>
             <AnimatedHeading className="public-display mt-5" text={project.title} />
             <p className="public-lead mt-6 max-w-[65ch]">{project.excerpt}</p>
           </div>
-          <dl className="grid grid-cols-2 gap-5 border-t border-[var(--line)] pt-5 mono-meta ink-soft lg:grid-cols-1 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0" data-phone-compact="project-meta">
+          <dl className="detail-facts grid grid-cols-2 gap-5 border border-[var(--line)] p-5 mono-meta ink-soft" data-phone-compact="project-meta">
             <div>
               <dt className="muted">Status</dt>
               <dd className="mt-1 text-[var(--ink)]">Published</dd>
@@ -200,7 +194,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       ) : null}
 
       <footer className="border-t border-[var(--line)] py-12" data-reveal="actions">
-        <div className="module p-6 md:flex md:items-center md:justify-between md:gap-8 md:p-8" data-phone-layout="action-row">
+        <div className="detail-inquiry module p-6 md:flex md:items-center md:justify-between md:gap-8 md:p-8" data-phone-layout="action-row">
           <div>
             <h2 className="public-card-title">Discuss a similar automation</h2>
             <p className="public-body mt-3 max-w-[55ch]">

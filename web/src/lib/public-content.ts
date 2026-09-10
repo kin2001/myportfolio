@@ -1,5 +1,6 @@
 import "server-only";
 
+import { connection } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabasePublicConfig } from "@/lib/env";
 import { publicAssetUrl as supabasePublicAssetUrl } from "@/lib/supabase/storage";
@@ -42,11 +43,16 @@ type CredentialPublicationRow = {
   published_at: string;
 };
 
-function publicClient() {
+async function publicClient() {
+  // Published records must be read at request time, including the sitemap.
+  await connection();
   const config = getSupabasePublicConfig();
   return config
     ? createClient(config.url, config.publishableKey, {
         auth: { persistSession: false, autoRefreshToken: false },
+        global: {
+          fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+        },
       })
     : null;
 }
@@ -83,7 +89,7 @@ export function publicAssetUrl(objectKey: string) {
 }
 
 export async function getPublishedProjects(): Promise<PublishedProject[]> {
-  const supabase = publicClient();
+  const supabase = await publicClient();
   if (!supabase) return [];
 
   const { data: index, error: indexError } = await supabase
@@ -133,7 +139,7 @@ export async function getPublishedProject(slug: string) {
 }
 
 export async function getPublishedCredentials(): Promise<PublishedCredential[]> {
-  const supabase = publicClient();
+  const supabase = await publicClient();
   if (!supabase) return [];
 
   const { data, error } = await supabase

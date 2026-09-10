@@ -2,6 +2,8 @@ import type { SVGProps } from "react";
 
 export function Icon({ name, ...props }: SVGProps<SVGSVGElement> & { name: string }) {
   const paths: Record<string, React.ReactNode> = {
+    download: <><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></>,
+    replay: <><path d="M3 4v6h6M3.5 10a9 9 0 1 1 1 8" /></>,
     work: <><path d="M3 7.5h18v11H3z"/><path d="M3 7.5 6 4.5h5l2 3"/></>,
     systems: <><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="12" cy="19" r="2"/><path d="m6.5 10.5 4-4m3 0 4 4m0 3-4 4m-3 0-4-4"/></>,
     experience: <><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></>,

@@ -6,10 +6,12 @@ export function AnimatedHeading({
   text,
   className = "",
   id,
+  accentWord,
 }: {
   text: string | readonly string[];
   className?: string;
   id?: string;
+  accentWord?: string;
 }) {
   const lines = typeof text === "string" ? [text] : text;
   const label = lines.join(" ");
@@ -31,7 +33,7 @@ export function AnimatedHeading({
                 <Fragment key={`${word}-${index}`}>
                   <span className="animated-heading-word-mask">
                     <span
-                      className="animated-heading-word"
+                      className={`animated-heading-word${word === accentWord ? " accent" : ""}`}
                       data-heading-word
                       style={{ "--heading-word-index": index } as HeadingStyle}
                     >

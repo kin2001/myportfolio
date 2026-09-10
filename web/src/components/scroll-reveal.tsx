@@ -41,12 +41,10 @@ export function ScrollReveal() {
       if (words.length) {
         animations.push(animate(words, {
           opacity: [0, 1],
-          transform: ["translate3d(0, .68em, 0)", "translate3d(0, 0, 0)"],
-          filter: ["blur(7px)", "blur(0px)"],
-          clipPath: ["inset(0 0 58% 0)", "inset(0 0 0% 0)"],
+          transform: ["translate3d(0, .22em, 0)", "translate3d(0, 0, 0)"],
         }, {
-          delay: stagger(0.045, { startDelay: 0.04 }),
-          duration: 0.72,
+          delay: stagger(0.025),
+          duration: 0.46,
           ease: [0.16, 1, 0.3, 1],
         }));
       }
@@ -55,8 +53,8 @@ export function ScrollReveal() {
           opacity: [0, 1],
           transform: ["scaleX(0)", "scaleX(1)"],
         }, {
-          delay: Math.min(words.length * 0.045 + 0.08, 0.42),
-          duration: 0.62,
+          delay: Math.min(words.length * 0.025, 0.2),
+          duration: 0.46,
           ease: [0.16, 1, 0.3, 1],
         }));
       }
@@ -64,6 +62,7 @@ export function ScrollReveal() {
     };
 
     const reveal = (element: HTMLElement) => {
+      if (element.dataset.revealState === "revealed") return;
       element.dataset.revealState = "revealed";
       animateHeading(element);
     };
@@ -91,7 +90,8 @@ export function ScrollReveal() {
           const element = entry.target as HTMLElement;
           if (entry.isIntersecting || motionPreference.matches) {
             reveal(element);
-          } else if (!element.contains(document.activeElement)) {
+          } else if (["hero", "media"].includes(element.dataset.reveal ?? "") && !element.contains(document.activeElement)) {
+            // Portrait/media motion replays as before; reading content stays visible.
             element.dataset.revealState = "waiting";
           }
         }

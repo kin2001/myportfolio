@@ -27,3 +27,7 @@ node_modules/
 .impeccable/live/deferred-svelte-component-accepts.json
 .impeccable/live/*.png
 # impeccable-ignore-end
+
+# Local responsive-review screenshots, not application assets.
+.impeccable/refresh-review/
+.impeccable/refresh-final/

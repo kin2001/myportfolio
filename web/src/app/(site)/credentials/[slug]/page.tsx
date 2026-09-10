@@ -7,24 +7,17 @@ import { Icon } from "@/components/icons";
 import { getSiteUrl } from "@/lib/env";
 import {
   getPublishedCredential,
-  getPublishedCredentials,
   getPublishedProjects,
   publicAssetUrl,
 } from "@/lib/public-content";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-export const dynamicParams = false;
-
 function date(value: string) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(new Date(value));
-}
-
-export async function generateStaticParams() {
-  return (await getPublishedCredentials()).map(({ slug }) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -71,7 +64,7 @@ export default async function CredentialPage({ params }: PageProps) {
     evidenceUrl && credential.evidence?.mimeType === "application/pdf",
   );
   const embeddedEvidenceUrl = evidenceIsPdf
-    ? `${evidenceUrl}#view=FitH&toolbar=0&navpanes=0`
+    ? `${evidenceUrl}#view=Fit&toolbar=0&navpanes=0`
     : null;
   const evidenceLabel = evidenceIsImage
     ? "Public image"
@@ -116,7 +109,7 @@ export default async function CredentialPage({ params }: PageProps) {
   };
 
   return (
-    <article className="content-canvas">
+    <article className="content-canvas detail-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c") }}
@@ -135,7 +128,7 @@ export default async function CredentialPage({ params }: PageProps) {
         <p className="mono-meta accent">[ PUBLISHED_CREDENTIAL ]</p>
         <AnimatedHeading className="public-display mt-5" text={credential.name} />
 
-        <dl className={`module mt-8 grid gap-px bg-[var(--line)] ${credential.expiryDate ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`} data-phone-layout={credential.expiryDate ? "facts-four" : "facts-three"}>
+        <dl className={`detail-facts module mt-8 grid gap-px bg-[var(--line)] ${credential.expiryDate ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`} data-phone-layout={credential.expiryDate ? "facts-four" : "facts-three"}>
           <div className="min-w-0 bg-[var(--paper-pure)] p-5">
             <dt className="mono-label muted">Issuer</dt>
             <dd className="public-body mt-2">{credential.issuer}</dd>
@@ -157,7 +150,8 @@ export default async function CredentialPage({ params }: PageProps) {
         </dl>
       </header>
 
-      <section aria-labelledby="credential-evidence-heading" className="border-t border-[var(--line)] py-10 md:py-14" data-reveal="evidence">
+      <div className={`credential-detail-layout ${credential.skills.length || relatedProject ? "has-record" : ""}`}>
+      <section aria-labelledby="credential-evidence-heading" className="min-w-0 border-t border-[var(--line)] py-8" data-reveal="evidence">
         <div className="section-heading">
           <h2 id="credential-evidence-heading" className="public-card-title">Credential evidence</h2>
           {evidenceUrl ? (
@@ -181,7 +175,7 @@ export default async function CredentialPage({ params }: PageProps) {
           ) : embeddedEvidenceUrl ? (
             <object
               aria-label={`${credential.name} evidence document`}
-              className="block h-[300px] w-full bg-[var(--paper-soft)] sm:h-[68vh] sm:min-h-[520px] sm:max-h-[760px]"
+              className="credential-document block w-full bg-[var(--paper-soft)]"
               data={embeddedEvidenceUrl}
               type="application/pdf"
             >
@@ -206,13 +200,12 @@ export default async function CredentialPage({ params }: PageProps) {
       </section>
 
       {credential.skills.length || relatedProject ? (
-        <section aria-labelledby="credential-record-heading" className="grid gap-8 border-t border-[var(--line)] py-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-14" data-phone-layout="credential-record" data-reveal="record">
+        <section aria-labelledby="credential-record-heading" className="credential-detail-record min-w-0 border-t border-[var(--line)] py-8" data-reveal="record">
           <div>
             <h2 id="credential-record-heading" className="public-card-title">Credential record</h2>
-            <p className="public-body mt-3">Published skills and project connections attached to this record.</p>
           </div>
 
-          <div className={`grid gap-8 ${relatedProject && credential.skills.length ? "sm:grid-cols-2" : ""}`} data-phone-layout={relatedProject && credential.skills.length ? "card-grid" : undefined}>
+          <div className="mt-6 grid gap-8">
             {credential.skills.length ? (
               <div>
                 <h3 className="mono-label muted">Skills demonstrated</h3>
@@ -222,14 +215,15 @@ export default async function CredentialPage({ params }: PageProps) {
               </div>
             ) : null}
             {relatedProject ? (
-              <div className="border-t border-[var(--line)] pt-6 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
+              <div className="border-t border-[var(--line)] pt-6">
                 <h3 className="mono-label muted">Related project</h3>
-                <Link className="hero-link mt-3" href={`/work/${relatedProject.slug}`}>{relatedProject.title} <Icon name="arrow" /></Link>
+                <Link className="text-link public-body mt-3 inline-block" href={`/work/${relatedProject.slug}`}>{relatedProject.title} <Icon name="arrow" className="ml-2 inline-block h-4 w-4 shrink-0" /></Link>
               </div>
             ) : null}
           </div>
         </section>
       ) : null}
+      </div>
 
       {credential.verificationUrl ? (
         <footer className="flex justify-end border-t border-[var(--line)] py-10" data-reveal="actions">

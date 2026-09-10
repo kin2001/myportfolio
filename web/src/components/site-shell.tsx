@@ -41,7 +41,7 @@ function NavLinks({ close }: { close?: () => void }) {
   );
 }
 
-export function SiteShell({ children }: { children: React.ReactNode }) {
+export function SiteShell({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
 
@@ -87,7 +87,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <NavLinks />
         </div>
         <div className="shrink-0 space-y-8">
-          <a className="button-primary w-full" href="/resume.pdf" download="Artkin-Carreon-CV.pdf">Download CV</a>
+          <a className="sidebar-cv" href="/resume.pdf" download="Artkin-Carreon-CV.pdf">Download CV <Icon name="download" className="h-4 w-4" /></a>
           <div className="flex items-center justify-between gap-2">
             <div className="flex gap-1 text-[var(--ink-soft)]">
               <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/contact" aria-label="Contact"><Icon name="link" className="h-[18px] w-[18px]" /></Link>
@@ -99,7 +99,10 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main id="main-content" className="site-main" tabIndex={-1}>{children}</main>
+      <div className="site-main">
+        <main id="main-content" tabIndex={-1}>{children}</main>
+        {footer}
+      </div>
     </>
   );
 }

@@ -58,8 +58,8 @@ test("home section surfaces follow the selected palette in light and dark themes
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
     const colors = await page.evaluate(() => {
-      const neutral = document.querySelector<HTMLElement>('[data-home-surface="neutral"]');
-      const credentials = document.querySelector<HTMLElement>('#credentials[data-home-surface="plain"]');
+      const neutral = document.querySelector<HTMLElement>('.project-process');
+      const credentials = document.querySelector<HTMLElement>('#credentials[data-home-surface="tint"]');
       const tint = document.querySelector<HTMLElement>('#contact[data-home-surface="tint"]');
       const plain = document.querySelector<HTMLElement>("#projects");
       const projectCard = plain?.querySelector<HTMLElement>("[data-project-index-card]");
@@ -83,8 +83,8 @@ test("home section surfaces follow the selected palette in light and dark themes
     expect(colors?.credentialCard).toBe(colorScheme === "light" ? "rgb(255, 255, 255)" : "rgb(28, 31, 29)");
     expect(colors?.credentialCardInk).toBe(colorScheme === "light" ? "rgb(26, 28, 27)" : "rgb(241, 240, 236)");
     expect(colors?.projectCard).toBe(colorScheme === "light" ? "rgb(255, 255, 255)" : colors?.canvas);
-    expect(colors?.credentials).toBe(colors?.plain);
-    expect(colors?.neutral).toBe(colors?.plain);
+    expect(colors?.credentials).toBe(colors?.tint);
+    expect(colors?.neutral).toBe(colors?.tint);
     expect(colors?.tint).not.toBe(colors?.plain);
   }
 });
@@ -101,9 +101,9 @@ test("homepage preserves its paired composition at phone width", async ({ page }
     const credentialGrid = credentialCards[0]?.parentElement;
     const approachGrid = document.querySelector<HTMLElement>("[data-approach-grid]");
     const hero = document.querySelector<HTMLElement>('[data-reveal="hero"]');
-    const facts = document.querySelector<HTMLElement>('[data-home-surface="neutral"]');
+    const facts = document.querySelector<HTMLElement>('.project-process-steps');
     const projectBody = projectCards[0]?.querySelector<HTMLElement>(".public-body");
-    const heroLink = hero?.querySelector<HTMLElement>(".hero-link");
+    const heroLink = hero?.querySelector<HTMLElement>(".button-primary");
     const columnCount = (element: HTMLElement | null | undefined) =>
       element ? getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length : 0;
     const sameRow = (elements: HTMLElement[]) => {
@@ -133,7 +133,7 @@ test("homepage preserves its paired composition at phone width", async ({ page }
   expect(layout.factColumns).toBe(4);
   expect(layout.projectSameRow).toBe(true);
   expect(layout.credentialSameRow).toBe(true);
-  expect(layout.projectBodySize).toBeGreaterThanOrEqual(12);
+  expect(layout.projectBodySize).toBeGreaterThanOrEqual(14);
   expect(layout.heroLinkHeight).toBeGreaterThanOrEqual(44);
 });
 
