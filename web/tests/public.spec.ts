@@ -445,7 +445,9 @@ test("selected proposal details keep the current visual system", async ({ page }
     await page.goto("/");
     await expect(page.locator("#hero-title .accent")).toHaveText("moving.");
     await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveAttribute("href", "/work");
-    await expect(page.locator('[data-reveal="hero"] .button-secondary')).toHaveAttribute("href", "/contact");
+    await expect(page.locator('[data-reveal="hero"] .button-text')).toHaveAttribute("href", "/contact");
+    await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveCSS("text-transform", "none");
+    await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveCSS("font-size", "14px");
     await expect(page.locator('[data-reveal="hero"] a[href*="github"]')).toHaveCount(0);
     await expect(page.locator(".project-process-steps li")).toHaveCount(4);
     await page.getByRole("button", { name: "Replay project process animation" }).click();
@@ -481,7 +483,7 @@ test("public pages share footer socials and homepage sections alternate", async 
       const inquiry = getComputedStyle(document.querySelector("#contact")!).backgroundColor;
       return { tint, credentials, inquiry, paper: getComputedStyle(document.body).backgroundColor };
     });
-    expect(surfaces.tint).toBe(surfaces.credentials);
+    expect(surfaces.credentials).toBe("rgba(0, 0, 0, 0)");
     expect(surfaces.tint).toBe(surfaces.inquiry);
     expect(surfaces.tint).not.toBe(surfaces.paper);
   }

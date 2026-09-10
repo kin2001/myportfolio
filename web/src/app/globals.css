@@ -995,6 +995,26 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .public-record-link:hover .hero-link > :is(svg, [aria-hidden="true"]) { transform: translateX(4px); }
 }
 
+/* Sandbox action styling, scoped to public content so admin controls stay intact. */
+.site-main :is(.button-primary, .button-secondary, .button-text) {
+  gap: 16px;
+  min-height: 46px;
+  padding: 10px 17px;
+  font-family: var(--font-public-sans), Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.site-main .button-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.site-main .button-primary:hover { background: color-mix(in srgb, var(--accent) 90%, var(--ink)); }
+.site-main .button-secondary { border-color: var(--control-line); }
+.site-main .button-text { display: inline-flex; align-items: center; justify-content: center; padding-inline: 0; background: transparent; color: var(--ink); }
+.site-main .button-text:hover { color: var(--accent); }
+.site-main .button-text svg { transition: transform 180ms ease; }
+.site-main .button-text:hover svg { transform: translateX(3px); }
+
 /* Detail pages share the homepage's paper surfaces and editorial hierarchy. */
 .detail-page .public-display { max-width: 23ch; font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3.5rem); line-height: 1.1; }
 .detail-page [aria-label="Breadcrumb"] { color: var(--ink-soft); }

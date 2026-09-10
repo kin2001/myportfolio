@@ -19,6 +19,11 @@
   border-block: 1px solid var(--section-tint-line);
   padding: clamp(20px, 3vw, 32px);
 }
+.home :global(#credentials) :global([data-credential-index-card]) {
+  --paper-pure: var(--section-tint);
+  --muted: var(--section-muted);
+  --line: var(--section-tint-line);
+}
 
 .hero[data-reveal][data-reveal-state] {
   opacity: 1;

@@ -82,7 +82,7 @@ export default async function HomePage() {
           <p className="public-lead max-w-xl">I build GoHighLevel workflows and AI automation that organize leads, automate follow-up, and connect the tools behind daily operations.</p>
           <div className={`${styles.links} mt-6 flex flex-wrap items-center gap-x-6 gap-y-3`}>
             <Link href="/work" className="button-primary">Explore my work <Icon name="arrow" className="h-4 w-4" /></Link>
-            <Link href="/contact" className="button-secondary">Let&apos;s talk <Icon name="arrow" className="h-4 w-4" /></Link>
+            <Link href="/contact" className="button-text">Let&apos;s talk <Icon name="arrow" className="h-4 w-4" /></Link>
           </div>
         </div>
       </section>
@@ -113,7 +113,7 @@ export default async function HomePage() {
         ) : <div data-reveal className="grid min-h-56 min-w-0 gap-6 border border-[var(--line)] bg-[var(--paper-pure)] p-6 sm:p-8 md:grid-cols-[180px_1fr] md:gap-8 md:p-10"><p className="mono-meta break-words text-[var(--accent)]">PROJECT_REGISTRY / 000</p><div className="min-w-0"><h3 className="public-card-title">Case studies are being prepared.</h3><p className="public-body mt-4 max-w-2xl">Reviewed project stories will appear here as they become available.</p></div></div>}
       </section>
 
-      <section className="space-y-8 md:space-y-10" data-home-surface="tint" id="credentials">
+      <section className="space-y-8 md:space-y-10" id="credentials">
         <div data-reveal="rule" className={`${styles.sectionHeading} flex items-center justify-between gap-3 border-b border-[var(--line)] pb-4`}><h2 className="mono-label tracking-[.2em]">02 — Credentials</h2>{credentials.length ? <Link href="/credentials" className="hero-link">View all {String(credentials.length).padStart(2, "0")}<span className="sr-only"> credentials</span> <Icon name="arrow" /></Link> : null}</div>
         {credentials.length ? (
           <div className={`${styles.recordGrid} grid gap-3 ${credentials.length > 1 ? "grid-cols-2" : ""} ${credentials.length > 2 ? "xl:grid-cols-3" : ""}`} data-home-credential-grid>

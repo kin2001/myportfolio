@@ -62,3 +62,23 @@ the approved baseline pointer with the refreshed design before visual approval.
   Both missing-record routes return 404; sitemap includes current detail URLs.
 - No deployment or database mutation performed. Baseline 2 remains the approved
   reference while the user reviews this selectively refreshed version.
+
+## Follow-up: sandbox buttons and card-only credential tint
+
+The user requested the sandbox action treatment: public primary buttons now use
+the theme's blue accent, 14px sentence-case Roboto labels, and 46px minimum height.
+The hero's secondary action is a plain text-and-arrow link. Admin buttons are
+unchanged. The homepage credential section no longer has a tinted background or
+extra panel padding: only its cards use paper-grey/light and green-grey/dark.
+Process and project inquiry panels remain unchanged.
+
+Reviewed the homepage at 360/768/1024/1440 pixels in both themes, with no horizontal
+overflow. Compared with Baseline 2 and the previous refresh, this changes only
+action styling and the placement of the credential tint. Typography family,
+portrait motion, navigation destinations, and published content are preserved.
+Typecheck and the design detector pass. Screenshots: local ignored
+`.impeccable/refresh-final/buttons-*.png`.
+The sandbox-action regression passes. The broader navigation test exceeded its
+5-second assertion window; an independent browser check confirmed the unchanged
+Explore my work destination succeeded in 9.3 seconds. This follow-up does not
+claim a fully green rerun of the broader suite or change the data-loading policy.
