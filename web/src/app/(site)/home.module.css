@@ -5,7 +5,7 @@
 
 .heroTitle:global(.public-display-hero) {
   max-width: 14ch;
-  font-size: clamp(2.5rem, 5.25vw, 4.5rem);
+  font-size: var(--type-hero);
   font-weight: 650;
   line-height: 1.02;
   letter-spacing: -.035em;
@@ -356,7 +356,7 @@
 @media (max-width: 767px) {
   .hero .init {
     display: block;
-    font-size: 9px;
+    font-size: var(--type-meta);
     line-height: 1.5;
     letter-spacing: .08em;
   }
@@ -364,12 +364,12 @@
   .hero .init::before { display: none; }
 
   .hero :global(.public-display-hero) {
-    font-size: clamp(1.6rem, 6.9vw, 3rem);
+    font-size: var(--type-hero);
     line-height: 1.05;
   }
 
   .hero :global(.public-lead) {
-    font-size: 1rem;
+    font-size: var(--type-lead);
     line-height: 1.65;
   }
   .heroCopy { grid-column: 1 / -1; }

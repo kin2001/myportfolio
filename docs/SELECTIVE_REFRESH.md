@@ -82,3 +82,24 @@ The sandbox-action regression passes. The broader navigation test exceeded its
 5-second assertion window; an independent browser check confirmed the unchanged
 Explore my work destination succeeded in 9.3 seconds. This follow-up does not
 claim a fully green rerun of the broader suite or change the data-loading policy.
+
+## Follow-up: fluid public typography and social icons
+
+Public text now scales with the main content container, excluding the desktop
+sidebar. Headings, card titles, body text, metadata, process labels, and actions
+share fluid sizes; long-form prose retains a 16px minimum. Side-by-side card
+placement, the current font family, portrait animation, and admin styles remain
+unchanged. Compared with Baseline 2, phone typography is proportionally smaller
+without changing the approved section order or desktop navigation.
+
+The shared footer replaces Email, GitHub, and LinkedIn text/arrow links with
+monochrome icons, blue hover/focus treatment, accessible labels, and 44px touch
+targets. Existing destinations and the Privacy text link are preserved.
+
+Typecheck and the changed-target design detector pass. The fluid-type browser
+regression passes across all six public top-level routes and the four published
+detail pages at 360/768/1024/1440px, with no horizontal overflow. The footer icon
+regression passes at those widths in light and dark modes, checking destinations,
+icon visibility, touch targets, and keyboard focus. Local ignored screenshots:
+`.impeccable/refresh-final/type-*.png` and `socials-*.png`.
+These are targeted checks, not a new full-suite or production-build claim.

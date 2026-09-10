@@ -920,8 +920,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
   padding: 28px 0 36px;
   border-top: 1px solid var(--line);
 }
-.site-footer-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
+.site-footer-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .site-footer-links .hero-link { min-height: 44px; font-size: 11px; }
+.social-icon-link { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; color: var(--ink-soft); }
+.social-icon-link svg { width: 20px; height: 20px; }
+.social-icon-link:hover, .social-icon-link:focus-visible { color: var(--accent); }
 .project-process { overflow: hidden; }
 .project-process-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .project-process-header h2 { font-size: 18px; line-height: 1.35; font-weight: 500; }
@@ -947,7 +950,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 767px) {
   .site-footer { margin-inline: 20px; padding-block: 24px; }
   .site-footer .mono-meta, .site-footer .mono-label { font-size: 11px; }
-  .site-footer-links { gap: 2px 18px; }
+  .site-footer-links { gap: 2px 8px; }
   .project-process-header h2 { font-size: 15px; }
   .project-process-header p { font-size: 12px; }
   .project-process-header button { font-size: 11px; letter-spacing: 0; }
@@ -1036,6 +1039,40 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .detail-page .project-document-section > :first-child { display: flex; align-items: baseline; gap: 12px; }
   .detail-page .project-document-section > :first-child .public-card-title { margin-top: 0; }
 }
+
+/* Scale public typography with usable content width (excluding the sidebar).
+   Rem-based floors preserve zoom and keep reading text and touch controls usable. */
+.site-main {
+  container-type: inline-size;
+  --type-display: clamp(1.75rem, 1rem + 4cqw, 4rem);
+  --type-hero: clamp(1.6rem, .8rem + 5.6cqw, 4.5rem);
+  --type-section: clamp(1.125rem, .8rem + 2cqw, 2.25rem);
+  --type-card: clamp(.875rem, .625rem + 1.25cqw, 1.5rem);
+  --type-body: clamp(.75rem, .625rem + .6cqw, 1rem);
+  --type-lead: clamp(.875rem, .75rem + .65cqw, 1.125rem);
+  --type-meta: clamp(.625rem, .55rem + .3cqw, .75rem);
+  --type-action: clamp(.75rem, .675rem + .35cqw, .875rem);
+}
+.site-main .public-display { font-size: var(--type-display); }
+.site-main .public-section-title { font-size: var(--type-section); }
+.site-main .public-card-title { font-size: var(--type-card); }
+.site-main .public-body { font-size: var(--type-body); }
+.site-main .public-lead { font-size: var(--type-lead); }
+.site-main .public-prose { font-size: clamp(1rem, .9rem + .3cqw, 1.125rem); }
+.site-main :is(.mono-label, .mono-meta, .hero-link) { font-size: var(--type-meta); }
+.site-main :is(.button-primary, .button-secondary, .button-text) { font-size: var(--type-action); padding-inline: clamp(12px, 1.65cqw, 17px); }
+.site-main .button-text { padding-inline: 0; }
+.site-main :is([data-approach-copy], [data-approach-item], [data-phone-layout="content-pair"], [data-phone-layout="service-grid"]) .public-body { font-size: var(--type-body); }
+.site-main :is([data-approach-item] h3, [data-phone-layout="content-pair"] h4, .project-process-steps h3) { font-size: clamp(.8125rem, .65rem + .55cqw, 1rem); }
+.site-main .project-process-header h2 { font-size: var(--type-lead); }
+.site-main :is(.project-process-header p, .project-process-steps p) { font-size: var(--type-body); }
+.site-main .project-process-header button { font-size: var(--type-meta); }
+.site-main :is(.public-index-link, .project-process-number, .site-footer-links .hero-link, [data-phone-compact="tool-card"] li) { font-size: var(--type-meta); }
+.site-main .public-prose code { font-size: var(--type-body); }
+.site-main .public-record-link { padding: clamp(12px, 2.3cqw, 24px); }
+.site-main [data-project-index-card] { min-height: clamp(164px, 21cqw, 216px); }
+.site-main [data-credential-index-card] { min-height: clamp(144px, 19cqw, 188px); }
+.site-main .detail-page .public-display { font-size: clamp(1.75rem, 1rem + 3.5cqw, 3.5rem); }
 
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme-transition="circle"]::view-transition-new(root) { animation: none; }

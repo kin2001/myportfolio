@@ -54,10 +54,10 @@ async function expectGridColumns(page: Page, layout: string, count: number) {
 async function expectMobileTypeScale(page: Page) {
   const offenders = await page.evaluate(() => {
     const limits = [
-      { selector: ".public-body", min: 12.9 },
+      { selector: ".public-body", min: 11.9 },
       { selector: ".public-prose", min: 15.9 },
-      { selector: ".public-card-title", min: 15.9 },
-      { selector: ".mono-label, .mono-meta, .hero-link, .button-primary, .button-secondary", min: 10.9 },
+      { selector: ".public-card-title", min: 13.9 },
+      { selector: ".mono-label, .mono-meta, .hero-link, .button-primary, .button-secondary", min: 9.9 },
     ];
 
     const main = document.querySelector("#main-content");
@@ -447,7 +447,9 @@ test("selected proposal details keep the current visual system", async ({ page }
     await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveAttribute("href", "/work");
     await expect(page.locator('[data-reveal="hero"] .button-text')).toHaveAttribute("href", "/contact");
     await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveCSS("text-transform", "none");
-    await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveCSS("font-size", "14px");
+    const buttonSize = await page.locator('[data-reveal="hero"] .button-primary').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    expect(buttonSize).toBeGreaterThanOrEqual(12);
+    expect(buttonSize).toBeLessThanOrEqual(14);
     await expect(page.locator('[data-reveal="hero"] a[href*="github"]')).toHaveCount(0);
     await expect(page.locator(".project-process-steps li")).toHaveCount(4);
     await page.getByRole("button", { name: "Replay project process animation" }).click();

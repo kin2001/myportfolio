@@ -133,7 +133,7 @@ test("homepage preserves its paired composition at phone width", async ({ page }
   expect(layout.factColumns).toBe(4);
   expect(layout.projectSameRow).toBe(true);
   expect(layout.credentialSameRow).toBe(true);
-  expect(layout.projectBodySize).toBeGreaterThanOrEqual(14);
+  expect(layout.projectBodySize).toBeGreaterThanOrEqual(12);
   expect(layout.heroLinkHeight).toBeGreaterThanOrEqual(44);
 });
 
