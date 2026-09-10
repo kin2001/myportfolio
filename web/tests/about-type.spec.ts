@@ -23,6 +23,9 @@ test("About leads with a concise professional profile without repeated backgroun
       await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
       const columns = await profile.evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
       expect(columns).toBe(2);
+      const gap = await profile.evaluate(el => el.nextElementSibling!.getBoundingClientRect().top - el.getBoundingClientRect().bottom);
+      expect(gap).toBeGreaterThanOrEqual(31);
+      expect(gap).toBeLessThanOrEqual(49);
       sizes[width] = await profile.locator("h1").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
       await profile.screenshot({ path: `../.impeccable/refresh-final/about-profile-${theme}-${width}.png` });

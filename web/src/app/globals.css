@@ -135,6 +135,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .content-canvas { max-width: var(--content); margin: 0 auto; padding: 48px 32px 96px; }
 .section-space { margin-top: 96px; }
+[data-phone-layout="about-hero"] + .section-space { margin-top: clamp(32px, 4cqw, 48px); }
 .hairline { border-color: var(--line); border-width: .5px; }
 .surface { background: color-mix(in srgb, var(--paper-pure) 94%, transparent); }
 .surface-soft { background: var(--paper-soft); }

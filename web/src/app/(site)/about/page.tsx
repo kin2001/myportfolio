@@ -65,7 +65,7 @@ export default function AboutPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personStructuredData).replace(/</g, "\\u003c") }} />
 
       <BackButton />
-      <header className="grid min-w-0 items-start gap-10 pb-10 md:grid-cols-[minmax(0,1.1fr)_minmax(240px,.9fr)] md:pb-16 lg:items-center" data-phone-layout="about-hero" data-reveal="page-header">
+      <header className="grid min-w-0 items-start gap-10 md:grid-cols-[minmax(0,1.1fr)_minmax(240px,.9fr)] lg:items-center" data-phone-layout="about-hero" data-reveal="page-header">
         <div className="min-w-0">
           <p className="mono-meta accent" aria-hidden="true">[ ABOUT_ARTKIN / 001 ]</p>
           <AnimatedHeading className="public-display mt-5" text="Artkin Carreon" />
