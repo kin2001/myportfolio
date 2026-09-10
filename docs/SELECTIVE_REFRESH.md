@@ -184,3 +184,15 @@ checks the replacement content, preserved date, and two-column layout in both
 themes at 360/768/1024/1440px, with no horizontal overflow. Compared at those
 widths: less label repetition, a clearer headline/body hierarchy, and consistent
 text scaling. Local ignored previews: `.impeccable/refresh-final/about-background-*.png`.
+
+## Follow-up: remove repetitive About messaging
+
+The user rejected the background-story treatment as repetitive for a professional
+portfolio. Removed that added section. The About header now leads with Artkin's
+name and role, a short description of his work, and one compact education note.
+The closing section is a direct project invitation rather than another specialty
+summary. "Open for projects" stays. Compared with Baseline 2 and the prior edit,
+this is a content/hierarchy reduction; fonts, portrait, responsive composition,
+and shared motion are unchanged. Typecheck, design detector, and the updated
+About regression pass across both themes at 360/768/1024/1440px, with no overflow.
+Local ignored previews: `.impeccable/refresh-final/about-profile-*.png`.

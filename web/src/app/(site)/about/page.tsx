@@ -68,8 +68,10 @@ export default function AboutPage() {
       <header className="grid min-w-0 items-start gap-10 pb-10 md:grid-cols-[minmax(0,1.1fr)_minmax(240px,.9fr)] md:pb-16 lg:items-center" data-phone-layout="about-hero" data-reveal="page-header">
         <div className="min-w-0">
           <p className="mono-meta accent" aria-hidden="true">[ ABOUT_ARTKIN / 001 ]</p>
-          <AnimatedHeading className="public-display mt-5" text="Automation that keeps operations moving." />
-          <p className="public-lead mt-6">I am Artkin Carreon, a Computer Engineering graduate focused on AI automation, GoHighLevel systems, API integrations, and custom workflow tools for small businesses.</p>
+          <AnimatedHeading className="public-display mt-5" text="Artkin Carreon" />
+          <p className="public-lead accent mt-6 font-medium">AI Automation &amp; GoHighLevel Specialist</p>
+          <p className="public-body mt-4 max-w-[55ch]">I build workflows that help small businesses manage leads, follow up consistently, and connect their tools.</p>
+          <p className="public-body muted mt-4 max-w-[55ch]">Computer Engineering graduate · Jose Rizal Memorial State University, Dapitan City · 2026</p>
         </div>
 
         <figure className="module mx-auto w-full max-w-[320px] p-4 sm:p-6 md:max-w-[380px]" data-phone-compact="portrait-card">
@@ -80,16 +82,6 @@ export default function AboutPage() {
           </figcaption>
         </figure>
       </header>
-
-      <section className="grid min-w-0 grid-cols-2 gap-6 border-y border-[var(--line)] py-6 md:gap-10 md:py-10" data-phone-layout="about-background" data-reveal aria-labelledby="about-background-title">
-        <h2 id="about-background-title" className="public-section-title min-w-0 max-w-[20ch] [text-wrap:balance]">
-          Engineering roots.<br /><span className="accent">Automation in practice.</span>
-        </h2>
-        <div className="min-w-0 max-w-[55ch] space-y-4">
-          <p className="public-body">I graduated in Computer Engineering from Jose Rizal Memorial State University, Dapitan City, on <time dateTime="2026-06-25">June 25, 2026</time>.</p>
-          <p className="public-body">I now focus on GoHighLevel and AI automation, connecting CRM workflows with the tools a business uses every day.</p>
-        </div>
-      </section>
 
       <ApproachSection index="01" />
 
@@ -129,9 +121,8 @@ export default function AboutPage() {
       <section className="section-space border-t border-[var(--line)] py-12 md:py-16" data-reveal="actions">
         <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end" data-phone-layout="action-row">
           <div className="max-w-3xl">
-            <p className="mono-label accent">[ CURRENT_DIRECTION ]</p>
-            <h2 className="public-section-title mt-5">Cleaner data flow. More reliable follow-up.</h2>
-            <p className="public-lead mt-5">My current focus is GoHighLevel workflow design and reliable data flow between connected tools. I am open for automation projects.</p>
+            <h2 className="public-section-title">Have a project in mind?</h2>
+            <p className="public-body mt-4">Share the process you want to improve and the tools you use.</p>
           </div>
           <Link href="/contact" className="button-primary justify-self-end whitespace-nowrap">Discuss your workflow</Link>
         </div>
