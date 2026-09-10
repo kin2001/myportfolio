@@ -10,7 +10,7 @@ const { outputText } = ts.transpileModule(
   { compilerOptions: { module: ts.ModuleKind.CommonJS } },
 );
 
-function setup({ pathname = "/", reducedMotion = false, supported = true } = {}) {
+function setup({ pathname = "/", reducedMotion = false, supported = true, withHeading = false } = {}) {
   class Element {
     dataset = {};
     constructor(top, bottom) { this.bounds = { top, bottom }; }
@@ -21,6 +21,11 @@ function setup({ pathname = "/", reducedMotion = false, supported = true } = {})
     querySelectorAll() { return []; }
   }
   const visible = new Element(0, 500);
+  if (withHeading) {
+    const word = { style: { removeProperty() {} } };
+    const heading = { querySelectorAll: () => [word], querySelector: () => null };
+    visible.querySelector = () => heading;
+  }
   const offscreen = new Element(1_200, 1_600);
   const elements = [visible, offscreen];
   const listeners = new Map();
@@ -51,6 +56,7 @@ function setup({ pathname = "/", reducedMotion = false, supported = true } = {})
     }
   }
   let cleanup;
+  const animations = [];
   const exports = {};
   runInNewContext(outputText, {
     exports, document, Element, IntersectionObserver,
@@ -62,7 +68,11 @@ function setup({ pathname = "/", reducedMotion = false, supported = true } = {})
     require: (name) => {
       if (name === "motion") {
         return {
-          animate: () => ({ stop() {} }),
+          animate: () => {
+            const animation = { stopped: false, stop() { this.stopped = true; } };
+            animations.push(animation);
+            return animation;
+          },
           stagger: () => 0,
         };
       }
@@ -72,7 +82,7 @@ function setup({ pathname = "/", reducedMotion = false, supported = true } = {})
     },
   });
   exports.ScrollReveal();
-  return { visible, offscreen, observer, document, listeners, preference, cleanup };
+  return { visible, offscreen, observer, document, listeners, preference, cleanup, animations };
 }
 
 test("Home keeps revealed content visible, while the hero still replays", () => {
@@ -148,6 +158,15 @@ test("Browsers without IntersectionObserver keep all content visible", () => {
   assert.equal(visible.dataset.revealState, "revealed");
   assert.equal(offscreen.dataset.revealState, "revealed");
   assert.equal(observer, undefined);
+});
+
+test("Switching to reduced motion stops a running heading animation", () => {
+  const { preference, listeners, animations } = setup({ withHeading: true });
+  assert.equal(animations.length, 1);
+  assert.equal(animations[0].stopped, false);
+  preference.matches = true;
+  listeners.get("change")({ matches: true });
+  assert.equal(animations[0].stopped, true);
 });
 
 test("Route cleanup removes the observer and event listeners", () => {

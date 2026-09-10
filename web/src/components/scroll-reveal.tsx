@@ -41,10 +41,10 @@ export function ScrollReveal() {
       if (words.length) {
         animations.push(animate(words, {
           opacity: [0, 1],
-          transform: ["translate3d(0, .22em, 0)", "translate3d(0, 0, 0)"],
+          transform: ["translate3d(0, .65em, 0)", "translate3d(0, 0, 0)"],
         }, {
-          delay: stagger(0.025),
-          duration: 0.46,
+          delay: stagger(Math.min(0.025, 0.16 / Math.max(words.length - 1, 1))),
+          duration: 0.5,
           ease: [0.16, 1, 0.3, 1],
         }));
       }
@@ -53,7 +53,7 @@ export function ScrollReveal() {
           opacity: [0, 1],
           transform: ["scaleX(0)", "scaleX(1)"],
         }, {
-          delay: Math.min(words.length * 0.025, 0.2),
+          delay: 0.16,
           duration: 0.46,
           ease: [0.16, 1, 0.3, 1],
         }));
@@ -106,7 +106,13 @@ export function ScrollReveal() {
       if (group) reveal(group);
     };
     const handleMotionChange = (event: MediaQueryListEvent) => {
-      if (event.matches) revealAll();
+      if (event.matches) {
+        elements.forEach((element) => {
+          const heading = element.querySelector<HTMLElement>("[data-animated-heading]");
+          if (heading) resetHeading(heading);
+        });
+        revealAll();
+      }
     };
 
     document.addEventListener("focusin", revealFocusedGroup);

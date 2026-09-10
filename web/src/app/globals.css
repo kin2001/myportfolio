@@ -569,7 +569,30 @@ button, a { -webkit-tap-highlight-color: transparent; }
   transition: transform 460ms cubic-bezier(.16, 1, .3, 1) 80ms;
 }
 
+/* Assemble sibling records in reading order; never move their observer bounds. */
+.site-main article[data-reveal="record"] { --entry-delay: 0ms; }
+.site-main article[data-reveal="record"]:nth-child(2) { --entry-delay: 60ms; }
+.site-main article[data-reveal="record"]:nth-child(n+3) { --entry-delay: 120ms; }
+.site-main article[data-reveal="record"][data-reveal-state="revealed"] > .public-record-link {
+  animation: record-arrive 480ms cubic-bezier(.16, 1, .3, 1) var(--entry-delay) backwards;
+}
+.site-main [data-reveal="page-header"][data-reveal-state="revealed"] .public-lead,
+.site-main [data-reveal="actions"][data-reveal-state="revealed"] > a {
+  animation: detail-arrive 420ms cubic-bezier(.16, 1, .3, 1) 80ms backwards;
+}
+@keyframes record-arrive {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes detail-arrive {
+  from { opacity: 0; transform: translate3d(8px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+.site-main [data-reveal] a:focus-visible { animation: none; }
+
 /* The reused Approach block reveals as one connected system: thesis, then inputs. */
+.specialty-title { max-width: 24ch; text-wrap: balance; }
+.specialty-title > span { display: block; }
 [data-reveal="approach"][data-reveal-state] {
   opacity: 1;
   transform: none;
@@ -594,7 +617,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 [data-reveal="approach"][data-reveal-state="waiting"] [data-approach-item] {
   opacity: 0;
-  transform: translate3d(0, 6px, 0);
+  transform: translate3d(10px, 0, 0);
 }
 
 [data-reveal="approach"][data-reveal-state="revealed"] [data-approach-item] {
@@ -602,11 +625,21 @@ button, a { -webkit-tap-highlight-color: transparent; }
   transform: none;
   transition:
     opacity 420ms ease-out,
-    transform 620ms cubic-bezier(.16, 1, .3, 1);
+    transform 480ms cubic-bezier(.16, 1, .3, 1);
 }
 
-[data-reveal="approach"][data-reveal-state="revealed"] [data-approach-item]:nth-child(2) { transition-delay: 70ms; }
-[data-reveal="approach"][data-reveal-state="revealed"] [data-approach-item]:nth-child(3) { transition-delay: 140ms; }
+[data-reveal="approach"][data-reveal-state="revealed"] [data-approach-item]:nth-child(2) { transition-delay: 90ms; }
+[data-reveal="approach"][data-reveal-state="revealed"] [data-approach-item]:nth-child(3) { transition-delay: 180ms; }
+[data-approach-item] { position: relative; }
+[data-approach-item]::before {
+  content: ""; position: absolute; top: -1px; left: 0; width: 44px; height: 1px;
+  background: var(--accent); transform-origin: left;
+}
+[data-reveal-state="waiting"] [data-approach-item]::before { transform: scaleX(0); }
+[data-reveal-state="revealed"] [data-approach-item]::before {
+  transform: scaleX(1); transition: transform 480ms cubic-bezier(.16, 1, .3, 1);
+  transition-delay: inherit;
+}
 
 [data-reveal][data-reveal-state="waiting"]:focus-within {
   opacity: 1;
@@ -1080,6 +1113,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .operation-progress { animation: none !important; transform: translateX(100%); }
   .loading-ring { animation: none !important; }
   .project-process-number { animation: none !important; }
+  .site-main [data-reveal] .public-record-link,
+  .site-main [data-reveal="page-header"] .public-lead,
+  .site-main [data-reveal="actions"] > a { animation: none !important; }
+  [data-approach-item]::before { transform: scaleX(1) !important; transition: none !important; }
   [data-reveal][data-reveal-state] { opacity: 1 !important; transform: none !important; transition: none !important; }
   .animated-heading-word,
   .animated-heading-rule,

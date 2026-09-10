@@ -103,3 +103,29 @@ regression passes at those widths in light and dark modes, checking destinations
 icon visibility, touch targets, and keyboard focus. Local ignored screenshots:
 `.impeccable/refresh-final/type-*.png` and `socials-*.png`.
 These are targeted checks, not a new full-suite or production-build claim.
+
+## Follow-up: specialty-led copy and coordinated public motion
+
+The reused homepage/About approach section now leads with GoHighLevel workflows
+and AI automation, with blue emphasis and three readable headline lines on wide
+screens. Its supporting skills cover CRM workflows, AI-assisted inquiries with
+human review, and n8n/API integrations. No clients, metrics, or new project facts
+were added. The existing font and fluid sizing remain in place.
+
+Motion uses the existing shared reveal controller: masked page-title entrances
+with a capped 160ms word stagger, bounded sibling-card entrances, and short
+detail-page introductions/actions. The specialty rows enter left-to-right with
+blue rules to connect the headline to the skills. Reading content still reveals
+once; portrait/media replay, portrait assets, and their keyframes are unchanged.
+Switching to reduced motion now also stops in-progress heading animations.
+
+Compared with Baseline 2 at 360/768/1024/1440px, the intentional differences are
+specialty-first copy, blue headline emphasis, and coordinated non-image motion;
+section order and side-by-side composition remain. Light/dark specialty previews
+are saved locally under `.impeccable/refresh-final/specialty-*.png` (ignored).
+Typecheck, nine controller regression tests, and the changed-target design
+detector pass. Browser coverage passes for all six top-level public routes and
+four published detail routes, checking reveal activation, four viewport widths,
+no horizontal overflow, and live reduced-motion switching. The PDF-page test
+explicitly waits for hydration after DOMContentLoaded. No new dependencies,
+deployment, or approved-baseline pointer changes.
