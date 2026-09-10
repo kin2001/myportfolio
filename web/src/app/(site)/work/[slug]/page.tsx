@@ -221,7 +221,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           ) : null}
         </nav>
 
-        <Link href="/work" className="hero-link mt-8">Back to projects <span aria-hidden="true">→</span></Link>
       </footer>
     </article>
   );
