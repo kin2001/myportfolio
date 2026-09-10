@@ -18,7 +18,7 @@ export default async function CredentialsAdminPage({
     ? await Promise.all([
         supabase
           .from("credentials")
-          .select("id,slug,name,issuer,issue_date,expiry_date,skills,related_project_id,verification_url,evidence_asset_id,evidence_visibility,evidence_alt,redaction_confirmed,lifecycle_state,lock_version")
+          .select("id,slug,name,issuer,issue_date,expiry_date,skills,related_project_id,verification_url,evidence_asset_id,evidence_visibility,evidence_alt,redaction_confirmed,lifecycle_state,lock_version,evidence:assets!credentials_evidence_asset_id_fkey(purpose)")
           .order("updated_at", { ascending: false }),
         supabase
           .from("projects")
@@ -27,23 +27,39 @@ export default async function CredentialsAdminPage({
           .order("display_order", { ascending: true }),
       ])
     : [{ data: [] }, { data: [] }];
-  const credentials: CredentialRecord[] = (rows ?? []).map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    issuer: row.issuer,
-    issueDate: row.issue_date,
-    expiryDate: row.expiry_date,
-    skills: row.skills ?? [],
-    relatedProjectId: row.related_project_id,
-    verificationUrl: row.verification_url,
-    evidenceAssetId: row.evidence_asset_id,
-    evidenceVisibility: row.evidence_visibility,
-    evidenceAlt: row.evidence_alt,
-    redactionConfirmed: row.redaction_confirmed,
-    lifecycleState: row.lifecycle_state,
-    lockVersion: row.lock_version,
-  }));
+  const credentials: CredentialRecord[] = (rows ?? []).map((row) => {
+    const evidence = row.evidence as unknown as
+      | { purpose: string }
+      | { purpose: string }[]
+      | null;
+    const evidencePurpose = Array.isArray(evidence)
+      ? evidence[0]?.purpose
+      : evidence?.purpose;
+
+    return {
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      issuer: row.issuer,
+      issueDate: row.issue_date,
+      expiryDate: row.expiry_date,
+      skills: row.skills ?? [],
+      relatedProjectId: row.related_project_id,
+      verificationUrl: row.verification_url,
+      evidenceAssetId: row.evidence_asset_id,
+      evidenceKind:
+        evidencePurpose === "credential_image"
+          ? "image"
+          : evidencePurpose === "credential_pdf"
+            ? "pdf"
+            : null,
+      evidenceVisibility: row.evidence_visibility,
+      evidenceAlt: row.evidence_alt,
+      redactionConfirmed: row.redaction_confirmed,
+      lifecycleState: row.lifecycle_state,
+      lockVersion: row.lock_version,
+    };
+  });
   const requestedId = (await searchParams).id;
   const selected = credentials.find((credential) => credential.id === requestedId) ?? null;
   const projectOptions = (projects ?? []).map((project) => {

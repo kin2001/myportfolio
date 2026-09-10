@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getSiteUrl } from "@/lib/env";
+import { themeBootstrap } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,22 +19,23 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "Artkin Carreon | AI Automation Specialist",
+    default: "Artkin Carreon | AI Automation & GoHighLevel Specialist",
     template: "%s | Artkin Carreon",
   },
   description:
-    "Artkin Carreon designs reliable workflow automation and AI-assisted systems for small businesses.",
-  alternates: { canonical: "/" },
+    "Artkin Carreon builds AI automation, GoHighLevel workflows, and API integrations for small businesses.",
   keywords: [
     "Artkin Carreon",
     "AI automation specialist",
+    "GoHighLevel specialist",
+    "GoHighLevel automation",
     "workflow automation",
     "small business automation",
   ],
   openGraph: {
-    title: "Artkin Carreon | AI Automation Specialist",
+    title: "Artkin Carreon | AI Automation & GoHighLevel Specialist",
     description:
-      "Reliable workflow automation and AI-assisted systems for small businesses.",
+      "AI automation, GoHighLevel workflows, and connected systems for small businesses.",
     type: "website",
     url: "/",
     siteName: "Artkin Carreon",
@@ -46,9 +48,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Artkin Carreon | AI Automation Specialist",
+    title: "Artkin Carreon | AI Automation & GoHighLevel Specialist",
     description:
-      "Reliable workflow automation and AI-assisted systems for small businesses.",
+      "AI automation, GoHighLevel workflows, and connected systems for small businesses.",
     images: ["/artkin-hero.webp"],
   },
 };
@@ -59,7 +61,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} data-theme="light" suppressHydrationWarning>
+      <head>
+        <script id="portfolio-theme" dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body>
         {children}
         <Analytics />

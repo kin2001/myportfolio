@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { AnimatedHeading } from "@/components/animated-heading";
+import { BackButton } from "@/components/back-button";
+import { Icon } from "@/components/icons";
 import { getSiteUrl } from "@/lib/env";
 import {
   getPublishedCredential,
@@ -28,12 +31,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const credential = await getPublishedCredential((await params).slug);
   if (!credential) return {};
   const description = `${credential.name}, issued by ${credential.issuer}.`;
-  const evidenceUrl =
-    credential.evidenceVisibility === "public" && credential.evidence?.mimeType.startsWith("image/")
-      ? publicAssetUrl(credential.evidence.objectKey)
-      : null;
-  const image = evidenceUrl ?? "/artkin-hero.webp";
   const path = `/credentials/${credential.slug}`;
+
   return {
     title: credential.name,
     description,
@@ -43,18 +42,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `${credential.name} | Artkin Carreon`,
       description,
       url: path,
-      images: [{
-        url: image,
-        ...(evidenceUrl && credential.evidence?.width ? { width: credential.evidence.width } : { width: 1024 }),
-        ...(evidenceUrl && credential.evidence?.height ? { height: credential.evidence.height } : { height: 1024 }),
-        alt: evidenceUrl ? credential.evidence?.alt ?? "" : "Artkin Carreon",
-      }],
+      images: [{ url: "/artkin-hero.webp", width: 1024, height: 1024, alt: "Artkin Carreon" }],
     },
     twitter: {
       card: "summary_large_image",
       title: `${credential.name} | Artkin Carreon`,
       description,
-      images: [image],
+      images: ["/artkin-hero.webp"],
     },
   };
 }
@@ -67,24 +61,58 @@ export default async function CredentialPage({ params }: PageProps) {
     credential.evidenceVisibility === "public" && credential.evidence
       ? publicAssetUrl(credential.evidence.objectKey)
       : null;
-  const evidenceIsImage =
+  const evidenceIsImage = Boolean(
     evidenceUrl &&
     credential.evidence?.mimeType.startsWith("image/") &&
     credential.evidence.width &&
-    credential.evidence.height;
+    credential.evidence.height,
+  );
+  const evidenceIsPdf = Boolean(
+    evidenceUrl && credential.evidence?.mimeType === "application/pdf",
+  );
+  const embeddedEvidenceUrl = evidenceIsPdf
+    ? `${evidenceUrl}#view=FitH&toolbar=0&navpanes=0`
+    : null;
+  const evidenceLabel = evidenceIsImage
+    ? "Public image"
+    : evidenceIsPdf
+      ? "Public PDF"
+      : evidenceUrl
+        ? "Public document"
+        : "Not displayed";
   const relatedProject = credential.relatedProjectId
     ? (await getPublishedProjects()).find(({ id }) => id === credential.relatedProjectId)
     : null;
   const siteUrl = getSiteUrl();
   const structuredData = {
     "@context": "https://schema.org",
-    "@type": "EducationalOccupationalCredential",
-    name: credential.name,
-    description: `${credential.name}, issued by ${credential.issuer}.`,
-    url: `${siteUrl}/credentials/${credential.slug}`,
-    dateCreated: credential.issueDate,
-    recognizedBy: { "@type": "Organization", name: credential.issuer },
-    credentialCategory: "Certificate",
+    "@graph": [
+      {
+        "@type": "EducationalOccupationalCredential",
+        name: credential.name,
+        description: `${credential.name}, issued by ${credential.issuer}.`,
+        url: `${siteUrl}/credentials/${credential.slug}`,
+        dateCreated: credential.issueDate,
+        recognizedBy: { "@type": "Organization", name: credential.issuer },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Credentials",
+            item: `${siteUrl}/credentials`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: credential.name,
+            item: `${siteUrl}/credentials/${credential.slug}`,
+          },
+        ],
+      },
+    ],
   };
 
   return (
@@ -93,39 +121,128 @@ export default async function CredentialPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c") }}
       />
-      <header className="max-w-4xl py-16 md:py-24">
-        <p className="mono-meta accent">[ VERIFIED_CREDENTIAL ]</p>
-        <h1 className="mt-5 text-5xl font-semibold tracking-tight md:text-7xl">{credential.name}</h1>
-        <p className="mt-6 text-lg leading-8 ink-soft">{credential.issuer}</p>
+
+      <BackButton />
+      <nav aria-label="Breadcrumb">
+        <ol className="mono-meta flex flex-wrap items-center gap-2">
+          <li><Link className="text-link" href="/credentials">Credentials</Link></li>
+          <li aria-hidden="true">/</li>
+          <li className="muted" aria-current="page">{credential.name}</li>
+        </ol>
+      </nav>
+
+      <header className="max-w-4xl pb-10 pt-6 md:pb-14 md:pt-8" data-reveal="page-header">
+        <p className="mono-meta accent">[ PUBLISHED_CREDENTIAL ]</p>
+        <AnimatedHeading className="public-display mt-5" text={credential.name} />
+
+        <dl className={`module mt-8 grid gap-px bg-[var(--line)] ${credential.expiryDate ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`} data-phone-layout={credential.expiryDate ? "facts-four" : "facts-three"}>
+          <div className="min-w-0 bg-[var(--paper-pure)] p-5">
+            <dt className="mono-label muted">Issuer</dt>
+            <dd className="public-body mt-2">{credential.issuer}</dd>
+          </div>
+          <div className="bg-[var(--paper-pure)] p-5">
+            <dt className="mono-label muted">Issued</dt>
+            <dd className="public-body mt-2"><time dateTime={credential.issueDate}>{date(credential.issueDate)}</time></dd>
+          </div>
+          {credential.expiryDate ? (
+            <div className="bg-[var(--paper-pure)] p-5">
+              <dt className="mono-label muted">Expires</dt>
+              <dd className="public-body mt-2"><time dateTime={credential.expiryDate}>{date(credential.expiryDate)}</time></dd>
+            </div>
+          ) : null}
+          <div className="bg-[var(--paper-pure)] p-5">
+            <dt className="mono-label muted">Evidence</dt>
+            <dd className="public-body mt-2">{evidenceLabel}</dd>
+          </div>
+        </dl>
       </header>
 
-      <div className="grid gap-8 border-t border-[var(--line)] py-10 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div>
-          {evidenceIsImage && credential.evidence ? (
-            <img
-              src={evidenceUrl}
-              alt={credential.evidence.alt ?? ""}
-              width={credential.evidence.width}
-              height={credential.evidence.height}
-              className="h-auto w-full border border-[var(--line)] object-contain"
-            />
-          ) : evidenceUrl ? (
-            <a className="button-secondary" href={evidenceUrl} target="_blank" rel="noreferrer">
-              View published evidence<span className="sr-only"> (opens in a new tab)</span>
+      <section aria-labelledby="credential-evidence-heading" className="border-t border-[var(--line)] py-10 md:py-14" data-reveal="evidence">
+        <div className="section-heading">
+          <h2 id="credential-evidence-heading" className="public-card-title">Credential evidence</h2>
+          {evidenceUrl ? (
+            <a className="hero-link" href={evidenceUrl} target="_blank" rel="noreferrer">
+              Open original <Icon name="arrow" /><span className="sr-only"> evidence (opens in a new tab)</span>
             </a>
-          ) : (
-            <p className="ink-soft">Verification evidence is kept private.</p>
-          )}
+          ) : null}
         </div>
 
-        <dl className="module space-y-6 p-6">
-          <div><dt className="mono-label muted">Issued</dt><dd className="mt-2">{date(credential.issueDate)}</dd></div>
-          {credential.expiryDate ? <div><dt className="mono-label muted">Expires</dt><dd className="mt-2">{date(credential.expiryDate)}</dd></div> : null}
-          {credential.skills.length ? <div><dt className="mono-label muted">Skills</dt><dd className="mt-2">{credential.skills.join(", ")}</dd></div> : null}
-          {relatedProject ? <div><dt className="mono-label muted">Related project</dt><dd className="mt-2"><Link className="text-link" href={`/work/${relatedProject.slug}`}>{relatedProject.title}</Link></dd></div> : null}
-          {credential.verificationUrl ? <div><a className="button-secondary w-full" href={credential.verificationUrl} target="_blank" rel="noreferrer">Verify with issuer<span className="sr-only"> (opens in a new tab)</span></a></div> : null}
-        </dl>
-      </div>
+        <div className="module mt-6 overflow-hidden">
+          {evidenceIsImage && credential.evidence && evidenceUrl ? (
+            <div className="flex min-h-80 items-center justify-center bg-[var(--paper-soft)] p-4 sm:p-8">
+              <img
+                src={evidenceUrl}
+                alt={credential.evidence.alt ?? ""}
+                width={credential.evidence.width ?? undefined}
+                height={credential.evidence.height ?? undefined}
+                className="h-auto max-h-[760px] w-full object-contain"
+              />
+            </div>
+          ) : embeddedEvidenceUrl ? (
+            <object
+              aria-label={`${credential.name} evidence document`}
+              className="block h-[300px] w-full bg-[var(--paper-soft)] sm:h-[68vh] sm:min-h-[520px] sm:max-h-[760px]"
+              data={embeddedEvidenceUrl}
+              type="application/pdf"
+            >
+              <div className="p-8 sm:p-12">
+                <p className="public-body">This browser could not display the evidence document inline.</p>
+                <a className="button-secondary mt-6" href={evidenceUrl ?? undefined} target="_blank" rel="noreferrer">
+                  Open evidence document<span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </div>
+            </object>
+          ) : evidenceUrl ? (
+            <div className="p-8 sm:p-12">
+              <p className="public-body">This file type needs to be opened in its original viewer.</p>
+              <a className="button-secondary mt-6" href={evidenceUrl} target="_blank" rel="noreferrer">
+                Open evidence document<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            </div>
+          ) : (
+            <p className="public-body p-8 sm:p-12">Evidence is not publicly displayed.</p>
+          )}
+        </div>
+      </section>
+
+      {credential.skills.length || relatedProject ? (
+        <section aria-labelledby="credential-record-heading" className="grid gap-8 border-t border-[var(--line)] py-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-14" data-phone-layout="credential-record" data-reveal="record">
+          <div>
+            <h2 id="credential-record-heading" className="public-card-title">Credential record</h2>
+            <p className="public-body mt-3">Published skills and project connections attached to this record.</p>
+          </div>
+
+          <div className={`grid gap-8 ${relatedProject && credential.skills.length ? "sm:grid-cols-2" : ""}`} data-phone-layout={relatedProject && credential.skills.length ? "card-grid" : undefined}>
+            {credential.skills.length ? (
+              <div>
+                <h3 className="mono-label muted">Skills demonstrated</h3>
+                <ul className="mt-4 flex flex-wrap gap-2">
+                  {credential.skills.map((skill) => <li className="mono-meta surface-soft px-3 py-2" key={skill}>{skill}</li>)}
+                </ul>
+              </div>
+            ) : null}
+            {relatedProject ? (
+              <div className="border-t border-[var(--line)] pt-6 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
+                <h3 className="mono-label muted">Related project</h3>
+                <Link className="hero-link mt-3" href={`/work/${relatedProject.slug}`}>{relatedProject.title} <Icon name="arrow" /></Link>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {credential.verificationUrl ? (
+        <footer className="flex justify-end border-t border-[var(--line)] py-10" data-reveal="actions">
+          <a
+            className="button-primary text-center"
+            href={credential.verificationUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Verify credential<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </footer>
+      ) : null}
     </article>
   );
 }

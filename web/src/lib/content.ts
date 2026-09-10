@@ -1,27 +1,27 @@
 export const profile = {
   name: "ARTKIN CARREON",
-  role: "AI Automation Specialist",
+  role: "AI Automation & GoHighLevel Specialist",
   positioning:
-    "I help small businesses reduce repetitive work and operational friction through reliable workflow automation and AI-assisted systems.",
+    "I help small businesses organize leads, automate follow-up, and connect daily operations through GoHighLevel and AI-powered workflows.",
   shortPositioning:
-    "I design AI-powered workflows, automation systems, and practical digital tools that turn repetitive processes into reliable operations.",
+    "I build GoHighLevel workflows and AI automation that organize leads, automate follow-up, and connect the tools behind daily operations.",
 };
 
 export const capabilities = [
   {
     code: "CAP_01",
-    title: "Workflow architecture",
-    description: "Map the real process, identify failure points, and design a maintainable automation before choosing tools.",
+    title: "GoHighLevel systems",
+    description: "Configure CRM pipelines, forms, calendars, and workflows around a clear customer process.",
   },
   {
     code: "CAP_02",
-    title: "Systems integration",
-    description: "Connect APIs, business tools, data, and human review steps into one traceable operating flow.",
+    title: "AI workflow automation",
+    description: "Use AI for retrieval, triage, and drafting while keeping important actions under human review.",
   },
   {
     code: "CAP_03",
-    title: "AI-assisted operations",
-    description: "Add classification, summarization, drafting, and decision support where AI creates measurable operational value.",
+    title: "API and data integration",
+    description: "Connect GoHighLevel, n8n, webhooks, and business tools so information moves without duplicate work.",
   },
 ];
 

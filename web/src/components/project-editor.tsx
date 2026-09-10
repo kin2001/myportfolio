@@ -150,7 +150,9 @@ export function NewProjectButton() {
   return (
     <div className="flex flex-col items-start gap-2 md:items-end">
       <button
+        aria-busy={pending}
         className="button-primary"
+        data-operation-state={pending ? "working" : undefined}
         disabled={pending}
         type="button"
         onClick={() => {
@@ -165,6 +167,7 @@ export function NewProjectButton() {
         });
         }}
       >
+        {pending ? <span className="loading-ring" aria-hidden="true" /> : null}
         {pending ? "Opening editor…" : "New project"}
       </button>
       {error ? (
@@ -1014,6 +1017,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
             <h2 className="mono-label">Archive</h2>
             <p className="mono-meta muted mt-3">Archived projects are retained and removed from public listings after deployment.</p>
             <button
+              aria-busy={activeAction === "archive"}
               className="button-secondary mt-5 w-full"
               disabled={pending || dirty || initial.lifecycleState === "archived"}
               type="button"
@@ -1039,6 +1043,7 @@ export function ProjectEditor({ initial }: { initial: EditorProject }) {
                 });
               }}
             >
+              {activeAction === "archive" ? <span className="loading-ring text-[var(--accent)]" aria-hidden="true" /> : null}
               {activeAction === "archive" ? "Archiving project…" : "Archive project"}
             </button>
           </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { useTheme } from "@/components/theme-controls";
 
 type FormStatus = "idle" | "sending" | "success" | "error";
 type TurnstileApi = {
@@ -11,7 +12,7 @@ type TurnstileApi = {
     action: string;
     appearance: "always";
     size: "flexible";
-    theme: "light";
+    theme: "light" | "dark";
     callback: (token: string) => void;
     "expired-callback": () => void;
     "timeout-callback": () => void;
@@ -35,6 +36,7 @@ const initialTurnstileMessage = !turnstileSiteKey
     : "Loading security check...";
 
 export function ContactForm() {
+  const theme = useTheme();
   const [status, setStatus] = useState<FormStatus>("idle");
   const [message, setMessage] = useState("");
   const [scriptReady, setScriptReady] = useState(false);
@@ -47,12 +49,15 @@ export function ContactForm() {
 
   useEffect(() => {
     if (!scriptReady || !turnstileSiteKey || !turnstileContainer.current || !window.turnstile || widgetId.current) return;
+    const turnstile = window.turnstile;
+    setTurnstileToken("");
+    setTurnstileError(false);
     const id = window.turnstile.render(turnstileContainer.current, {
       sitekey: turnstileSiteKey,
       action: "contact_inquiry",
       appearance: "always",
       size: "flexible",
-      theme: "light",
+      theme,
       callback: (token) => {
         setTurnstileToken(token);
         setTurnstileError(false);
@@ -81,13 +86,11 @@ export function ContactForm() {
     });
     widgetId.current = id;
     setTurnstileMessage("Complete the security check.");
-  }, [scriptReady]);
-
-  useEffect(() => () => {
-    if (!widgetId.current) return;
-    window.turnstile?.remove(widgetId.current);
-    widgetId.current = null;
-  }, []);
+    return () => {
+      turnstile.remove(id);
+      if (widgetId.current === id) widgetId.current = null;
+    };
+  }, [scriptReady, theme]);
 
   function resetTurnstile() {
     setTurnstileToken("");
@@ -153,8 +156,8 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={submit} className="module p-7 md:p-10" noValidate>
-      <div className="grid gap-8 md:grid-cols-2">
+    <form onSubmit={submit} className="module p-7 md:p-10" data-phone-compact="contact-form" noValidate>
+      <div className="grid gap-8 md:grid-cols-2" data-phone-layout="form-grid">
         <label className="block"><span className="mono-label">Name *</span><input className="field mt-2" name="name" autoComplete="name" required /></label>
         <label className="block"><span className="mono-label">Email *</span><input className="field mt-2" name="email" type="email" autoComplete="email" required /></label>
         <label className="block"><span className="mono-label">Company</span><input className="field mt-2" name="company" autoComplete="organization" /></label>
@@ -176,7 +179,7 @@ export function ContactForm() {
       <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 pl-3">
         <input id="inquiry-consent" className="mt-1 h-5 w-5 accent-[var(--accent)]" type="checkbox" name="consent" required />
         <div className="min-w-0">
-          <p className="text-sm leading-6 ink-soft"><label htmlFor="inquiry-consent">I agree to the </label><Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link><label htmlFor="inquiry-consent">.</label></p>
+          <p className="public-body"><label htmlFor="inquiry-consent">I agree to the </label><Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link><label htmlFor="inquiry-consent">.</label></p>
         </div>
       </div>
       <div className="mt-8 flex flex-wrap items-center gap-5">

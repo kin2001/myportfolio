@@ -51,6 +51,33 @@ function publicClient() {
     : null;
 }
 
+function projectExcerpt(
+  document: PublishedProject["document"],
+  fallback: string,
+) {
+  const source = document.find(
+    (block) => block.type === "text" && block.body.trim(),
+  );
+  const plainText = (source?.type === "text" ? source.body : fallback)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[#*_`>\[\]()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (plainText.length <= 180) return plainText;
+
+  const preview = plainText.slice(0, 220);
+  const sentenceEnds = [...preview.matchAll(/[.!?](?=\s|$)/g)];
+  const sentenceEnd = sentenceEnds.at(-1)?.index;
+  if (sentenceEnd !== undefined && sentenceEnd >= 80) {
+    return plainText.slice(0, sentenceEnd + 1);
+  }
+
+  const clipped = plainText.slice(0, 181);
+  const wordEnd = clipped.lastIndexOf(" ");
+  return `${plainText.slice(0, wordEnd >= 100 ? wordEnd : 180).trimEnd()}…`;
+}
+
 export function publicAssetUrl(objectKey: string) {
   return supabasePublicAssetUrl(objectKey);
 }
@@ -89,7 +116,7 @@ export async function getPublishedProjects(): Promise<PublishedProject[]> {
           id: publication.project_id,
           slug: publication.slug,
           title: publication.title,
-          excerpt: publication.excerpt,
+          excerpt: projectExcerpt(publication.document, publication.excerpt),
           document: publication.document,
           cover: publication.cover,
           links: publication.links,

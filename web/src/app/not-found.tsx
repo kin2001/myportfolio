@@ -1,5 +1,5 @@
-import Link from "next/link";
+import { BackButton } from "@/components/back-button";
 
 export default function NotFound() {
-  return <main className="content-canvas min-h-screen"><p className="mono-meta accent">ERROR / 404</p><h1 className="mt-8 text-6xl font-semibold">Record not found.</h1><p className="mt-5 ink-soft">The requested page is unavailable or has not been published.</p><Link className="button-primary mt-10" href="/">Return home</Link></main>;
+  return <main data-public-error className="content-canvas min-h-screen"><BackButton /><p className="mono-meta accent">ERROR / 404</p><h1 className="public-display mt-8">Record not found.</h1><p className="public-body mt-5">The requested page is unavailable or has not been published.</p></main>;
 }

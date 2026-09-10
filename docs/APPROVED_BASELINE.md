@@ -1,11 +1,11 @@
 # Approved visual and motion baseline
 
-- Commit: `f2e0c932bbe1cdb3afe9fdba7a0223ecf522489b`
-- Label: `Integrate Cloudflare Turnstile widget`
-- Approved: 2026-07-15
-- Reason: Add the responsive Contact security-check module, explicit Turnstile
-  lifecycle, accessible failure states, and fail-closed production configuration
-  while preserving the approved visual system and mobile behavior.
+- Commit: `83111b866d3f46f867c57587b7150310b5957391`
+- Label: `Portfolio baseline`
+- Approved: 2026-07-30
+- Reason: Record the current approved frontend, including its responsive
+  navigation, portfolio pages, portrait treatments, and Contact security-check
+  layout, before the next round of fixes and content work.
 
 Agents compare visual and interaction changes with this commit, `DESIGN.md`, and
 `docs/DESIGN_SYSTEM.md`.

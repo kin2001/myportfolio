@@ -54,13 +54,13 @@ function TrafficLoading() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="mono-label">Traffic</h2>
-          <p className="mono-meta muted mt-2" role="status">
-            <span className="sr-only">Loading traffic data.</span>
-            <span aria-hidden="true">Fetching recent metrics…</span>
+          <p className="mono-meta muted mt-2 inline-flex items-center gap-2" role="status">
+            <span className="loading-ring" aria-hidden="true" />
+            Fetching recent metrics…
           </p>
         </div>
       </div>
-      <div aria-hidden="true" className="mt-5 grid gap-px border border-[var(--line)] bg-[var(--line)] sm:grid-cols-2 lg:grid-cols-4 motion-safe:animate-pulse">
+      <div aria-hidden="true" className="mt-5 grid gap-px border border-[var(--line)] bg-[var(--line)] sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
           <div className="surface min-h-28 p-6" key={index}>
             <div className="h-7 w-16 bg-[var(--line)]" />
@@ -68,7 +68,7 @@ function TrafficLoading() {
           </div>
         ))}
       </div>
-      <div aria-hidden="true" className="mt-5 grid gap-5 md:grid-cols-2 motion-safe:animate-pulse">
+      <div aria-hidden="true" className="mt-5 grid gap-5 md:grid-cols-2">
         {Array.from({ length: 2 }, (_, index) => (
           <div className="module min-h-56 p-6" key={index}>
             <div className="h-3 w-36 bg-[var(--line)]" />
@@ -169,11 +169,11 @@ function MonitoringRowsLoading() {
   return (
     <div>
       <span className="sr-only" role="status">Loading monitoring signals.</span>
-      <div aria-hidden="true" className="motion-safe:animate-pulse">
-        {["Runtime/server errors", "Browser errors", "Production deploy", "Production smoke"].map((label) => (
+      <div aria-hidden="true">
+        {["Runtime/server errors", "Browser errors", "Production deploy", "Production smoke", "Monitor / Home", "Monitor / Contact", "Monitor / Health"].map((label) => (
           <div className="grid gap-2 border-t border-[var(--line)] p-5 md:grid-cols-[180px_130px_1fr]" key={label}>
             <strong>{label}</strong>
-            <span className="mono-label muted">LOADING</span>
+            <span className="mono-label muted inline-flex items-center gap-2"><span className="loading-ring" />LOADING</span>
             <span className="h-4 w-56 max-w-full bg-[var(--line)]" />
           </div>
         ))}

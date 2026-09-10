@@ -1,0 +1,148 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
+
+// Keep these Node-only checks outside Playwright's test directory.
+const { outputText } = ts.transpileModule(
+  readFileSync(new URL("../src/components/scroll-reveal.tsx", import.meta.url), "utf8"),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+);
+
+function setup({ pathname = "/", reducedMotion = false, supported = true } = {}) {
+  class Element {
+    dataset = {};
+    constructor(top, bottom) { this.bounds = { top, bottom }; }
+    getBoundingClientRect() { return this.bounds; }
+    contains(target) { return target === this; }
+    closest() { return this; }
+    querySelector() { return null; }
+    querySelectorAll() { return []; }
+  }
+  const visible = new Element(0, 500);
+  const offscreen = new Element(1_200, 1_600);
+  const elements = [visible, offscreen];
+  const listeners = new Map();
+  const document = {
+    activeElement: null,
+    querySelectorAll: () => elements,
+    addEventListener: (name, handler) => listeners.set(name, handler),
+    removeEventListener: (name) => listeners.delete(name),
+  };
+  const preference = {
+    matches: reducedMotion,
+    addEventListener: (name, handler) => listeners.set(name, handler),
+    removeEventListener: (name) => listeners.delete(name),
+  };
+  let observer;
+  class IntersectionObserver {
+    observed = new Set();
+    constructor(callback, options) {
+      this.callback = callback;
+      this.options = options;
+      observer = this;
+    }
+    observe(element) { this.observed.add(element); }
+    unobserve(element) { this.observed.delete(element); }
+    disconnect() { this.observed.clear(); }
+    enter(element, isIntersecting) {
+      if (this.observed.has(element)) this.callback([{ target: element, isIntersecting }]);
+    }
+  }
+  let cleanup;
+  const exports = {};
+  runInNewContext(outputText, {
+    exports, document, Element, IntersectionObserver,
+    window: {
+      innerHeight: 900,
+      matchMedia: () => preference,
+      ...(supported ? { IntersectionObserver } : {}),
+    },
+    require: (name) => {
+      if (name === "motion") {
+        return {
+          animate: () => ({ stop() {} }),
+          stagger: () => 0,
+        };
+      }
+      if (name === "next/navigation") return { usePathname: () => pathname };
+      if (name === "react") return { useEffect: (effect) => { cleanup = effect(); } };
+      throw new Error(`Unexpected import: ${name}`);
+    },
+  });
+  exports.ScrollReveal();
+  return { visible, offscreen, observer, document, listeners, preference, cleanup };
+}
+
+test("Home observes visible and offscreen groups and replays each re-entry", () => {
+  const { visible, offscreen, observer } = setup();
+  assert.equal(visible.dataset.revealState, "revealed");
+  assert.equal(offscreen.dataset.revealState, "waiting");
+  assert.equal(observer.options.rootMargin, "0px");
+  assert.equal(observer.observed.size, 2);
+  for (let i = 0; i < 3; i++) {
+    observer.enter(offscreen, true);
+    assert.equal(offscreen.dataset.revealState, "revealed");
+    observer.enter(offscreen, false);
+    assert.equal(offscreen.dataset.revealState, "waiting");
+  }
+  observer.enter(visible, false);
+  assert.equal(visible.dataset.revealState, "waiting");
+  observer.enter(visible, true);
+  assert.equal(visible.dataset.revealState, "revealed");
+  assert.equal(observer.observed.size, 2);
+});
+
+test("Other public routes replay reveals on each re-entry", () => {
+  const { visible, offscreen, observer } = setup({ pathname: "/work" });
+  assert.equal(observer.options.rootMargin, "0px");
+  assert.equal(observer.observed.has(visible), true);
+  observer.enter(offscreen, true);
+  assert.equal(offscreen.dataset.revealState, "revealed");
+  assert.equal(observer.observed.has(offscreen), true);
+  observer.enter(offscreen, false);
+  assert.equal(offscreen.dataset.revealState, "waiting");
+  observer.enter(offscreen, true);
+  assert.equal(offscreen.dataset.revealState, "revealed");
+});
+
+test("Keyboard focus reveals a group and prevents offscreen hiding", () => {
+  const { offscreen, observer, document, listeners } = setup();
+  document.activeElement = offscreen;
+  listeners.get("focusin")({ target: offscreen });
+  assert.equal(offscreen.dataset.revealState, "revealed");
+  observer.enter(offscreen, false);
+  assert.equal(offscreen.dataset.revealState, "revealed");
+});
+
+test("Reduced motion exposes all groups without an observer", () => {
+  const { visible, offscreen, observer } = setup({ reducedMotion: true });
+  assert.equal(visible.dataset.revealState, "revealed");
+  assert.equal(offscreen.dataset.revealState, "revealed");
+  assert.equal(observer, undefined);
+});
+
+test("Changing to reduced motion keeps groups visible after viewport exits", () => {
+  const { visible, offscreen, observer, preference, listeners } = setup();
+  preference.matches = true;
+  listeners.get("change")({ matches: true });
+  observer.enter(visible, false);
+  observer.enter(offscreen, false);
+  assert.equal(visible.dataset.revealState, "revealed");
+  assert.equal(offscreen.dataset.revealState, "revealed");
+});
+
+test("Browsers without IntersectionObserver keep all content visible", () => {
+  const { visible, offscreen, observer } = setup({ supported: false });
+  assert.equal(visible.dataset.revealState, "revealed");
+  assert.equal(offscreen.dataset.revealState, "revealed");
+  assert.equal(observer, undefined);
+});
+
+test("Route cleanup removes the observer and event listeners", () => {
+  const { observer, listeners, cleanup } = setup();
+  cleanup();
+  assert.equal(observer.observed.size, 0);
+  assert.equal(listeners.size, 0);
+});

@@ -4,82 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { ThemeControls } from "@/components/theme-controls";
 
 const navigation = [
-  ["01", "Projects", "/#projects", "work"],
-  ["02", "Systems", "/#systems", "systems"],
-  ["03", "AI Signal", "/#signal", "signal"],
-  ["04", "Credentials", "/credentials", "credentials"],
-  ["05", "About", "/about", "about"],
-  ["06", "Contact", "/contact", "contact"],
+  ["01", "Projects", "/work", "work"],
+  ["02", "Credentials", "/credentials", "credentials"],
+  ["03", "About", "/about", "about"],
+  ["04", "Contact", "/contact", "contact"],
 ] as const;
-
-const homeSections = ["projects", "systems", "signal", "credentials", "contact"] as const;
 
 function NavLinks({ close }: { close?: () => void }) {
   const pathname = usePathname();
-  const [hash, setHash] = useState("");
-  const targetHash = useRef("");
-
-  useEffect(() => {
-    if (pathname !== "/") return setHash("");
-
-    const syncSection = () => {
-      const target = document.getElementById(targetHash.current.slice(1));
-      if (target && Math.abs(target.getBoundingClientRect().top) > window.innerHeight * 0.1) return;
-      targetHash.current = "";
-
-      let current = "";
-      for (const id of homeSections) {
-        const element = document.getElementById(id);
-        if (element && element.getBoundingClientRect().top <= window.innerHeight * 0.1) current = `#${id}`;
-      }
-      setHash(current);
-    };
-    const syncHash = () => {
-      targetHash.current = homeSections.some((id) => `#${id}` === window.location.hash) ? window.location.hash : "";
-      setHash(targetHash.current);
-    };
-    const finishScroll = () => {
-      targetHash.current = "";
-      syncSection();
-    };
-
-    syncHash();
-    const frame = requestAnimationFrame(syncHash);
-    const observer = new IntersectionObserver(syncSection, { rootMargin: "0px 0px -90%" });
-    for (const id of homeSections) {
-      const element = document.getElementById(id);
-      if (element) observer.observe(element);
-    }
-    window.addEventListener("hashchange", syncHash);
-    window.addEventListener("scrollend", finishScroll);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      window.removeEventListener("hashchange", syncHash);
-      window.removeEventListener("scrollend", finishScroll);
-    };
-  }, [pathname]);
 
   return (
     <nav aria-label="Primary navigation" className="flex flex-col gap-1">
       {navigation.map(([index, label, href, icon]) => {
-        const section = href.startsWith("/#") ? href.slice(2) : href.slice(1);
-        const active = pathname === "/"
-          ? hash === `#${section}`
-          : href === "/#projects" ? pathname.startsWith("/work") : pathname === href;
+        const active = href === "/work"
+          ? pathname.startsWith("/work")
+          : href === "/credentials"
+            ? pathname.startsWith("/credentials")
+            : pathname === href;
         return (
           <Link
             key={href}
             href={href}
-            onClick={() => {
-              if (href.startsWith("/#")) {
-                targetHash.current = href.slice(1);
-                setHash(targetHash.current);
-              }
-              close?.();
-            }}
+            onClick={close}
             aria-current={active ? "page" : undefined}
             className={`flex min-h-11 items-center gap-3 border-r-2 px-2 py-3 transition-colors ${active ? "border-[var(--accent)] font-bold text-[var(--accent)]" : "border-transparent font-medium text-[var(--ink-soft)] hover:text-[var(--accent)]"}`}
           >
@@ -115,9 +64,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     <>
       <a href="#main-content" className="skip-link">Skip to content</a>
       <header className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-4 backdrop-blur sm:px-5 lg:hidden">
-        <Link href="/" className="font-[family-name:var(--font-geist-mono)] text-lg font-semibold tracking-normal">Artkin Carreon</Link>
-        <div className="flex items-center gap-4 text-[var(--accent)]">
-          <Icon name="systems" className="h-5 w-5" />
+        <Link href="/" className="flex min-h-11 items-center font-[family-name:var(--font-geist-mono)] text-lg font-semibold tracking-normal">Artkin Carreon</Link>
+        <div className="flex items-center gap-2 text-[var(--accent)] sm:gap-4">
+          <ThemeControls />
           <button ref={menuButton} onClick={() => setOpen(!open)} className="flex h-11 w-11 items-center justify-center border border-[var(--line)]" aria-label={open ? "Close navigation" : "Open navigation"} aria-controls="site-mobile-navigation" aria-expanded={open}>
             <Icon name={open ? "close" : "menu"} className="h-5 w-5" />
           </button>
@@ -125,29 +74,27 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         {open ? (
           <div id="site-mobile-navigation" className="surface absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[var(--line)] p-5 shadow-none">
             <NavLinks close={closeMenu} />
+            <a className="button-primary mt-5 w-full" href="/resume.pdf" download="Artkin-Carreon-CV.pdf" onClick={closeMenu}>Download CV</a>
           </div>
         ) : null}
       </header>
 
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
-        <div className="space-y-12">
-          <Link href="/" className="block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between gap-8 overflow-y-auto border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
+        <div className="shrink-0 space-y-12">
+          <Link href="/" className="inline-flex min-h-11 items-center">
             <div className="whitespace-nowrap font-[family-name:var(--font-geist-mono)] text-lg font-semibold leading-none tracking-normal">Artkin Carreon</div>
           </Link>
           <NavLinks />
         </div>
-        <div className="space-y-8">
-          <a className="button-primary sidebar-download w-full" href="/resume.pdf">Download CV</a>
-          <div className="space-y-4">
-            <div className="mono-meta muted flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-              SYSTEM READY
+        <div className="shrink-0 space-y-8">
+          <a className="button-primary w-full" href="/resume.pdf" download="Artkin-Carreon-CV.pdf">Download CV</a>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-1 text-[var(--ink-soft)]">
+              <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/contact" aria-label="Contact"><Icon name="link" className="h-[18px] w-[18px]" /></Link>
+              <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/work" aria-label="Project terminal"><Icon name="terminal" className="h-[18px] w-[18px]" /></Link>
+              <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/about" aria-label="About Artkin"><Icon name="share" className="h-[18px] w-[18px]" /></Link>
             </div>
-            <div className="flex gap-4 text-[var(--ink-soft)]">
-              <Link href="/contact" aria-label="Contact"><Icon name="link" className="h-[18px] w-[18px]" /></Link>
-              <Link href="/work" aria-label="Project terminal"><Icon name="terminal" className="h-[18px] w-[18px]" /></Link>
-              <Link href="/about" aria-label="About Artkin"><Icon name="share" className="h-[18px] w-[18px]" /></Link>
-            </div>
+            <ThemeControls />
           </div>
         </div>
       </aside>

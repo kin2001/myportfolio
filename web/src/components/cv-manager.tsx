@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import type { MutationResult } from "@/lib/portfolio-types";
 import {
   uploadSignedAsset,
@@ -17,6 +18,9 @@ export type CvVersion = {
 };
 
 type AssetUpload = SignedAssetUpload;
+type UploadPhase = "idle" | "preparing" | "uploading" | "validating" | "ready" | "error";
+
+const uploadSteps = ["Preparing", "Uploading", "Checking"] as const;
 
 function date(value: string) {
   return new Intl.DateTimeFormat("en-PH", {
@@ -26,8 +30,24 @@ function date(value: string) {
   }).format(new Date(value));
 }
 
-async function uploadPdf(file: File): Promise<string> {
+function fileSize(bytes: number) {
+  return `${(bytes / 1024 / 1024).toFixed(bytes >= 1024 * 1024 ? 1 : 2)} MB`;
+}
+
+function currentUploadStep(phase: UploadPhase) {
+  if (phase === "preparing") return 0;
+  if (phase === "uploading") return 1;
+  if (phase === "validating") return 2;
+  if (phase === "ready") return uploadSteps.length;
+  return -1;
+}
+
+async function uploadPdf(
+  file: File,
+  setPhase: (phase: UploadPhase) => void,
+): Promise<string> {
   const mimeType = file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "");
+  setPhase("preparing");
   const initiate = await fetch("/api/admin/assets/initiate", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -44,8 +64,10 @@ async function uploadPdf(file: File): Promise<string> {
   }
   const upload = initiated.data;
 
+  setPhase("uploading");
   await uploadSignedAsset(upload, file);
 
+  setPhase("validating");
   const finalize = await fetch("/api/admin/assets/finalize", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -74,60 +96,104 @@ export function CvManager({
   }) => Promise<MutationResult<{ id: string }>>;
   setCurrent: (versionId: string) => Promise<MutationResult>;
 }) {
+  const router = useRouter();
   const [message, setMessage] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [messageIsError, setMessageIsError] = useState(false);
+  const [activeAction, setActiveAction] = useState<"upload" | string | null>(null);
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
+  const [uploadFile, setUploadFile] = useState<{ name: string; size: number } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const uploading = activeAction === "upload";
 
-  function submitUpload(formData: FormData) {
+  async function submitUpload(formData: FormData) {
     const file = formData.get("cv");
     if (!(file instanceof File) || file.size === 0) {
       setMessage("Choose a PDF to upload.");
+      setMessageIsError(true);
       return;
     }
     if ((file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) || file.size > 10 * 1024 * 1024) {
       setMessage("Use a PDF no larger than 10 MB.");
+      setMessageIsError(true);
       return;
     }
 
-    setMessage("Uploading and validating PDF…");
-    startTransition(async () => {
-      try {
-        const assetId = await uploadPdf(file);
-        const result = await registerVersion({
-          assetId,
-          filename: file.name,
-          sizeBytes: file.size,
-          note: String(formData.get("note") ?? "").trim(),
-        });
-        setMessage(result.ok ? "CV version uploaded." : result.error.message);
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "CV upload failed.");
-      }
-    });
+    setUploadFile({ name: file.name, size: file.size });
+    setMessage("");
+    setMessageIsError(false);
+    setActiveAction("upload");
+    try {
+      const assetId = await uploadPdf(file, setUploadPhase);
+      const result = await registerVersion({
+        assetId,
+        filename: file.name,
+        sizeBytes: file.size,
+        note: String(formData.get("note") ?? "").trim(),
+      });
+      if (!result.ok) throw new Error(result.error.message);
+      setUploadPhase("ready");
+      setMessage("CV version uploaded and ready in the private registry.");
+      formRef.current?.reset();
+      router.refresh();
+    } catch (error) {
+      setUploadPhase("error");
+      setMessage(error instanceof Error ? error.message : "CV upload failed.");
+      setMessageIsError(true);
+    } finally {
+      setActiveAction(null);
+    }
   }
 
-  function makeCurrent(versionId: string) {
-    setMessage("Updating the public CV…");
-    startTransition(async () => {
+  async function makeCurrent(versionId: string) {
+    if (activeAction) return;
+    setActiveAction(versionId);
+    setMessage("");
+    setMessageIsError(false);
+    try {
       const result = await setCurrent(versionId);
       setMessage(result.ok ? "Current CV updated." : result.error.message);
-    });
+      setMessageIsError(!result.ok);
+      if (result.ok) router.refresh();
+    } catch {
+      setMessage("The current CV could not be updated. Check your connection and try again.");
+      setMessageIsError(true);
+    } finally {
+      setActiveAction(null);
+    }
   }
 
   return (
     <div className="space-y-8">
-      <form action={submitUpload} className="module grid gap-6 p-6 md:grid-cols-[1fr_1fr_auto] md:items-end">
+      <form ref={formRef} action={submitUpload} aria-busy={uploading} className="module grid gap-6 p-6 md:grid-cols-[1fr_1fr_auto] md:items-end">
         <label>
           <span className="mono-label muted">PDF file</span>
-          <input className="field mt-2" name="cv" type="file" accept="application/pdf,.pdf" required disabled={pending} />
+          <input className="field mt-2" name="cv" type="file" accept="application/pdf,.pdf" required disabled={Boolean(activeAction)} />
         </label>
         <label>
           <span className="mono-label muted">Version note (optional)</span>
-          <input className="field mt-2" name="note" maxLength={240} placeholder="What changed?" disabled={pending} />
+          <input className="field mt-2" name="note" maxLength={240} placeholder="What changed?" disabled={Boolean(activeAction)} />
         </label>
-        <button className="button-primary" type="submit" disabled={pending}>Upload CV</button>
+        <button className="button-primary" data-operation-state={uploading ? "working" : undefined} type="submit" disabled={Boolean(activeAction)}>
+          {uploading ? <span className="loading-ring" aria-hidden="true" /> : null}
+          {uploading ? "Uploading CV…" : "Upload CV"}
+        </button>
+        {uploadFile && uploadPhase !== "idle" ? (
+          <div className="border-t border-[var(--line)] pt-5 md:col-span-3">
+            <div className="flex items-start justify-between gap-4"><span className="min-w-0 truncate text-sm font-medium">{uploadFile.name}</span><span className="mono-meta muted shrink-0">{fileSize(uploadFile.size)}</span></div>
+            <ol aria-label="CV upload progress" className="mt-5 grid grid-cols-3 gap-3">
+              {uploadSteps.map((step, index) => {
+                const progress = currentUploadStep(uploadPhase);
+                const complete = progress > index;
+                const current = progress === index;
+                return <li aria-current={current ? "step" : undefined} key={step}><span aria-hidden="true" className={`block h-0.5 ${complete || current ? "bg-[var(--accent)]" : "bg-[var(--line)]"}`} /><span className={`mono-meta mt-2 block ${complete || current ? "accent" : "muted"}`}>{step}</span></li>;
+              })}
+            </ol>
+            {uploading ? <div aria-hidden="true" className="mt-4 h-0.5 overflow-hidden bg-[var(--line)]"><span className="operation-progress block h-full w-1/3 bg-[var(--accent)]" /></div> : null}
+          </div>
+        ) : null}
       </form>
 
-      {message ? <p className="mono-meta" role="status">{message}</p> : null}
+      {message ? <p className={`mono-meta ${messageIsError ? "text-[var(--danger)]" : "accent"}`} role={messageIsError ? "alert" : "status"}>{message}</p> : null}
 
       <section aria-labelledby="cv-history-title">
         <div className="section-heading">
@@ -162,10 +228,13 @@ export function CvManager({
                     <button
                       className="button-primary"
                       type="button"
-                      disabled={pending || current}
+                      aria-busy={activeAction === version.id}
+                      data-operation-state={activeAction === version.id ? "working" : undefined}
+                      disabled={Boolean(activeAction) || current}
                       onClick={() => makeCurrent(version.id)}
                     >
-                      {current ? "Current" : "Set current"}
+                      {activeAction === version.id ? <span className="loading-ring" aria-hidden="true" /> : null}
+                      {activeAction === version.id ? "Updating…" : current ? "Current" : "Set current"}
                     </button>
                   </div>
                 </li>

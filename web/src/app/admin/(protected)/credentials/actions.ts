@@ -127,7 +127,10 @@ export async function saveCredential(input: CredentialInput): Promise<MutationRe
   }
 }
 
-export async function publishCredential(id: string, lockVersion: number): Promise<MutationResult> {
+export async function publishCredential(
+  id: string,
+  lockVersion: number,
+): Promise<MutationResult<{ deploymentTriggered: boolean }>> {
   const supabase = await adminClient();
   if (!supabase) return { ok: false, error: { code: "unauthorized", message: "Admin access is required." } };
   try {
@@ -252,15 +255,16 @@ export async function publishCredential(id: string, lockVersion: number): Promis
     }
     revalidatePath("/admin/credentials");
     revalidatePath("/credentials");
-    const deployed = await triggerProductionBuild();
-    if (!deployed.ok) return deployed;
-    return { ok: true, data: undefined };
+    const deployment = await triggerProductionBuild();
+    return { ok: true, data: { deploymentTriggered: deployment.ok } };
   } catch (error) {
     return failure(error);
   }
 }
 
-export async function archiveCredential(id: string): Promise<MutationResult> {
+export async function archiveCredential(
+  id: string,
+): Promise<MutationResult<{ deploymentTriggered: boolean }>> {
   const supabase = await adminClient();
   if (!supabase) return { ok: false, error: { code: "unauthorized", message: "Admin access is required." } };
   try {
@@ -268,8 +272,8 @@ export async function archiveCredential(id: string): Promise<MutationResult> {
     if (error) throw error;
     revalidatePath("/admin/credentials");
     revalidatePath("/credentials");
-    const deployed = await triggerProductionBuild();
-    return deployed.ok ? { ok: true, data: undefined } : deployed;
+    const deployment = await triggerProductionBuild();
+    return { ok: true, data: { deploymentTriggered: deployment.ok } };
   } catch (error) {
     return failure(error);
   }

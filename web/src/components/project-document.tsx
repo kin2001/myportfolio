@@ -6,6 +6,10 @@ export type RenderedProjectAsset = {
   height: number;
 };
 
+export function projectSectionId(blockId: string) {
+  return `project-section-${blockId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 function TextBlock({
   block,
   index,
@@ -20,23 +24,34 @@ function TextBlock({
     ) : block.format === "numbered" ? (
       <ol className="list-decimal space-y-2 pl-5">{lines.map((line, lineIndex) => <li key={lineIndex}>{line}</li>)}</ol>
     ) : block.format === "code" ? (
-      <pre className="overflow-x-auto border border-[var(--line)] bg-[var(--paper-soft)] p-5"><code className="text-sm">{block.body}</code></pre>
+      <pre
+        aria-label={block.heading ? `${block.heading} code` : `Documentation block ${index + 1} code`}
+        className="overflow-x-auto border border-[var(--line)] bg-[var(--paper-soft)] p-5"
+        tabIndex={0}
+      ><code className="text-sm">{block.body}</code></pre>
     ) : (
       <p className="whitespace-pre-line">{block.body}</p>
     );
 
   return (
-    <section className="grid gap-6 border-t border-[var(--line)] py-12 md:grid-cols-[120px_1fr_2fr]">
-      <span className="mono-meta accent">{String(index + 1).padStart(2, "0")}</span>
-      {block.heading ? (
-        <h2 className="text-2xl font-medium">{block.heading}</h2>
-      ) : (
-        <p className="text-2xl font-medium">
-          <span className="sr-only">Documentation block {index + 1}</span>
-          <span aria-hidden="true">Documentation</span>
-        </p>
-      )}
-      <div className="leading-8 ink-soft">{content}</div>
+    <section
+      id={projectSectionId(block.id)}
+      className="grid scroll-mt-24 gap-8 border-t border-[var(--line)] py-10 md:py-14 lg:grid-cols-[minmax(220px,.75fr)_minmax(0,1.75fr)] lg:gap-16"
+      data-phone-layout="document-row"
+      data-reveal="record"
+    >
+      <div className="flex items-start gap-4 lg:block">
+        <span className="mono-meta accent">{String(index + 1).padStart(2, "0")}</span>
+        {block.heading ? (
+          <h2 className="public-card-title lg:mt-4">{block.heading}</h2>
+        ) : (
+          <h2 className="public-card-title lg:mt-4">
+            <span className="sr-only">Documentation block {index + 1}</span>
+            <span aria-hidden="true">Documentation</span>
+          </h2>
+        )}
+      </div>
+      <div className="public-prose min-w-0 max-w-[68ch]">{content}</div>
     </section>
   );
 }
@@ -48,22 +63,34 @@ export function ProjectDocument({
   blocks: ProjectDocumentBlock[];
   assets: Record<string, RenderedProjectAsset>;
 }) {
-  return blocks.map((block, index) => {
+  let textIndex = 0;
+  return blocks.map((block) => {
     if (block.type === "text") {
+      const index = textIndex++;
       return <TextBlock key={block.id} block={block} index={index} />;
     }
     const asset = assets[block.assetId];
     return asset ? (
-      <figure key={block.id} className="border-t border-[var(--line)] py-12">
-        <img
-          src={asset.url}
-          alt={block.alt}
-          width={asset.width}
-          height={asset.height}
-          className="h-auto w-full object-contain"
-          loading="lazy"
-        />
-        {block.caption ? <figcaption className="mono-meta muted mt-4">{block.caption}</figcaption> : null}
+      <figure
+        key={block.id}
+        className="border-t border-[var(--line)] py-10 md:py-14"
+        data-reveal="media"
+      >
+        <div className="module mx-auto max-w-5xl overflow-hidden">
+          <img
+            src={asset.url}
+            alt={block.alt}
+            width={asset.width}
+            height={asset.height}
+            className="mx-auto max-h-[680px] h-auto w-auto max-w-full object-contain"
+            loading="lazy"
+          />
+          {block.caption ? (
+            <figcaption className="mono-meta muted border-t border-[var(--line)] px-5 py-4">
+              {block.caption}
+            </figcaption>
+          ) : null}
+        </div>
       </figure>
     ) : null;
   });

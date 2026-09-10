@@ -1,70 +1,78 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AnimatedHeading } from "@/components/animated-heading";
+import { BackButton } from "@/components/back-button";
 import { SectionHeader } from "@/components/section-header";
 import { getPublishedProjects } from "@/lib/public-content";
 
-const description = "Verified workflow automation and AI systems by Artkin Carreon.";
+const title = "AI Automation Projects and Case Studies";
+const description = "Review published automation case studies by Artkin Carreon, with clear project summaries, implementation details, and available evidence.";
 
 export const metadata: Metadata = {
-  title: "Work",
+  title,
   description,
   alternates: { canonical: "/work" },
   openGraph: {
     type: "website",
-    title: "Work | Artkin Carreon",
+    title,
     description,
     url: "/work",
     images: [{ url: "/artkin-hero.webp", width: 1024, height: 1024, alt: "Artkin Carreon" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Work | Artkin Carreon",
+    title,
     description,
     images: ["/artkin-hero.webp"],
   },
 };
 
-function publicationDate(value: string) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value));
+function monthYear(value: string) {
+  return new Intl.DateTimeFormat("en", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value));
 }
 
 export default async function WorkPage() {
   const published = await getPublishedProjects();
   return (
     <div className="content-canvas">
-      <header className="max-w-3xl py-16 md:py-24">
-        <p className="mono-meta accent">[ WORK_INDEX ]</p>
-        <h1 className="mt-5 text-5xl font-semibold tracking-tight md:text-7xl">Systems, not screenshots.</h1>
-        <p className="mt-6 text-lg leading-8 ink-soft">Each record contains reviewed documentation about the process, implementation, and available evidence.</p>
+      <BackButton />
+      <header className="max-w-3xl pb-12 md:pb-16" data-reveal="page-header">
+        <p className="mono-meta accent">[ AUTOMATION_WORK_INDEX ]</p>
+        <AnimatedHeading className="public-display mt-5" text="Automation systems, documented clearly." />
+        <p className="public-lead mt-6">See how each system was planned, connected, and tested, with the available evidence and tradeoffs documented.</p>
       </header>
-      <SectionHeader index="01" title="Published case studies" meta={published.length.toString().padStart(2, "0") + " PUBLIC RECORDS"} />
+      <SectionHeader
+        index="01"
+        title="Published case studies"
+        meta={`${published.length.toString().padStart(2, "0")} PUBLIC RECORDS`}
+      />
       {published.length ? (
-        <div className="mt-8 space-y-6">
-          {published.map((project, index) => (
-            <article key={project.slug} className="module grid gap-8 p-8 md:grid-cols-[100px_1fr_180px_auto] md:items-start">
-              <span className="mono-meta accent">{String(index + 1).padStart(2, "0")}</span>
-              <div className="min-w-0 break-words"><h3 className="text-2xl font-medium">{project.title}</h3><p className="mt-3 leading-7 ink-soft">{project.excerpt}</p></div>
-              <div><span className="mono-label muted">Published</span><time className="mt-3 block text-sm leading-6" dateTime={project.publishedAt}>{publicationDate(project.publishedAt)}</time></div>
-              <Link href={"/work/" + project.slug} className="button-secondary max-w-full break-words text-center" aria-label={`Open ${project.title}`}>Open record</Link>
+        <div className="mt-8 grid grid-cols-2 gap-3" data-phone-layout="project-grid" data-project-index-grid>
+          {published.map((project) => (
+            <article className="min-w-0" key={project.slug} data-reveal="record">
+              <Link
+                href={"/work/" + project.slug}
+                className="project-card-surface module public-record-link flex h-full min-h-[196px] min-w-0 flex-col rounded-[16px] p-4 sm:min-h-[216px] sm:p-6"
+                data-project-index-card
+                aria-label={project.title}
+              >
+                <h3 className="public-card-title break-words">{project.title}</h3>
+                <p className="public-body mt-3 line-clamp-4 break-words">{project.excerpt}</p>
+                <p className="public-body muted mt-auto pt-6">
+                  <time dateTime={project.publishedAt}>{monthYear(project.publishedAt)}</time>
+                </p>
+              </Link>
             </article>
           ))}
         </div>
       ) : (
-        <div className="module mt-8 p-8 md:p-12">
-          <p className="mono-meta accent">PUBLICATION_STATUS / HOLD</p>
-          <h2 className="mt-6 text-3xl font-medium">No unverified claims.</h2>
-          <p className="mt-4 max-w-2xl leading-7 ink-soft">Published project documentation will appear here after review. Draft records remain private.</p>
+        <div className="module mt-8 p-8 md:p-12" data-reveal>
+          <p className="mono-meta accent">CASE_STUDY_INDEX / 000</p>
+          <h2 className="public-section-title mt-6">Case studies are being prepared.</h2>
+          <p className="public-body mt-4 max-w-2xl">Reviewed project stories will appear here as they become available. You can still get in touch to discuss a workflow.</p>
           <Link href="/contact" className="button-primary mt-8">Discuss a workflow</Link>
         </div>
       )}
-      <section className="section-space">
-        <SectionHeader index="02" title="Documentation can include" />
-        <div className="mt-8 grid gap-px border border-[var(--line)] bg-[var(--line)] md:grid-cols-2">
-          {["Process context and goals", "Workflow and implementation", "Images and architecture", "Results and reflection"].map((item, index) => (
-            <div key={item} className="surface p-8"><span className="mono-meta accent">0{index + 1}</span><h3 className="mt-6 text-xl font-medium">{item}</h3></div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

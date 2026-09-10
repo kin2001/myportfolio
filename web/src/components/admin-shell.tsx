@@ -20,10 +20,10 @@ function NavigationPendingIndicator({ label }: { label: string }) {
     <>
       <span
         aria-hidden="true"
-        className={`ml-auto h-1.5 w-1.5 shrink-0 bg-current transition-opacity delay-100 motion-reduce:transition-none ${
-          pending ? "opacity-100" : "opacity-0"
-        }`}
-      />
+        className="ml-auto inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center"
+      >
+        {pending ? <span className="loading-ring" /> : null}
+      </span>
       <span className="sr-only" role="status">{pending ? `Loading ${label}.` : ""}</span>
     </>
   );
