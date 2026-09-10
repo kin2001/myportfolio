@@ -31,7 +31,6 @@
 }
 
 .hero[data-reveal-state="waiting"] .portrait,
-.hero[data-reveal-state="waiting"] .init::before,
 .hero[data-reveal-state="waiting"] .circuit path {
   animation: none;
 }
@@ -83,16 +82,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.init::before {
-  content: "";
-  width: 32px;
-  height: 1px;
-  flex: 0 0 auto;
-  background: var(--accent);
-  transform-origin: left;
-  animation: initialize 720ms cubic-bezier(.16, 1, .3, 1) both;
 }
 
 .portrait {
@@ -338,7 +327,6 @@
     letter-spacing: .08em;
   }
 
-  .hero .init::before { display: none; }
 
   .hero :global(.public-display-hero) {
     font-size: var(--type-hero);
@@ -434,11 +422,6 @@
 
 }
 
-@keyframes initialize {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-
 @keyframes trace {
   0% { stroke-dashoffset: 1; opacity: 0; }
   10% { opacity: .8; }
@@ -453,7 +436,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .portrait,
-  .init::before,
   .circuit path { animation: none; }
 
   .circuit path { opacity: var(--circuit-rest-opacity, 0); stroke-dashoffset: 0; }
