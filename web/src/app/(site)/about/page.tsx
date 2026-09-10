@@ -76,17 +76,20 @@ export default function AboutPage() {
           <ThemePortrait source="about" alt="Artkin Carreon in graduation attire" sizes="(max-width: 767px) 288px, 340px" />
           <figcaption className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] pt-4">
             <span className="mono-meta">PROFILE / 001</span>
-            <span className="mono-meta accent flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-hidden="true" />OPEN TO FREELANCE</span>
+            <span className="mono-meta accent flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-hidden="true" />OPEN FOR PROJECTS</span>
           </figcaption>
         </figure>
       </header>
 
-      <dl className="grid grid-cols-2 gap-px border border-[var(--line)] bg-[var(--line)] xl:grid-cols-4" data-phone-layout="fact-row" data-reveal aria-label="Profile facts">
-        <div className="surface min-w-0 p-5"><dt className="mono-label muted">Degree</dt><dd className="mt-3 break-words font-medium">Computer Engineering</dd></div>
-        <div className="surface min-w-0 p-5"><dt className="mono-label muted">University</dt><dd className="mt-3 break-words font-medium">JRMSU, Dapitan City</dd></div>
-        <div className="surface min-w-0 p-5"><dt className="mono-label muted">Graduated</dt><dd className="mt-3 font-medium"><time dateTime="2026-06-25">June 25, 2026</time></dd></div>
-        <div className="surface min-w-0 p-5"><dt className="mono-label muted">Availability</dt><dd className="mt-3 break-words font-medium">Freelance projects</dd></div>
-      </dl>
+      <section className="grid min-w-0 grid-cols-2 gap-6 border-y border-[var(--line)] py-6 md:gap-10 md:py-10" data-phone-layout="about-background" data-reveal aria-labelledby="about-background-title">
+        <h2 id="about-background-title" className="public-section-title min-w-0 max-w-[20ch] [text-wrap:balance]">
+          Engineering roots.<br /><span className="accent">Automation in practice.</span>
+        </h2>
+        <div className="min-w-0 max-w-[55ch] space-y-4">
+          <p className="public-body">I graduated in Computer Engineering from Jose Rizal Memorial State University, Dapitan City, on <time dateTime="2026-06-25">June 25, 2026</time>.</p>
+          <p className="public-body">I now focus on GoHighLevel and AI automation, connecting CRM workflows with the tools a business uses every day.</p>
+        </div>
+      </section>
 
       <ApproachSection index="01" />
 
@@ -128,7 +131,7 @@ export default function AboutPage() {
           <div className="max-w-3xl">
             <p className="mono-label accent">[ CURRENT_DIRECTION ]</p>
             <h2 className="public-section-title mt-5">Cleaner data flow. More reliable follow-up.</h2>
-            <p className="public-lead mt-5">My current focus is GoHighLevel workflow design and reliable data flow between connected tools. I am available for freelance automation projects.</p>
+            <p className="public-lead mt-5">My current focus is GoHighLevel workflow design and reliable data flow between connected tools. I am open for automation projects.</p>
           </div>
           <Link href="/contact" className="button-primary justify-self-end whitespace-nowrap">Discuss your workflow</Link>
         </div>

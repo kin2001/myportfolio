@@ -168,3 +168,19 @@ all four widths on home, project index, and credential index, including touch
 emulation, keyboard focus, reduced motion, and no horizontal overflow. The two
 existing homepage card/link interaction regressions also pass. Local ignored
 previews: `.impeccable/refresh-final/hover-*.png`. No dependencies or deployment.
+
+## Follow-up: About background typography
+
+Replaced the four-column profile facts with a two-column editorial section:
+"Engineering roots. Automation in practice." alongside a short education and
+current-focus summary. The university, degree, location, and graduation date are
+preserved; availability now reads "Open for projects" rather than "Open to
+freelance." This intentional departure from Baseline 2 removes the boxed fact
+layout while retaining the current fonts, fluid type sizes, blue accents, and
+portrait treatment. No new professional claims or dependencies were added.
+
+Typecheck, production build, and the design detector pass. The About regression
+checks the replacement content, preserved date, and two-column layout in both
+themes at 360/768/1024/1440px, with no horizontal overflow. Compared at those
+widths: less label repetition, a clearer headline/body hierarchy, and consistent
+text scaling. Local ignored previews: `.impeccable/refresh-final/about-background-*.png`.
