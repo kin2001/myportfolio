@@ -90,9 +90,11 @@ export function ScrollReveal() {
           const element = entry.target as HTMLElement;
           if (entry.isIntersecting || motionPreference.matches) {
             reveal(element);
-          } else if (["hero", "media"].includes(element.dataset.reveal ?? "") && !element.contains(document.activeElement)) {
-            // Portrait/media motion replays as before; reading content stays visible.
+          } else if (!element.contains(document.activeElement)) {
+            // Replay on re-entry, but never hide a group containing keyboard focus.
             element.dataset.revealState = "waiting";
+            const heading = element.querySelector<HTMLElement>("[data-animated-heading]");
+            if (heading) resetHeading(heading);
           }
         }
       },

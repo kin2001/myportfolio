@@ -129,3 +129,20 @@ four published detail routes, checking reveal activation, four viewport widths,
 no horizontal overflow, and live reduced-motion switching. The PDF-page test
 explicitly waits for hydration after DOMContentLoaded. No new dependencies,
 deployment, or approved-baseline pointer changes.
+
+## Follow-up: replay scroll motion across public pages
+
+At the user's request, the shared controller now resets every reveal group after
+it leaves the viewport, not just portrait/media groups. Headings also clear their
+previous animation before re-entry. Existing durations, image motion, typography,
+and layout remain unchanged. Focused groups stay visible, and reduced-motion
+users see all content without replay. This supersedes the earlier reveal-once
+decision for reading content.
+
+Typecheck, the changed-target detector, and ten controller tests pass. Browser
+checks pass for two repeated down/up scroll cycles at 360/768/1024/1440px across
+the six top-level public routes and four published detail routes, plus the
+homepage keyboard-focus regression. The viewport height is 400px for the replay
+test so short index pages can fully leave the screen. No horizontal overflow;
+relative to Baseline 2, this follow-up changes replay behavior only, preserving
+the currently implemented visual refinements and portrait treatment.

@@ -559,7 +559,7 @@ test("Home replays on re-entry without hiding focused content", async ({ page })
   }
   await hero.scrollIntoViewIfNeeded();
   await expect(hero).toHaveAttribute("data-reveal-state", "revealed");
-  await expect(credentials).toHaveAttribute("data-reveal-state", "revealed");
+  await expect(credentials).toHaveAttribute("data-reveal-state", "waiting");
   await credentials.scrollIntoViewIfNeeded();
   await expect(credentials).toHaveAttribute("data-reveal-state", "revealed");
   await page.emulateMedia({ reducedMotion: "reduce" });

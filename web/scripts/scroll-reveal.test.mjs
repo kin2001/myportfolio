@@ -85,7 +85,7 @@ function setup({ pathname = "/", reducedMotion = false, supported = true, withHe
   return { visible, offscreen, observer, document, listeners, preference, cleanup, animations };
 }
 
-test("Home keeps revealed content visible, while the hero still replays", () => {
+test("Home sections and the hero replay after every viewport exit", () => {
   const { visible, offscreen, observer } = setup();
   visible.dataset.reveal = "hero";
   assert.equal(visible.dataset.revealState, "revealed");
@@ -96,7 +96,7 @@ test("Home keeps revealed content visible, while the hero still replays", () => 
     observer.enter(offscreen, true);
     assert.equal(offscreen.dataset.revealState, "revealed");
     observer.enter(offscreen, false);
-    assert.equal(offscreen.dataset.revealState, "revealed");
+    assert.equal(offscreen.dataset.revealState, "waiting");
   }
   observer.enter(visible, false);
   assert.equal(visible.dataset.revealState, "waiting");
@@ -105,7 +105,7 @@ test("Home keeps revealed content visible, while the hero still replays", () => 
   assert.equal(observer.observed.size, 2);
 });
 
-test("Other public routes reveal reading content once", () => {
+test("Other public routes replay reading content on re-entry", () => {
   const { visible, offscreen, observer } = setup({ pathname: "/work" });
   assert.equal(observer.options.rootMargin, "0px");
   assert.equal(observer.observed.has(visible), true);
@@ -113,7 +113,7 @@ test("Other public routes reveal reading content once", () => {
   assert.equal(offscreen.dataset.revealState, "revealed");
   assert.equal(observer.observed.has(offscreen), true);
   observer.enter(offscreen, false);
-  assert.equal(offscreen.dataset.revealState, "revealed");
+  assert.equal(offscreen.dataset.revealState, "waiting");
   observer.enter(offscreen, true);
   assert.equal(offscreen.dataset.revealState, "revealed");
 });
@@ -167,6 +167,17 @@ test("Switching to reduced motion stops a running heading animation", () => {
   preference.matches = true;
   listeners.get("change")({ matches: true });
   assert.equal(animations[0].stopped, true);
+});
+
+test("Heading motion resets offscreen and replays, but not while still visible", () => {
+  const { visible, observer, animations } = setup({ withHeading: true });
+  observer.enter(visible, true);
+  assert.equal(animations.length, 1);
+  observer.enter(visible, false);
+  assert.equal(animations[0].stopped, true);
+  assert.equal(visible.dataset.revealState, "waiting");
+  observer.enter(visible, true);
+  assert.equal(animations.length, 2);
 });
 
 test("Route cleanup removes the observer and event listeners", () => {
