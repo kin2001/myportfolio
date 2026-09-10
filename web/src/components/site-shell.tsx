@@ -74,7 +74,7 @@ export function SiteShell({ children, footer }: { children: React.ReactNode; foo
         {open ? (
           <div id="site-mobile-navigation" className="surface absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-[var(--line)] p-5 shadow-none">
             <NavLinks close={closeMenu} />
-            <a className="button-primary mt-5 w-full" href="/resume.pdf" download="Artkin-Carreon-CV.pdf" onClick={closeMenu}>Download CV</a>
+            <a className="sidebar-cv mt-5 w-full" href="/resume.pdf" download="Artkin-Carreon-CV.pdf" onClick={closeMenu}>Download CV <Icon name="download" className="h-4 w-4" /></a>
           </div>
         ) : null}
       </header>

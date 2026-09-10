@@ -388,6 +388,10 @@ test("mobile navigation opens, closes with Escape, and returns focus", async ({ 
     "download",
     "Artkin-Carreon-CV.pdf",
   );
+  await expect(download).toHaveClass(/sidebar-cv/);
+  await expect(download.locator("svg")).toHaveCount(1);
+  await expect(download).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(download).toHaveCSS("border-bottom-width", "1px");
   expect(await download.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
@@ -408,6 +412,29 @@ test("desktop CV action targets the current CV route", async ({ page }) => {
     "Artkin-Carreon-CV.pdf",
   );
   expect(await download.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+});
+
+test("CV navigation style matches desktop at every breakpoint", async ({ page }) => {
+  await page.goto("/about", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-reveal]").first()).toHaveAttribute("data-reveal-state", /waiting|revealed/, { timeout: 20_000 });
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(value => document.documentElement.dataset.theme = value, theme);
+    for (const width of [360, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      if (width < 1024) await page.getByRole("button", { name: "Open navigation" }).click();
+      const link = page.getByRole("link", { name: "Download CV", exact: true });
+      await expect(link).toHaveClass(/sidebar-cv/);
+      await expect(link).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(link).toHaveCSS("border-bottom-width", "1px");
+      await expect(link).toHaveCSS("text-transform", "none");
+      await expect(link).toHaveCSS("font-size", "14px");
+      await expect(link.locator("svg")).toHaveCSS("width", "16px");
+      await expect(link.locator("svg")).toHaveCSS("height", "16px");
+      expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+      await link.screenshot({ path: `../.impeccable/refresh-final/cv-style-${theme}-${width}.png` });
+      if (width < 1024) await page.keyboard.press("Escape");
+    }
+  }
 });
 
 test("public sans typography uses Roboto while technical labels stay monospace", async ({ page }) => {
