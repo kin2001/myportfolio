@@ -46,9 +46,9 @@ const personStructuredData = {
 };
 
 const clinicFunctions = [
-  ["contact", "Facebook Page inquiries", "Reply to questions and collect appointment details."],
-  ["experience", "Appointment management", "Book, cancel, reschedule, or update information."],
-  ["signal", "Email reminders", "Notify the client 24 hours before the appointment."],
+  ["Inquiries", "Reply to Facebook Page questions and collect appointment details."],
+  ["Appointments", "Book, cancel, reschedule, or update information."],
+  ["Reminders", "Send an email 24 hours before the appointment."],
 ] as const;
 
 const toolGroups = [
@@ -85,23 +85,23 @@ export default function AboutPage() {
 
       <ApproachSection index="01" />
 
-      <section className="section-space" data-reveal="record">
-        <SectionHeader index="02" title="Selected system" meta="CLINIC RECEPTIONIST AGENT" />
-        <div className="module mt-8 grid min-w-0 gap-8 p-6 sm:p-8 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.9fr)]" data-phone-layout="content-pair">
-          <div className="min-w-0">
-            <p className="mono-meta accent">SYSTEM_RECORD / 001</p>
-            <h3 className="public-card-title mt-5">Clinic receptionist agent</h3>
-            <p className="public-body mt-5">I built an agent that handles Facebook Page inquiries, appointment changes, and email reminders for a clinic workflow.</p>
-          </div>
-          <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
-            {clinicFunctions.map(([icon, title, body]) => (
-              <li className="grid grid-cols-[44px_minmax(0,1fr)] gap-4 py-4" key={title}>
-                <span className="flex h-11 w-11 items-center justify-center text-[var(--ink-soft)]"><Icon name={icon} className="h-5 w-5" /></span>
-                <div className="min-w-0"><h4 className="font-medium">{title}</h4><p className="public-body mt-1">{body}</p></div>
+      <section className="section-space" data-reveal="record" aria-labelledby="selected-project-title">
+        <SectionHeader index="02" title="Selected project" />
+        <article className="mt-6 min-w-0 md:mt-8">
+          <h3 id="selected-project-title" className="public-section-title max-w-[30ch] [text-wrap:balance]">Clinic AI receptionist and appointment automation</h3>
+          <p className="public-body mt-4 max-w-[65ch]">A personal automation project for handling clinic inquiries and appointments through Facebook Pages, with email reminders for upcoming bookings.</p>
+          <ul className="mt-6 grid grid-cols-3 gap-3 border-y border-[var(--line)] py-5 md:mt-8 md:gap-8 md:py-6" data-phone-layout="project-capabilities" aria-label="Project capabilities">
+            {clinicFunctions.map(([title, body]) => (
+              <li className="min-w-0" key={title}>
+                <h4 className="public-body font-medium"><span className="accent">{title}</span></h4>
+                <p className="public-body mt-2">{body}</p>
               </li>
             ))}
           </ul>
-        </div>
+          <div className="mt-5 flex justify-end">
+            <Link href="/work/clinic-ai-receptionist-and-appointment-automation" className="button-secondary">View project <Icon name="arrow" className="h-4 w-4" /></Link>
+          </div>
+        </article>
       </section>
 
       <section className="section-space" data-reveal="record">

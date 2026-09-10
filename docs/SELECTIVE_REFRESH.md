@@ -196,3 +196,19 @@ this is a content/hierarchy reduction; fonts, portrait, responsive composition,
 and shared motion are unchanged. Typecheck, design detector, and the updated
 About regression pass across both themes at 360/768/1024/1440px, with no overflow.
 Local ignored previews: `.impeccable/refresh-final/about-profile-*.png`.
+
+## Follow-up: distinct Selected project layout on About
+
+Replaced the Selected system block's repeated two-column composition with a
+full-width project summary, a three-column capability row, and a direct View
+project link. Removed the enclosing tinted box, repeated clinic metadata, and
+technical record label; the preceding Approach and homepage are untouched.
+The existing clinic facts remain, explicitly framed as a personal project.
+
+Compared with Baseline 2 and the previous block at 360/768/1024/1440px, the
+intentional change is a flatter editorial composition with horizontal capability
+groups. Shared font sizing, colors, hover, and scroll replay remain. Typecheck,
+the design detector, and About browser checks pass in both themes, including
+three-column phone placement and navigation to the published project. Local
+ignored previews: `.impeccable/refresh-final/about-project-*.png`. Production
+build also passes.

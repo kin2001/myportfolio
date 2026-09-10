@@ -203,7 +203,7 @@ test("phone layouts preserve peer cards and give reading content usable width", 
   const routeLayouts = [
     ["/work", [["project-grid", 2]]],
     ["/credentials", [["card-grid", 2]]],
-    ["/about", [["about-hero", 2], ["content-pair", 2], ["toolkit-grid", 3]]],
+    ["/about", [["about-hero", 2], ["project-capabilities", 3], ["toolkit-grid", 3]]],
     ["/contact", [["contact-hero", 2], ["form-grid", 1], ["service-grid", 1]]],
     ["/privacy", [["privacy-hero", 1], ["privacy-body", 1], ["indexed-copy", 2]]],
   ] as const;
