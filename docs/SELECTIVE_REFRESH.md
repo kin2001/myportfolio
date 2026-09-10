@@ -212,3 +212,17 @@ the design detector, and About browser checks pass in both themes, including
 three-column phone placement and navigation to the published project. Local
 ignored previews: `.impeccable/refresh-final/about-project-*.png`. Production
 build also passes.
+
+## Follow-up: simplify sidebar shortcuts and theme placement
+
+Removed the redundant Contact, Project terminal, and About shortcut icons from
+the desktop sidebar. Moved the existing theme toggle alongside the name at the
+top; mobile keeps its existing header toggle. The CV link remains at the bottom.
+Relative to Baseline 2, only sidebar utility placement changes: navigation,
+44px controls, theme behavior, and the 280px sidebar width remain intact.
+
+Typecheck, production build, and design detector pass. Tests cover the removed shortcuts, identity
+alignment, keyboard theme switching, and no overflow at 360/768/1024/1440px in
+both themes. The existing mobile keyboard and contact-draft preservation/axe
+checks also pass. Local ignored previews:
+`.impeccable/refresh-final/theme-placement-*.png`.

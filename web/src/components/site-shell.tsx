@@ -81,22 +81,15 @@ export function SiteShell({ children, footer }: { children: React.ReactNode; foo
 
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between gap-8 overflow-y-auto border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
         <div className="shrink-0 space-y-12">
-          <Link href="/" className="inline-flex min-h-11 items-center">
-            <div className="whitespace-nowrap font-[family-name:var(--font-geist-mono)] text-lg font-semibold leading-none tracking-normal">Artkin Carreon</div>
-          </Link>
-          <NavLinks />
-        </div>
-        <div className="shrink-0 space-y-8">
-          <a className="sidebar-cv" href="/resume.pdf" download="Artkin-Carreon-CV.pdf">Download CV <Icon name="download" className="h-4 w-4" /></a>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex gap-1 text-[var(--ink-soft)]">
-              <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/contact" aria-label="Contact"><Icon name="link" className="h-[18px] w-[18px]" /></Link>
-              <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/work" aria-label="Project terminal"><Icon name="terminal" className="h-[18px] w-[18px]" /></Link>
-              <Link className="flex h-11 w-11 items-center justify-center transition-colors hover:text-[var(--accent)]" href="/about" aria-label="About Artkin"><Icon name="share" className="h-[18px] w-[18px]" /></Link>
-            </div>
+          <div className="flex items-center justify-between gap-2" data-sidebar-identity>
+            <Link href="/" className="inline-flex min-h-11 items-center">
+              <div className="whitespace-nowrap font-[family-name:var(--font-geist-mono)] text-lg font-semibold leading-none tracking-normal">Artkin Carreon</div>
+            </Link>
             <ThemeControls />
           </div>
+          <NavLinks />
         </div>
+        <a className="sidebar-cv shrink-0" href="/resume.pdf" download="Artkin-Carreon-CV.pdf">Download CV <Icon name="download" className="h-4 w-4" /></a>
       </aside>
 
       <div className="site-main">

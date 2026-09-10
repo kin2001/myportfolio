@@ -1,6 +1,34 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+test("theme control sits beside the identity and redundant sidebar shortcuts are absent", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await page.goto("/about", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-reveal]").first()).toHaveAttribute("data-reveal-state", "revealed", { timeout: 20_000 });
+  const sidebar = page.locator("aside");
+  await expect(sidebar.getByRole("link", { name: /^(Contact|Project terminal|About Artkin)$/ })).toHaveCount(0);
+  for (const width of [360, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const container = width < 1024 ? page.locator("header").first() : page.locator("[data-sidebar-identity]");
+    for (const next of ["dark", "light"]) {
+      const toggle = container.getByRole("button", { name: `Switch to ${next} mode` });
+      await expect(toggle).toBeVisible();
+      const name = await container.getByRole("link", { name: "Artkin Carreon", exact: true }).boundingBox();
+      const control = await toggle.boundingBox();
+      expect(control?.width).toBeGreaterThanOrEqual(44);
+      expect(control?.height).toBeGreaterThanOrEqual(44);
+      expect(control!.x).toBeGreaterThanOrEqual(name!.x + name!.width);
+      expect(Math.abs(control!.y - name!.y)).toBeLessThanOrEqual(2);
+      await toggle.focus();
+      await expect(toggle).toHaveCSS("outline-style", "solid");
+      await toggle.press("Enter");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", next);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+      await container.screenshot({ path: `../.impeccable/refresh-final/theme-placement-${next}-${width}.png` });
+    }
+  }
+});
+
 test("system theme, saved override, and admin isolation", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ colorScheme: "dark" });
