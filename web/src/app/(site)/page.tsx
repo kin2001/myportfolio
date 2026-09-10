@@ -21,12 +21,7 @@ function monthYear(value: string) {
 
 function ActionLabel({ children }: { children: string }) {
   return (
-    <>
-      <span className={styles.actionLabel}>{children} <Icon name="arrow" className="h-4 w-4" /></span>
-      <span aria-hidden="true" className={`${styles.actionLabel} ${styles.ink}`}>
-        {children} <Icon name="arrow" className="h-4 w-4" />
-      </span>
-    </>
+    <span className={styles.actionLabel}>{children} <Icon name="arrow" className="h-4 w-4" /></span>
   );
 }
 

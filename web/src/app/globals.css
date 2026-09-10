@@ -445,20 +445,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .public-record-link {
   color: var(--ink);
-  transition: border-color 180ms ease, background-color 180ms ease;
+  transition: border-color 220ms ease, background-color 220ms ease, translate 260ms cubic-bezier(.16, 1, .3, 1);
 }
 .public-record-link .public-card-title {
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-decoration-thickness: 1px;
-  text-underline-offset: .18em;
-  transition: text-decoration-color 180ms ease;
+  transition: color 220ms ease;
 }
 .public-record-link:focus-visible {
   border-color: var(--accent);
-  background: var(--paper-soft);
+  background: color-mix(in srgb, var(--paper-pure) 95%, var(--accent));
 }
-.public-record-link:focus-visible .public-card-title { text-decoration-color: currentColor; }
+.public-record-link:focus-visible .public-card-title { color: var(--accent); }
 .public-record-link:focus-visible .hero-link > :is(svg, [aria-hidden="true"]) { transform: translateX(4px); }
 :root[data-theme="dark"] .site-main .project-card-surface { --paper-pure: var(--paper); }
 
@@ -1025,9 +1021,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (hover: hover) and (pointer: fine) {
   .public-record-link:hover {
     border-color: var(--accent);
-    background: var(--paper-soft);
+    background: color-mix(in srgb, var(--paper-pure) 95%, var(--accent));
+    translate: 0 -3px;
   }
-  .public-record-link:hover .public-card-title { text-decoration-color: currentColor; }
+  .public-record-link:hover .public-card-title { color: var(--accent); }
   .public-record-link:hover .hero-link > :is(svg, [aria-hidden="true"]) { transform: translateX(4px); }
 }
 
@@ -1042,14 +1039,25 @@ button, a { -webkit-tap-highlight-color: transparent; }
   line-height: 1.5;
   letter-spacing: 0;
   text-transform: none;
+  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, translate 220ms cubic-bezier(.16, 1, .3, 1);
 }
 .site-main .button-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.site-main .button-primary:hover { background: color-mix(in srgb, var(--accent) 90%, var(--ink)); }
-.site-main .button-secondary { border-color: var(--control-line); }
+.site-main .button-secondary { border-color: var(--control-line); background: transparent; color: var(--ink); }
 .site-main .button-text { display: inline-flex; align-items: center; justify-content: center; padding-inline: 0; background: transparent; color: var(--ink); }
-.site-main .button-text:hover { color: var(--accent); }
-.site-main .button-text svg { transition: transform 180ms ease; }
-.site-main .button-text:hover svg { transform: translateX(3px); }
+.site-main :is(.button-primary, .button-secondary, .button-text) svg { transition: transform 220ms cubic-bezier(.16, 1, .3, 1); }
+.site-main :is(.button-secondary, .button-text):focus-visible { color: var(--accent); border-color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .site-main .button-primary:not(:disabled):not([aria-disabled="true"]):hover {
+    background: var(--ink); border-color: var(--ink); color: var(--paper); translate: 0 -2px;
+  }
+  .site-main .button-secondary:not(:disabled):not([aria-disabled="true"]):hover {
+    background: color-mix(in srgb, var(--paper) 94%, var(--accent)); border-color: var(--accent); color: var(--accent); translate: 0 -2px;
+  }
+  .site-main .button-text:hover { color: var(--accent); }
+  .site-main :is(.button-primary, .button-secondary, .button-text):not(:disabled):not([aria-disabled="true"]):hover svg { transform: translateX(3px); }
+}
+.site-main :is(.button-primary, .button-secondary, .button-text):active { transform: none; translate: 0 0; }
+.site-main .public-record-link:active { translate: 0 0; }
 
 /* Detail pages share the homepage's paper surfaces and editorial hierarchy. */
 .detail-page .public-display { max-width: 23ch; font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3.5rem); line-height: 1.1; }
@@ -1108,6 +1116,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .site-main .detail-page .public-display { font-size: clamp(1.75rem, 1rem + 3.5cqw, 3.5rem); }
 
 @media (prefers-reduced-motion: reduce) {
+  .site-main :is(.button-primary, .button-secondary, .button-text, .public-record-link) { translate: none !important; }
+  .site-main :is(.button-primary, .button-secondary, .button-text) svg { transform: none !important; }
   :root[data-theme-transition="circle"]::view-transition-new(root) { animation: none; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   .operation-progress { animation: none !important; transform: translateX(100%); }

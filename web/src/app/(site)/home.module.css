@@ -308,31 +308,11 @@
   overflow: hidden;
 }
 
-.action:global(.button-primary) {
-  --action-fill: var(--accent);
-}
-.action:global(.button-primary) .ink { color: var(--accent-ink); }
-
 .actionLabel {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-}
-
-/* Both colors travel together; the duplicate label is hidden from assistive tech. */
-.ink {
-  position: absolute;
-  inset: 0;
-  background: var(--action-fill, var(--ink));
-  color: var(--paper-pure);
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path 260ms cubic-bezier(.16, 1, .3, 1);
-}
-
-.action:focus-visible .ink {
-  clip-path: inset(0);
-  transition: none;
 }
 
 .action svg,
@@ -341,15 +321,12 @@
   transition: transform 180ms cubic-bezier(.16, 1, .3, 1);
 }
 
-.action:focus-visible svg,
 .links a:focus-visible svg {
   transform: translateX(4px);
 }
 
 @media (hover: hover) {
   .card:not(.projectCard):hover { border-color: var(--accent); }
-  .action:hover .ink { clip-path: inset(0); }
-  .action:hover svg,
   .links a:hover svg { transform: translateX(4px); }
 }
 
@@ -483,7 +460,6 @@
 
   .card[data-reveal][data-reveal-state="revealed"] { transition: none; }
 
-  .ink,
   .projectLink::before { transition: none; }
 
   .closingCta::before { transform: translateX(-50%) scaleX(1) !important; }

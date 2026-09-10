@@ -146,3 +146,25 @@ homepage keyboard-focus regression. The viewport height is 400px for the replay
 test so short index pages can fully leave the screen. No horizontal overflow;
 relative to Baseline 2, this follow-up changes replay behavior only, preserving
 the currently implemented visual refinements and portrait treatment.
+
+## Follow-up: modern public button and card hover
+
+Public project/credential cards now lift 3px with a subtle blue-tinted surface,
+blue border, and blue title instead of a title underline. Primary buttons lift
+2px and switch to ink/paper contrast; secondary buttons use a light accent tint,
+and action arrows move 3px. No shadows or layout-size changes were introduced.
+The homepage's duplicate-label wipe was removed so its buttons share the same
+styles as other public pages. Card lift uses the independent translate property
+to coexist with scroll entrance transforms. Admin styling is unchanged.
+
+Keyboard focus retains a visible outline and color feedback. Hover movement is
+restricted to fine pointers with hover support; reduced motion removes movement
+but retains color feedback. Compared with Baseline 2 at 360/768/1024/1440px,
+the intended changes are the hover colors and bounded movement, not resting
+layout, typography, or portrait animation.
+
+Typecheck and the design detector pass. Browser checks pass in both themes at
+all four widths on home, project index, and credential index, including touch
+emulation, keyboard focus, reduced motion, and no horizontal overflow. The two
+existing homepage card/link interaction regressions also pass. Local ignored
+previews: `.impeccable/refresh-final/hover-*.png`. No dependencies or deployment.

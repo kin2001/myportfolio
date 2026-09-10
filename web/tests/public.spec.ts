@@ -612,16 +612,16 @@ test("Home project cards are single full-card links with matching focus feedback
   await expect(action.locator("time")).toBeVisible();
   const restingSurface = await action.evaluate((element) => getComputedStyle(element).backgroundColor);
   await card.hover();
-  await expect(title).toHaveCSS("text-decoration-color", "rgb(26, 28, 27)");
+  await expect(title).toHaveCSS("color", "rgb(36, 56, 156)");
   await expect.poll(() => action.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingSurface);
   await page.mouse.move(0, 0);
-  await expect(title).toHaveCSS("text-decoration-color", "rgba(0, 0, 0, 0)");
+  await expect(title).toHaveCSS("color", "rgb(26, 28, 27)");
   await action.focus();
   await expect(action).toBeFocused();
   await expect(action).toHaveCSS("outline-style", "solid");
-  await expect(title).toHaveCSS("text-decoration-color", "rgb(26, 28, 27)");
+  await expect(title).toHaveCSS("color", "rgb(36, 56, 156)");
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect(action).toHaveCSS("background-color", "rgb(244, 243, 241)");
+  await expect.poll(() => action.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingSurface);
   for (const width of approvedWidths) {
     await page.setViewportSize({ width, height: 900 });
     await expectNoHorizontalOverflow(page);
@@ -662,13 +662,13 @@ test("Home credential cards are single full-card registry links with direct feed
   await expect(action.locator("time")).toBeVisible();
   const restingSurface = await action.evaluate((element) => getComputedStyle(element).backgroundColor);
   await card.hover();
-  await expect(title).toHaveCSS("text-decoration-color", "rgb(26, 28, 27)");
+  await expect(title).toHaveCSS("color", "rgb(36, 56, 156)");
   await expect.poll(() => action.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingSurface);
   await page.mouse.move(0, 0);
   await action.focus();
   await expect(action).toBeFocused();
   await expect(action).toHaveCSS("outline-style", "solid");
-  await expect(title).toHaveCSS("text-decoration-color", "rgb(26, 28, 27)");
+  await expect(title).toHaveCSS("color", "rgb(36, 56, 156)");
   await expect.poll(() => action.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingSurface);
   for (const width of approvedWidths) {
     await page.setViewportSize({ width, height: 900 });
