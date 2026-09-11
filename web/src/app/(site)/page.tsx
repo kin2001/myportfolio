@@ -57,8 +57,8 @@ export default async function HomePage() {
             <AnimatedHeading
               id="hero-title"
               className={`public-display-hero ${styles.heroTitle}`}
-              text={["Automation", "that keeps", "work moving."]}
-              accentWord="moving."
+              text={["I turn busywork", "into automated", "workflows."]}
+              accentWord="workflows."
             />
           </div>
         </div>
@@ -74,7 +74,7 @@ export default async function HomePage() {
           </svg>
         </div>
         <div className={styles.heroCopy}>
-          <p className="public-lead max-w-xl">I build GoHighLevel workflows and AI automation that organize leads, automate follow-up, and connect the tools behind daily operations.</p>
+          <p className="public-lead max-w-xl">I build GoHighLevel workflows and AI automations that connect your tools, capture leads, and keep follow-ups moving—so you spend less time managing systems and more time building client relationships.</p>
           <div className={`${styles.links} mt-6 flex flex-wrap items-center gap-x-6 gap-y-3`}>
             <Link href="/work" className="button-primary">Explore my work <Icon name="arrow" className="h-4 w-4" /></Link>
             <Link href="/contact" className="button-text">Let&apos;s talk <Icon name="arrow" className="h-4 w-4" /></Link>

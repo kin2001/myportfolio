@@ -329,7 +329,7 @@
 
 
   .hero :global(.public-display-hero) {
-    font-size: var(--type-hero);
+    font-size: clamp(1.25rem, 7cqw, var(--type-hero));
     line-height: 1.05;
   }
 

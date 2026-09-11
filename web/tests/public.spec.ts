@@ -470,7 +470,7 @@ test("selected proposal details keep the current visual system", async ({ page }
   for (const width of approvedWidths) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    await expect(page.locator("#hero-title .accent")).toHaveText("moving.");
+    await expect(page.locator("#hero-title .accent")).toHaveText("workflows.");
     await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveAttribute("href", "/work");
     await expect(page.locator('[data-reveal="hero"] .button-text')).toHaveAttribute("href", "/contact");
     await expect(page.locator('[data-reveal="hero"] .button-primary')).toHaveCSS("text-transform", "none");
@@ -567,7 +567,7 @@ test("Home replays on re-entry without hiding focused content", async ({ page })
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
+  const hero = page.getByRole("region", { name: "I turn busywork into automated workflows." });
   await expect(hero).toHaveCSS("margin-top", "0px");
 
   const card = page.locator("#projects article[data-reveal]").first();
@@ -600,7 +600,7 @@ test("Home reduced motion keeps content visible without entrance animation", asy
   await page.goto("/");
   await expect(page.locator("[data-reveal]").first()).toHaveAttribute("data-reveal-state", "revealed");
   await expect(page.locator('[data-reveal-state="waiting"]')).toHaveCount(0);
-  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
+  const hero = page.getByRole("region", { name: "I turn busywork into automated workflows." });
   expect(await hero.evaluate((element) => element.getAnimations({ subtree: true }).length)).toBe(0);
   await expect(hero.getByRole("heading")).toBeVisible();
 });
@@ -608,7 +608,7 @@ test("Home reduced motion keeps content visible without entrance animation", asy
 test("Home motion finishes and the action fill preserves its accessible label", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
+  const hero = page.getByRole("region", { name: "I turn busywork into automated workflows." });
   await expect.poll(() => hero.evaluate((element) =>
     element.getAnimations({ subtree: true }).every((animation) => animation.playState === "finished"),
   )).toBe(true);
@@ -714,12 +714,23 @@ test("Home credential cards are single full-card registry links with direct feed
 });
 
 test("Home headline and portrait motion stay aligned at every approved width", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  const hero = page.getByRole("region", { name: "Automation that keeps work moving." });
+  const hero = page.getByRole("region", { name: "I turn busywork into automated workflows." });
   for (const width of approvedWidths) {
     await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await expectNoHorizontalOverflow(page);
-    await expect(hero.getByRole("heading")).toHaveText("Automation that keeps work moving.");
+    await expect(hero.getByRole("heading")).toHaveText("I turn busywork into automated workflows.");
+    const lines = hero.locator(".animated-heading-line");
+    await expect(lines).toHaveCount(3);
+    for (const line of await lines.all()) {
+      const dimensions = await line.evaluate((element) => ({
+        height: element.getBoundingClientRect().height,
+        lineHeight: parseFloat(getComputedStyle(element).lineHeight),
+      }));
+      expect(Math.abs(dimensions.height - dimensions.lineHeight)).toBeLessThan(1);
+    }
     const portrait = await hero.getByRole("img").boundingBox();
     const circuit = await hero.locator('svg[viewBox="0 0 1024 1024"]').boundingBox();
     expect(portrait).not.toBeNull();

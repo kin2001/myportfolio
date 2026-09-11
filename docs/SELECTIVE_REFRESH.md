@@ -226,3 +226,17 @@ alignment, keyboard theme switching, and no overflow at 360/768/1024/1440px in
 both themes. The existing mobile keyboard and contact-draft preservation/axe
 checks also pass. Local ignored previews:
 `.impeccable/refresh-final/theme-placement-*.png`.
+
+## Follow-up: personal homepage hook
+
+Changed the hero to “I turn busywork / into automated / workflows.” with the
+last word in blue and supporting copy about GoHighLevel, AI automation, lead
+capture, and follow-ups. The mobile hero font scales slightly smaller to keep
+the three authored lines beside the portrait. Existing fonts, buttons, section
+placement, and portrait animation are unchanged; the approved baseline pointer
+is not advanced.
+
+Typecheck and three focused headline, scroll replay, and reduced-motion tests
+pass. Browser checks at 360/768/1024/1440px in light and dark confirm three lines
+and no horizontal overflow. The design detector reports no findings. Ignored
+visual checks: `.impeccable/refresh-final/hero-hook-*.png`.
