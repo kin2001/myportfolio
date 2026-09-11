@@ -15,7 +15,7 @@ export function ProjectProcess() {
   return (
     <section className="project-process" data-home-surface="tint" data-reveal="process" aria-labelledby="project-process-title">
       <div className="project-process-header">
-        <div><h2 id="project-process-title">From your idea to a working system.</h2><p>How we can work together</p></div>
+        <div><h2 id="project-process-title">From your idea to a working system.</h2><p>How we&apos;ll get there.</p></div>
         <button type="button" className="hero-link" onClick={() => setReplay(value => value + 1)} aria-label="Replay project process animation"><Icon name="replay" /> Replay</button>
       </div>
       <ol className="project-process-steps" key={replay}>
