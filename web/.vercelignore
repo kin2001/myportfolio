@@ -1,0 +1,6 @@
+# Repository-only material; not needed in the Vercel build context.
+*.md
+tests/
+scripts/
+playwright.config.ts
+.env.example
