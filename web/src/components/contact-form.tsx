@@ -35,6 +35,9 @@ const initialTurnstileMessage = !turnstileSiteKey
   : process.env.NODE_ENV === "development"
     ? "Loading security check... If this remains here, allow challenges.cloudflare.com or open the page in Chrome or Edge."
     : "Loading security check...";
+const turnstileLoadErrorMessage = process.env.NODE_ENV === "development"
+  ? "This preview browser blocked the security check. Open this page in Chrome or Edge."
+  : "Security check could not load. Check your connection or refresh the page.";
 
 export function ContactForm() {
   const theme = useTheme();
@@ -77,12 +80,12 @@ export function ContactForm() {
       "error-callback": () => {
         setTurnstileToken("");
         setTurnstileError(true);
-        setTurnstileMessage("Security check could not load. Check your connection or refresh the page.");
+        setTurnstileMessage(turnstileLoadErrorMessage);
       },
       "unsupported-callback": () => {
         setTurnstileToken("");
         setTurnstileError(true);
-        setTurnstileMessage("This browser cannot complete the security check. Try a supported browser.");
+        setTurnstileMessage("This browser cannot complete the security check. Try Chrome or Edge.");
       },
     });
     widgetId.current = id;
@@ -169,12 +172,12 @@ export function ContactForm() {
       {turnstileSiteKey ? <>
         <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={() => setScriptReady(true)} onError={() => {
           setTurnstileError(true);
-          setTurnstileMessage("Security check could not load. Check your connection or refresh the page.");
+          setTurnstileMessage(turnstileLoadErrorMessage);
         }} />
         <div ref={turnstileRegion} className="mt-8 w-full max-w-[420px]" tabIndex={-1} aria-label="Security check">
           <p className="mono-label">Security check</p>
-          <div ref={turnstileContainer} className="mt-3 min-h-[65px] w-full min-w-0" />
-          <p className={"mono-meta mt-3 " + (turnstileError ? "text-[var(--danger)]" : turnstileToken ? "accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
+          <div ref={turnstileContainer} className={"mt-3 w-full min-w-0 " + (turnstileError || turnstileToken ? "min-h-0" : "min-h-[65px]")} />
+          <p className={"mono-meta mt-3 " + (turnstileError ? "border border-[var(--line)] p-4 text-[var(--danger)]" : turnstileToken ? "border border-[var(--line)] p-4 accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
         </div>
       </> : <div ref={turnstileRegion} className="mt-8 min-h-16 border border-dashed border-[var(--line)] p-4 mono-meta text-[var(--danger)]" tabIndex={-1} role="alert">TURNSTILE / NOT CONFIGURED</div>}
       <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 pl-3">
