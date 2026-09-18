@@ -10,7 +10,7 @@ type TurnstileApi = {
   render: (container: HTMLElement, options: {
     sitekey: string;
     action: string;
-    appearance: "interaction-only";
+    appearance: "always";
     size: "flexible";
     theme: "light" | "dark";
     callback: (token: string) => void;
@@ -59,7 +59,7 @@ export function ContactForm() {
     const id = window.turnstile.render(turnstileContainer.current, {
       sitekey: turnstileSiteKey,
       action: "contact_inquiry",
-      appearance: "interaction-only",
+      appearance: "always",
       size: "flexible",
       theme,
       callback: (token) => {
@@ -174,7 +174,7 @@ export function ContactForm() {
           setTurnstileError(true);
           setTurnstileMessage(turnstileLoadErrorMessage);
         }} />
-        <div ref={turnstileRegion} className={(turnstileToken ? "hidden " : "") + "mt-8 w-full max-w-[420px]"} tabIndex={-1} aria-label="Security check">
+        <div ref={turnstileRegion} className="mt-8 w-full max-w-[420px]" tabIndex={-1} aria-label="Security check">
           <p className="mono-label">Security check</p>
           <div ref={turnstileContainer} className={"mt-3 w-full min-w-0 " + (turnstileError ? "min-h-0" : "min-h-[65px]")} />
           <p className={"mono-meta mt-3 " + (turnstileError ? "border border-[var(--line)] p-4 text-[var(--danger)]" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
