@@ -10,7 +10,7 @@ type TurnstileApi = {
   render: (container: HTMLElement, options: {
     sitekey: string;
     action: string;
-    appearance: "always";
+    appearance: "interaction-only";
     size: "flexible";
     theme: "light" | "dark";
     callback: (token: string) => void;
@@ -59,13 +59,13 @@ export function ContactForm() {
     const id = window.turnstile.render(turnstileContainer.current, {
       sitekey: turnstileSiteKey,
       action: "contact_inquiry",
-      appearance: "always",
+      appearance: "interaction-only",
       size: "flexible",
       theme,
       callback: (token) => {
         setTurnstileToken(token);
         setTurnstileError(false);
-        setTurnstileMessage("Security check complete.");
+        setTurnstileMessage("");
       },
       "expired-callback": () => {
         setTurnstileToken("");
@@ -174,10 +174,10 @@ export function ContactForm() {
           setTurnstileError(true);
           setTurnstileMessage(turnstileLoadErrorMessage);
         }} />
-        <div ref={turnstileRegion} className="mt-8 w-full max-w-[420px]" tabIndex={-1} aria-label="Security check">
+        <div ref={turnstileRegion} className={(turnstileToken ? "hidden " : "") + "mt-8 w-full max-w-[420px]"} tabIndex={-1} aria-label="Security check">
           <p className="mono-label">Security check</p>
-          <div ref={turnstileContainer} className={"mt-3 w-full min-w-0 " + (turnstileError || turnstileToken ? "min-h-0" : "min-h-[65px]")} />
-          <p className={"mono-meta mt-3 " + (turnstileError ? "border border-[var(--line)] p-4 text-[var(--danger)]" : turnstileToken ? "border border-[var(--line)] p-4 accent" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
+          <div ref={turnstileContainer} className={"mt-3 w-full min-w-0 " + (turnstileError ? "min-h-0" : "min-h-[65px]")} />
+          <p className={"mono-meta mt-3 " + (turnstileError ? "border border-[var(--line)] p-4 text-[var(--danger)]" : "muted")} role={turnstileError ? "alert" : "status"} aria-live="polite">{turnstileMessage}</p>
         </div>
       </> : <div ref={turnstileRegion} className="mt-8 min-h-16 border border-dashed border-[var(--line)] p-4 mono-meta text-[var(--danger)]" tabIndex={-1} role="alert">TURNSTILE / NOT CONFIGURED</div>}
       <div className="mt-6 grid grid-cols-[20px_minmax(0,1fr)] items-start gap-3 pl-3">
