@@ -63,7 +63,7 @@ export function SiteShell({ children, footer }: { children: React.ReactNode; foo
   return (
     <>
       <a href="#main-content" className="skip-link">Skip to content</a>
-      <header className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-4 backdrop-blur sm:px-5 lg:hidden">
+      <header data-site-chrome className="surface sticky top-0 z-50 flex min-h-16 items-center justify-between border-b border-[var(--line)] px-4 backdrop-blur sm:px-5 lg:hidden">
         <Link href="/" className="flex min-h-11 items-center font-[family-name:var(--font-geist-mono)] text-lg font-semibold tracking-normal">Artkin Carreon</Link>
         <div className="flex items-center gap-2 text-[var(--accent)] sm:gap-4">
           <ThemeControls />
@@ -79,7 +79,7 @@ export function SiteShell({ children, footer }: { children: React.ReactNode; foo
         ) : null}
       </header>
 
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between gap-8 overflow-y-auto border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
+      <aside data-site-chrome className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar)] flex-col justify-between gap-8 overflow-y-auto border-r border-[var(--line)] bg-[var(--paper-pure)] px-8 py-8 lg:flex">
         <div className="shrink-0 space-y-12">
           <div className="flex items-center justify-between gap-2" data-sidebar-identity>
             <Link href="/" className="inline-flex min-h-11 items-center">

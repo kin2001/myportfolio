@@ -1000,13 +1000,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .site-main [data-phone-compact="tool-card"] li { font-size: 11px; overflow-wrap: anywhere; }
   .site-main [data-approach-copy] .public-body, .site-main [data-approach-item] .public-body { font-size: .8125rem; line-height: 1.55; }
   .site-main [data-approach-item] h3 { font-size: .875rem; }
-  .site-main [data-phone-layout="service-grid"] { grid-template-columns: 1fr; }
   .site-main [data-phone-layout="service-grid"] .public-card-title { font-size: 1rem; }
   .site-main [data-phone-layout="service-grid"] .public-body { font-size: .875rem; }
 
   /* Prose, evidence and forms need usable width, not desktop-scale text. */
-  .site-main :is([data-phone-layout="privacy-hero"],[data-phone-layout="privacy-body"],[data-phone-layout="document-row"],[data-phone-layout="credential-record"]) { grid-template-columns: minmax(0,1fr); }
-  .site-main [data-phone-layout="credential-record"] [data-phone-layout="card-grid"] { grid-template-columns: 1fr; }
   .site-main [data-phone-compact="privacy-nav"] .public-index-link { font-size: 12px; min-height: 44px; }
   .site-main [data-phone-layout="form-grid"] { grid-template-columns: 1fr; }
   .site-main .field { font-size: 16px; }
@@ -1075,32 +1072,31 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 @media (max-width: 767px) {
   .detail-page .public-display { font-size: clamp(1.9rem, 7.5vw, 2.4rem); }
-  .detail-page .detail-facts { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .detail-page .detail-facts > div { min-width: 0; padding: 14px; }
   .detail-page [data-phone-compact="project-meta"] { padding: 0; border: 1px solid var(--line); }
-  .detail-page .project-document-section > :first-child { display: flex; align-items: baseline; gap: 12px; }
-  .detail-page .project-document-section > :first-child .public-card-title { margin-top: 0; }
 }
 
 /* Scale public typography with usable content width (excluding the sidebar).
    Rem-based floors preserve zoom and keep reading text and touch controls usable. */
 .site-main {
   container-type: inline-size;
-  --type-display: clamp(1.75rem, 1rem + 4cqw, 4rem);
+  --type-display: clamp(1.5rem, .5rem + 5cqw, 4rem);
   --type-hero: clamp(1.6rem, .8rem + 5.6cqw, 4.5rem);
-  --type-section: clamp(1.125rem, .8rem + 2cqw, 2.25rem);
-  --type-card: clamp(.875rem, .625rem + 1.25cqw, 1.5rem);
-  --type-body: clamp(.75rem, .625rem + .6cqw, 1rem);
-  --type-lead: clamp(.875rem, .75rem + .65cqw, 1.125rem);
-  --type-meta: clamp(.625rem, .55rem + .3cqw, .75rem);
+  --type-section: clamp(1rem, .4rem + 2.7cqw, 2.25rem);
+  --type-card: clamp(.875rem, .55rem + 1.35cqw, 1.5rem);
+  --type-body: clamp(.75rem, .55rem + .7cqw, 1rem);
+  --type-lead: clamp(.8125rem, .55rem + .95cqw, 1.125rem);
+  --type-meta: clamp(.625rem, .5rem + .35cqw, .75rem);
   --type-action: clamp(.75rem, .675rem + .35cqw, .875rem);
+  --space-panel: clamp(12px, 2.3cqw, 24px);
+  --space-section: clamp(32px, 7cqw, 96px);
 }
 .site-main .public-display { font-size: var(--type-display); }
 .site-main .public-section-title { font-size: var(--type-section); }
 .site-main .public-card-title { font-size: var(--type-card); }
 .site-main .public-body { font-size: var(--type-body); }
 .site-main .public-lead { font-size: var(--type-lead); }
-.site-main .public-prose { font-size: clamp(1rem, .9rem + .3cqw, 1.125rem); }
+.site-main .public-prose { font-size: clamp(.8125rem, .6rem + .8cqw, 1.125rem); }
 .site-main :is(.mono-label, .mono-meta, .hero-link) { font-size: var(--type-meta); }
 .site-main :is(.button-primary, .button-secondary, .button-text) { font-size: var(--type-action); padding-inline: clamp(12px, 1.65cqw, 17px); }
 .site-main .button-text { padding-inline: 0; }
@@ -1111,12 +1107,79 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .site-main .project-process-header button { font-size: var(--type-meta); }
 .site-main :is(.public-index-link, .project-process-number, .site-footer-links .hero-link, [data-phone-compact="tool-card"] li) { font-size: var(--type-meta); }
 .site-main .public-prose code { font-size: var(--type-body); }
-.site-main .public-record-link { padding: clamp(12px, 2.3cqw, 24px); }
-.site-main [data-project-index-card] { min-height: clamp(164px, 21cqw, 216px); }
-.site-main [data-credential-index-card] { min-height: clamp(144px, 19cqw, 188px); }
-.site-main .detail-page .public-display { font-size: clamp(1.75rem, 1rem + 3.5cqw, 3.5rem); }
+.site-main .public-record-link { padding: var(--space-panel); border-radius: clamp(10px, 1.55cqw, 16px); }
+.site-main [data-project-index-card] { min-height: clamp(144px, 21cqw, 216px); }
+.site-main [data-credential-index-card] { min-height: clamp(124px, 19cqw, 188px); }
+.site-main .detail-page .public-display { font-size: clamp(1.5rem, .5rem + 4.2cqw, 3.5rem); }
+
+/* Scale the space around the type as well as the type itself. Keep inputs and
+   navigation at their normal touch size; never shrink the whole page with zoom. */
+.site-main .section-space { margin-top: var(--space-section); }
+.site-main :is(.content-canvas, [data-homepage]) { padding-inline: clamp(16px, 3cqw, 32px); }
+.site-main :is(.public-display, .public-section-title, .public-card-title, .public-body, .public-lead, .mono-meta) { overflow-wrap: anywhere; }
+.site-main .public-record-link > .mt-2 { margin-top: clamp(5px, .8cqw, 8px); }
+.site-main .public-record-link > .mt-3 { margin-top: clamp(8px, 1.2cqw, 12px); }
+.site-main .public-record-link > .pt-6 { padding-top: clamp(12px, 2.3cqw, 24px); }
+.site-main .animated-heading-rule { width: clamp(44px, 8cqw, 88px); }
+
+@container (max-width: 1023px) {
+  .site-main .content-canvas { padding-top: 24px; padding-bottom: 48px; }
+  .site-main .content-canvas > header { padding-bottom: clamp(24px, 5cqw, 56px); }
+  .site-main :is(.content-canvas, [data-homepage]) :is(.mt-4, .mt-5, .mt-6) { margin-top: clamp(10px, 2cqw, 24px); }
+  .site-main :is(.content-canvas, [data-homepage]) .mt-8 { margin-top: clamp(16px, 3cqw, 32px); }
+  .site-main .detail-page > :is(section, figure, footer),
+  .site-main .project-document-section { padding-block: clamp(20px, 4cqw, 48px); }
+  .site-main :is([data-phone-layout="privacy-hero"], [data-phone-layout="about-hero"]) { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: var(--space-panel); }
+  .site-main [data-phone-layout="privacy-body"] { grid-template-columns: minmax(0, .65fr) minmax(0, 1.75fr); gap: var(--space-panel); }
+  .site-main [data-phone-layout="document-row"] { grid-template-columns: minmax(0, .65fr) minmax(0, 1.75fr); gap: var(--space-panel); }
+  .site-main [data-phone-layout="document-row"] > :first-child { display: block; }
+  .site-main [data-phone-layout="document-row"] .public-card-title { margin-top: 8px; }
+  .site-main .credential-detail-layout.has-record { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-panel); }
+  .site-main .credential-detail-layout > section { padding-block: var(--space-panel); }
+  .site-main .credential-detail-layout .module > div,
+  .site-main .credential-detail-layout .module > p { min-height: 0; padding: var(--space-panel); }
+  .site-main .credential-document { min-height: 0; }
+  .site-main .credential-detail-record li { padding: 5px 7px; overflow-wrap: anywhere; }
+  .site-main .detail-facts > div { padding: clamp(8px, 1.4cqw, 20px); }
+  .site-main [data-phone-layout="service-grid"],
+  .site-main [data-phone-layout="toolkit-grid"] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-panel); }
+  .site-main :is([data-phone-layout="service-grid"] > *, [data-phone-compact="tool-card"], [data-phone-compact="privacy-summary"], [data-phone-compact="privacy-section"]) { padding: var(--space-panel); min-width: 0; }
+  .site-main [data-phone-layout="indexed-copy"] { grid-template-columns: 18px minmax(0, 1fr); gap: 6px; }
+  .site-main [data-phone-layout="action-row"] { gap: var(--space-panel); }
+  .site-main [data-phone-layout="action-row"] > :is(a, button) { flex-shrink: 1; max-width: 48%; white-space: normal; text-align: center; }
+}
+
+@container (max-width: 767px) {
+  /* A form needs full reading width, unlike the surrounding presentation grids. */
+  .site-main [data-phone-compact="contact-form"] { padding: 16px; }
+  .site-main [data-phone-compact="privacy-nav"] .public-index-link { font-size: var(--type-meta); overflow-wrap: anywhere; }
+  .site-main [data-phone-layout="privacy-hero"] { align-items: start; }
+  .site-main :is([data-phone-layout="service-grid"], [data-phone-layout="toolkit-grid"]) { gap: 8px; }
+  .site-main :is([data-phone-layout="service-grid"] > *, [data-phone-compact="tool-card"]) { padding: 8px; }
+  .site-main [data-phone-compact="tool-card"] > div { gap: 4px; }
+  .site-main [data-phone-compact="tool-card"] > div svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .site-main [data-phone-compact="tool-card"] :is(h3, li) { font-size: .5625rem; letter-spacing: 0; }
+  .site-main [data-phone-compact="tool-card"] li { padding: 4px; }
+  .site-main [data-phone-layout="service-grid"] .public-card-title { font-size: var(--type-card); }
+  .site-main [data-phone-layout="service-grid"] .public-body { font-size: var(--type-body); }
+  .site-main [data-phone-layout="facts-three"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .site-main [data-phone-layout="facts-four"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .site-main .project-process-steps h3 { font-size: var(--type-body); }
+  .site-main [data-approach-copy] .public-section-title { font-size: var(--type-section); }
+}
+
+/* Independent scale leaves the existing portrait/reveal transforms untouched.
+   Native :active also works without JavaScript and never delays navigation. */
+:is(.site-main, [data-site-chrome]) :is(a[href], button:not(:disabled), summary, input[type="checkbox"], input[type="radio"]) {
+  -webkit-tap-highlight-color: transparent;
+  transition: scale 160ms cubic-bezier(.2, .8, .2, 1), color 180ms ease, background-color 180ms ease, border-color 180ms ease, translate 220ms cubic-bezier(.16, 1, .3, 1);
+}
+:is(.site-main, [data-site-chrome]) :is(a[href], button:not(:disabled), summary, input[type="checkbox"], input[type="radio"]):not([aria-disabled="true"]):active { scale: .97; }
+.site-main a.public-record-link:active { scale: .985; }
+.site-main :is(.public-body, .public-prose) a:active { color: var(--accent); text-decoration-thickness: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
+  :is(.site-main, [data-site-chrome]) :is(a, button, summary, input) { scale: none !important; }
   .site-main :is(.button-primary, .button-secondary, .button-text, .public-record-link) { translate: none !important; }
   .site-main :is(.button-primary, .button-secondary, .button-text) svg { transform: none !important; }
   :root[data-theme-transition="circle"]::view-transition-new(root) { animation: none; }

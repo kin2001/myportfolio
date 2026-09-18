@@ -322,23 +322,26 @@
 @media (max-width: 767px) {
   .hero .init {
     display: block;
-    font-size: var(--type-meta);
+    font-size: clamp(8px, 1.45cqw, 11px);
     line-height: 1.5;
     letter-spacing: .08em;
+    white-space: nowrap;
   }
 
 
   .hero :global(.public-display-hero) {
-    font-size: clamp(1.25rem, 7cqw, var(--type-hero));
+    font-size: clamp(1.125rem, 5.8cqw, var(--type-hero));
     line-height: 1.05;
   }
 
   .hero :global(.public-lead) {
-    font-size: var(--type-lead);
+    font-size: var(--type-body);
     line-height: 1.65;
   }
-  .heroCopy { grid-column: 1 / -1; }
-  .hero .portrait { grid-row: 1; }
+  .heroCopy { grid-column: 1; }
+  .hero .portrait { grid-row: 1 / span 2; align-self: start; }
+  .hero .links { margin-top: 12px; }
+  .hero .links :global(.button-primary) { padding-inline: 10px; gap: 6px; }
   .home > [data-home-surface="tint"] { padding: 16px 12px; }
 
   .hero .links {
