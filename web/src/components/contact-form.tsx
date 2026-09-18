@@ -27,8 +27,9 @@ declare global {
   interface Window { turnstile?: TurnstileApi }
 }
 
-const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-  || (process.env.NODE_ENV === "development" ? "1x00000000000000000000AA" : "");
+const turnstileSiteKey = process.env.NODE_ENV === "development"
+  ? "1x00000000000000000000AA"
+  : process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 const initialTurnstileMessage = !turnstileSiteKey
   ? "Security check is not configured."
   : process.env.NODE_ENV === "development"
