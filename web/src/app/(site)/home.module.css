@@ -320,6 +320,12 @@
 }
 
 @media (max-width: 767px) {
+  .hero {
+    grid-template-columns: minmax(0, 1.25fr) minmax(112px, .75fr);
+    column-gap: 10px;
+    align-items: center;
+  }
+
   .hero .init {
     display: block;
     font-size: clamp(8px, 1.45cqw, 11px);
@@ -330,7 +336,7 @@
 
 
   .hero :global(.public-display-hero) {
-    font-size: clamp(1.125rem, 5.8cqw, var(--type-hero));
+    font-size: clamp(1.0625rem, 5.2cqw, var(--type-hero));
     line-height: 1.05;
   }
 
@@ -339,15 +345,18 @@
     line-height: 1.65;
   }
   .heroCopy { grid-column: 1; }
-  .hero .portrait { grid-row: 1 / span 2; align-self: start; }
+  .hero .portrait { grid-row: 1 / span 2; align-self: start; max-width: 144px; margin-top: 14px; }
   .hero .links { margin-top: 12px; }
-  .hero .links :global(.button-primary) { padding-inline: 10px; gap: 6px; }
+  .hero .links :global(.button-primary) { padding-inline: 9px; gap: 6px; }
   .home > [data-home-surface="tint"] { padding: 16px 12px; }
 
   .hero .links {
-    column-gap: 12px;
+    flex-wrap: nowrap;
+    column-gap: 8px;
     row-gap: 0;
   }
+
+  .hero .links > * { flex: 0 0 auto; white-space: nowrap; }
 
   .hero .links :global(.hero-link) {
     font-size: 8px;

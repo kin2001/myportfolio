@@ -1080,23 +1080,23 @@ button, a { -webkit-tap-highlight-color: transparent; }
    Rem-based floors preserve zoom and keep reading text and touch controls usable. */
 .site-main {
   container-type: inline-size;
-  --type-display: clamp(1.5rem, .5rem + 5cqw, 4rem);
+  --type-display: clamp(1.375rem, .45rem + 4.9cqw, 4rem);
   --type-hero: clamp(1.6rem, .8rem + 5.6cqw, 4.5rem);
-  --type-section: clamp(1rem, .4rem + 2.7cqw, 2.25rem);
-  --type-card: clamp(.875rem, .55rem + 1.35cqw, 1.5rem);
-  --type-body: clamp(.75rem, .55rem + .7cqw, 1rem);
-  --type-lead: clamp(.8125rem, .55rem + .95cqw, 1.125rem);
-  --type-meta: clamp(.625rem, .5rem + .35cqw, .75rem);
-  --type-action: clamp(.75rem, .675rem + .35cqw, .875rem);
-  --space-panel: clamp(12px, 2.3cqw, 24px);
-  --space-section: clamp(32px, 7cqw, 96px);
+  --type-section: clamp(.9375rem, .4rem + 2.7cqw, 2.25rem);
+  --type-card: clamp(.75rem, .5rem + 1.4cqw, 1.5rem);
+  --type-body: clamp(.6875rem, .5rem + .7cqw, 1rem);
+  --type-lead: clamp(.75rem, .5rem + .95cqw, 1.125rem);
+  --type-meta: clamp(.5625rem, .45rem + .35cqw, .75rem);
+  --type-action: clamp(.625rem, .5rem + .45cqw, .875rem);
+  --space-panel: clamp(10px, 2.1cqw, 24px);
+  --space-section: clamp(28px, 7cqw, 96px);
 }
 .site-main .public-display { font-size: var(--type-display); }
 .site-main .public-section-title { font-size: var(--type-section); }
 .site-main .public-card-title { font-size: var(--type-card); }
 .site-main .public-body { font-size: var(--type-body); }
 .site-main .public-lead { font-size: var(--type-lead); }
-.site-main .public-prose { font-size: clamp(.8125rem, .6rem + .8cqw, 1.125rem); }
+.site-main .public-prose { font-size: clamp(.75rem, .55rem + .8cqw, 1.125rem); }
 .site-main :is(.mono-label, .mono-meta, .hero-link) { font-size: var(--type-meta); }
 .site-main :is(.button-primary, .button-secondary, .button-text) { font-size: var(--type-action); padding-inline: clamp(12px, 1.65cqw, 17px); }
 .site-main .button-text { padding-inline: 0; }
@@ -1115,7 +1115,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 /* Scale the space around the type as well as the type itself. Keep inputs and
    navigation at their normal touch size; never shrink the whole page with zoom. */
 .site-main .section-space { margin-top: var(--space-section); }
-.site-main :is(.content-canvas, [data-homepage]) { padding-inline: clamp(16px, 3cqw, 32px); }
+.site-main :is(.content-canvas, [data-homepage]) { padding-inline: clamp(14px, 3cqw, 32px); }
 .site-main :is(.public-display, .public-section-title, .public-card-title, .public-body, .public-lead, .mono-meta) { overflow-wrap: anywhere; }
 .site-main .public-record-link > .mt-2 { margin-top: clamp(5px, .8cqw, 8px); }
 .site-main .public-record-link > .mt-3 { margin-top: clamp(8px, 1.2cqw, 12px); }
@@ -1150,22 +1150,41 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 @container (max-width: 767px) {
-  /* A form needs full reading width, unlike the surrounding presentation grids. */
-  .site-main [data-phone-compact="contact-form"] { padding: 16px; }
+  .site-main [data-phone-layout="about-hero"] { grid-template-columns: minmax(0, 1.25fr) minmax(104px, .75fr); gap: 10px; }
+  .site-main [data-phone-compact="portrait-card"] { padding: 8px; }
+  .site-main [data-phone-compact="portrait-card"] figcaption { align-items: flex-start; gap: 4px; }
+
+  .site-main [data-phone-layout="contact-hero"] {
+    grid-template-columns: minmax(82px, .72fr) minmax(0, 1.78fr);
+    grid-template-rows: auto 1fr;
+    gap: 10px;
+  }
+  .site-main [data-phone-layout="contact-hero"] > :first-child { grid-column: 1; grid-row: 1; }
+  .site-main [data-phone-layout="contact-hero"] > :nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
+  .site-main [data-phone-layout="contact-hero"] > :nth-child(3) { grid-column: 1; grid-row: 2; align-self: center; }
+  .site-main [data-phone-layout="contact-hero"] .public-lead { margin-top: 12px; }
+
+  .site-main [data-phone-compact="contact-form"] { padding: 12px; }
+  .site-main [data-phone-layout="form-grid"] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .site-main [data-phone-compact="privacy-nav"] .public-index-link { font-size: var(--type-meta); overflow-wrap: anywhere; }
   .site-main [data-phone-layout="privacy-hero"] { align-items: start; }
-  .site-main :is([data-phone-layout="service-grid"], [data-phone-layout="toolkit-grid"]) { gap: 8px; }
-  .site-main :is([data-phone-layout="service-grid"] > *, [data-phone-compact="tool-card"]) { padding: 8px; }
+  .site-main [data-phone-layout="service-grid"] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .site-main [data-phone-layout="toolkit-grid"] { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .site-main :is([data-phone-layout="service-grid"] > *, [data-phone-compact="tool-card"]) { padding: 9px; }
   .site-main [data-phone-compact="tool-card"] > div { gap: 4px; }
   .site-main [data-phone-compact="tool-card"] > div svg { width: 12px; height: 12px; flex-shrink: 0; }
-  .site-main [data-phone-compact="tool-card"] :is(h3, li) { font-size: .5625rem; letter-spacing: 0; }
+  .site-main [data-phone-compact="tool-card"] :is(h3, li) { font-size: var(--type-meta); letter-spacing: 0; }
   .site-main [data-phone-compact="tool-card"] li { padding: 4px; }
   .site-main [data-phone-layout="service-grid"] .public-card-title { font-size: var(--type-card); }
   .site-main [data-phone-layout="service-grid"] .public-body { font-size: var(--type-body); }
+  .site-main [data-phone-layout="service-grid"] > * .public-card-title { margin-top: 8px; }
+  .site-main [data-phone-layout="service-grid"] > * .public-body { margin-top: 6px; line-height: 1.45; }
   .site-main [data-phone-layout="facts-three"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .site-main [data-phone-layout="facts-four"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .site-main .project-process-steps h3 { font-size: var(--type-body); }
   .site-main [data-approach-copy] .public-section-title { font-size: var(--type-section); }
+  .site-main [data-phone-layout="project-capabilities"] { gap: 8px; padding-block: 12px; }
+  .site-main [data-phone-layout="project-capabilities"] .public-body { line-height: 1.45; }
 }
 
 /* Independent scale leaves the existing portrait/reveal transforms untouched.
