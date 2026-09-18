@@ -1150,6 +1150,32 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 @container (max-width: 767px) {
+  /* Keep phone actions visually proportional to the scaled page while retaining
+     a full 44px touch target. */
+  .site-main :is(.button-primary, .button-secondary, .button-text) {
+    min-height: 44px;
+    gap: 8px;
+    padding: 7px clamp(10px, 2.8cqw, 14px);
+    font-size: clamp(.5625rem, .5rem + .25cqw, .6875rem);
+  }
+  .site-main .button-text { padding-inline: 0; }
+  .site-main :is(.button-primary, .button-secondary, .button-text) svg { width: 14px; height: 14px; }
+
+  .site-main .site-footer {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-inline: clamp(14px, 4cqw, 20px);
+    padding-block: clamp(16px, 5cqw, 24px);
+  }
+  .site-main .site-footer > div { min-width: 0; }
+  .site-main .site-footer :is(.mono-label, .mono-meta, .hero-link) {
+    font-size: clamp(.5rem, .45rem + .25cqw, .625rem);
+    letter-spacing: .02em;
+  }
+  .site-main .site-footer :is(.mono-label, .mono-meta) { overflow-wrap: anywhere; }
+  .site-main .site-footer-links { flex: 0 0 auto; gap: 0; }
+  .site-main .social-icon-link svg { width: 16px; height: 16px; }
+
   .site-main [data-phone-layout="about-hero"] { grid-template-columns: minmax(0, 1.25fr) minmax(104px, .75fr); gap: 10px; }
   .site-main [data-phone-compact="portrait-card"] { padding: 8px; }
   .site-main [data-phone-compact="portrait-card"] figcaption { align-items: flex-start; gap: 4px; }
