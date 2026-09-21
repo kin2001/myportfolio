@@ -16,7 +16,7 @@ type TurnstileApi = {
     sitekey: string;
     action: string;
     appearance: "always";
-    size: "flexible";
+    size: "compact";
     theme: "light" | "dark";
     callback: (token: string) => void;
     "expired-callback": () => void;
@@ -186,7 +186,7 @@ export function BookingCalendarPreview() {
       sitekey: turnstileSiteKey,
       action: "portfolio_booking",
       appearance: "always",
-      size: "flexible",
+      size: "compact",
       theme,
       callback: (token) => {
         setTurnstileToken(token);
@@ -231,7 +231,8 @@ export function BookingCalendarPreview() {
     const form = event.currentTarget;
     const data = new FormData(form);
     const payload = {
-      name: String(data.get("name") ?? "").trim(),
+      firstName: String(data.get("firstName") ?? "").trim(),
+      lastName: String(data.get("lastName") ?? "").trim(),
       email: String(data.get("email") ?? "").trim(),
       phone: String(data.get("phone") ?? "").trim(),
       company: String(data.get("company") ?? "").trim(),
@@ -241,7 +242,7 @@ export function BookingCalendarPreview() {
       startTime: selectedTime,
       turnstileToken,
     };
-    if (!payload.name || !payload.email || payload.phone.length < 7 || payload.project.length < 20 || !payload.consent) {
+    if (!payload.firstName || !payload.lastName || !payload.email || payload.phone.length < 7 || payload.project.length < 20 || !payload.consent) {
       setBookingStatus("error");
       setBookingMessage("Complete the required fields and describe your project in at least 20 characters.");
       return;
@@ -297,6 +298,7 @@ export function BookingCalendarPreview() {
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
           strategy="afterInteractive"
+          onLoad={() => setScriptReady(true)}
           onReady={() => setScriptReady(true)}
           onError={() => setTurnstileMessage("Security check could not load. Refresh the page or try Chrome or Edge.")}
         />
@@ -392,13 +394,15 @@ export function BookingCalendarPreview() {
       {step === "details" ? (
         <div className={`${styles.panel} ${styles.detailsGrid}`} key="details">
           <aside className={styles.summaryPane} aria-label="Selected appointment">
+            <button className={`${styles.iconButton} ${styles.detailsBack}`} type="button" onClick={() => setStep("schedule")} aria-label="Back to schedule" title="Back to schedule">
+              <Icon name="arrow" />
+            </button>
             <p className="mono-label">Your selection</p>
             <div className={styles.summaryList}>
               <div className={styles.summaryItem}><p className="mono-meta muted">Date</p><p className="public-body mt-2">{readableDate(selectedDate)}</p></div>
               <div className={styles.summaryItem}><p className="mono-meta muted">Time</p><p className="public-body mt-2">{readableTime(selectedTime)}–{endingTime(selectedTime)}</p></div>
               <div className={styles.summaryItem}><p className="mono-meta muted">Format</p><p className="public-body mt-2">50-minute Google Meet call</p></div>
             </div>
-            <button className="button-text mt-5" type="button" onClick={() => setStep("schedule")}>Change date or time</button>
           </aside>
 
           <form className={styles.formPane} onSubmit={submitBooking} aria-busy={bookingStatus === "sending"}>
@@ -407,17 +411,14 @@ export function BookingCalendarPreview() {
               <h4 className="public-card-title mt-3">Tell me enough to prepare.</h4>
             </div>
             <div className={`${styles.formGrid} mt-7`}>
-              <label><span className="mono-label">Full name *</span><input className="field mt-2" name="name" autoComplete="name" maxLength={100} required /></label>
+              <label><span className="mono-label">First name *</span><input className="field mt-2" name="firstName" autoComplete="given-name" maxLength={100} required /></label>
+              <label><span className="mono-label">Last name *</span><input className="field mt-2" name="lastName" autoComplete="family-name" maxLength={100} required /></label>
               <label><span className="mono-label">Email *</span><input className="field mt-2" name="email" type="email" autoComplete="email" maxLength={254} required /></label>
               <label><span className="mono-label">Phone *</span><input className="field mt-2" name="phone" type="tel" autoComplete="tel" maxLength={30} required /></label>
-              <label><span className="mono-label">Company</span><input className="field mt-2" name="company" autoComplete="organization" maxLength={120} /></label>
+              <label className={styles.fullField}><span className="mono-label">Company</span><input className="field mt-2" name="company" autoComplete="organization" maxLength={120} /></label>
               <label className={styles.fullField}><span className="mono-label">What process would you like to improve? *</span><textarea className="field mt-2 min-h-28 resize-y" name="project" minLength={20} maxLength={2000} required placeholder="Briefly describe the workflow, tools, and desired outcome." /></label>
             </div>
             <label className={styles.honeypot} aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
-            <label className={styles.consent}>
-              <input name="consent" type="checkbox" required />
-              <span className="public-body">I agree to receive confirmations, reminders, and follow-up messages related to this call and accept the <Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link>.</span>
-            </label>
             {turnstileSiteKey ? (
               <div ref={turnstileRegion} className={styles.securityCheck} tabIndex={-1} aria-label="Security check">
                 <p className="mono-label">Security check</p>
@@ -425,10 +426,13 @@ export function BookingCalendarPreview() {
                 <p className="mono-meta muted" role="status" aria-live="polite">{turnstileMessage}</p>
               </div>
             ) : <p ref={turnstileRegion} className={styles.bookingError} tabIndex={-1} role="alert">Security check is not configured.</p>}
+            <label className={styles.consent}>
+              <input name="consent" type="checkbox" required />
+              <span className="public-body">I agree to receive confirmations, reminders, and follow-up messages related to this call and accept the <Link href="/privacy" className="accent underline underline-offset-4">Privacy Terms and Conditions</Link>.</span>
+            </label>
             <div className={styles.actions}>
-              <button className="button-primary" type="submit" disabled={bookingStatus === "sending"}>{bookingStatus === "sending" ? "Booking your call..." : "Book discovery call"} <Icon name="arrow" className="h-4 w-4" /></button>
-              <button className="button-text" type="button" onClick={() => setStep("schedule")}>Back to schedule</button>
               <p className={bookingStatus === "error" ? styles.bookingError : styles.bookingStatus} role={bookingStatus === "error" ? "alert" : "status"} aria-live="polite">{bookingMessage}</p>
+              <button className="button-primary" type="submit" disabled={bookingStatus === "sending"}>{bookingStatus === "sending" ? "Booking your call..." : "Book a call"} <Icon name="arrow" className="h-4 w-4" /></button>
             </div>
           </form>
         </div>

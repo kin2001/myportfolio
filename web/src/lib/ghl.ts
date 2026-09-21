@@ -81,7 +81,8 @@ export async function getFreeSlots(month: string) {
 }
 
 export async function upsertContact(input: {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   company: string;
@@ -91,7 +92,9 @@ export async function upsertContact(input: {
     method: "POST",
     body: JSON.stringify({
       locationId,
-      name: input.name,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      name: `${input.firstName} ${input.lastName}`,
       email: input.email,
       phone: input.phone,
       companyName: input.company || undefined,

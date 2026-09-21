@@ -84,7 +84,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_payload" }, { status: 400 });
   }
 
-  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+  const lastName = typeof body.lastName === "string" ? body.lastName.trim() : "";
+  const name = `${firstName} ${lastName}`;
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   const company = typeof body.company === "string" ? body.company.trim() : "";
@@ -96,7 +98,8 @@ export async function POST(request: Request) {
 
   const startTimestamp = Date.parse(startTime);
   if (
-    name.length < 2 || name.length > 100
+    firstName.length < 1 || firstName.length > 100
+    || lastName.length < 1 || lastName.length > 100
     || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     || phone.length < 7 || phone.length > 30
     || company.length > 120
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const contactId = await upsertContact({ name, email, phone, company });
+    const contactId = await upsertContact({ firstName, lastName, email, phone, company });
     const appointmentId = await createAppointment({ contactId, name, project, startTime });
     return Response.json({ appointmentId }, { status: 201 });
   } catch (error) {

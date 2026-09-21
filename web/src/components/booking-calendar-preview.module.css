@@ -252,6 +252,14 @@
   margin-top: 20px;
 }
 
+.detailsBack {
+  margin-bottom: 18px;
+}
+
+.detailsBack svg {
+  transform: rotate(180deg);
+}
+
 .summaryItem {
   padding-bottom: 14px;
   border-bottom: 0.5px solid var(--line);
@@ -288,14 +296,16 @@
 }
 
 .securityCheck {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
   width: 100%;
-  max-width: 420px;
   margin-top: 18px;
 }
 
 .turnstile {
-  min-height: 65px;
-  margin-top: 10px;
+  min-width: 150px;
+  min-height: 140px;
 }
 
 .bookingStatus,
@@ -319,6 +329,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   margin-top: 20px;
 }
@@ -360,6 +371,10 @@
   }
 
   .shell .mobileBack:hover svg {
+    transform: translateX(-3px) rotate(180deg);
+  }
+
+  .detailsBack:hover svg {
     transform: translateX(-3px) rotate(180deg);
   }
 }
