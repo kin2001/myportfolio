@@ -114,13 +114,9 @@ export function BookingCalendarPreview() {
   }
 
   return (
-    <section className={styles.shell} aria-labelledby="booking-preview-title">
+    <section className={styles.shell} aria-label="Book a discovery call">
       <div className={styles.header}>
-        <div className={styles.headerCopy}>
-          <p className="mono-meta accent">50 minutes · Google Meet · GMT+8</p>
-          <h3 id="booking-preview-title" className="public-card-title mt-3">Choose a time for your project discovery call.</h3>
-          <p className="public-body mt-3">Select an available time first, then share the details needed to prepare for the conversation.</p>
-        </div>
+        <p className="mono-meta accent">50 minutes · Google Meet · GMT+8</p>
         <div className={styles.steps} aria-label="Booking progress">
           <span className={`mono-meta ${styles.step} ${step === "schedule" ? styles.stepActive : ""}`}>01 Schedule</span>
           <span className={`mono-meta ${styles.step} ${step === "details" ? styles.stepActive : ""}`}>02 Details</span>

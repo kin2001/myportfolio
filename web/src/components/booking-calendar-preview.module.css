@@ -31,10 +31,6 @@
   padding: 0 0 clamp(16px, 2.2cqw, 28px);
 }
 
-.headerCopy {
-  max-width: 58ch;
-}
-
 .steps {
   display: flex;
   flex: 0 0 auto;

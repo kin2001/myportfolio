@@ -385,11 +385,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 /* Evidence retains its real colors, including a light backing for transparent files. */
 :root[data-theme="dark"] .site-main [data-reveal="media"] img,
 :root[data-theme="dark"] .site-main [aria-labelledby="credential-evidence-heading"] img { background: #fff; }
-:root[data-theme="dark"] .site-main .contact-network-art {
-  filter: invert(1) grayscale(1);
-  mix-blend-mode: screen;
-  opacity: .8;
-}
 
 .button-primary,
 .button-secondary {
