@@ -444,8 +444,13 @@ export function BookingCalendarPreview() {
             <p className="mono-meta accent">Booking confirmed</p>
             <h4 className="public-section-title mt-4">Your discovery call is booked.</h4>
             <p className="public-body mt-4">A confirmation email with the meeting details has been sent to you. You’ll also receive reminders before the call.</p>
-            <button className="button-secondary mt-7" type="button" onClick={reset}>Book another time</button>
           </div>
+          <dl className={styles.completeSummary} aria-label="Confirmed appointment details">
+            <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Date</dt><dd className="public-body">{readableDate(selectedDate)}</dd></div>
+            <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Time</dt><dd className="public-body">{readableTime(selectedTime)}–{endingTime(selectedTime)}</dd></div>
+            <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Format</dt><dd className="public-body">Google Meet · 50 minutes</dd></div>
+          </dl>
+          <button className={`button-text ${styles.completeAction}`} type="button" onClick={reset}>Book another time <Icon name="arrow" className="h-4 w-4" /></button>
         </div>
       ) : null}
     </section>

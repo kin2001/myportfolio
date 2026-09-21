@@ -336,14 +336,40 @@
 }
 
 .completePane {
-  min-height: 280px;
   display: grid;
-  place-items: center;
-  text-align: center;
+  grid-template-columns: minmax(0, 1.25fr) minmax(220px, .75fr);
+  align-items: start;
+  gap: clamp(24px, 4cqw, 48px);
 }
 
 .completeCopy {
-  max-width: 560px;
+  max-width: 620px;
+}
+
+.completeSummary {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  border-top: 0.5px solid var(--line);
+}
+
+.completeSummaryItem {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 0.5px solid var(--line);
+}
+
+.completeSummaryItem :is(dt, dd) {
+  margin: 0;
+}
+
+.completeAction {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  margin-top: 8px;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -396,6 +422,22 @@
 
   .detailsGrid {
     grid-template-columns: 1fr;
+  }
+
+  .completePane {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .completeSummary {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .completeAction {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 0;
   }
 
   .scheduleGrid {
