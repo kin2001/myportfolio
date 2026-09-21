@@ -16,7 +16,7 @@ type TurnstileApi = {
     sitekey: string;
     action: string;
     appearance: "always";
-    size: "compact";
+    size: "flexible";
     theme: "light" | "dark";
     callback: (token: string) => void;
     "expired-callback": () => void;
@@ -186,7 +186,7 @@ export function BookingCalendarPreview() {
       sitekey: turnstileSiteKey,
       action: "portfolio_booking",
       appearance: "always",
-      size: "compact",
+      size: "flexible",
       theme,
       callback: (token) => {
         setTurnstileToken(token);
