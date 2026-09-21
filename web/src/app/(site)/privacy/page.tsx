@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 };
 
 const sections = [
-  { id: "data-collected", title: "Data collected", body: "The inquiry form collects your name, email address, optional company, project type, message, consent choice, and submission time." },
+  { id: "data-collected", title: "Data collected", body: "The inquiry and booking forms may collect your name, email address, phone number, optional company, project details, selected appointment time, consent choice, and submission time." },
   { id: "why-it-is-used", title: "Why it is used", body: "Artkin uses this information to understand your request, contact you, ask follow-up questions, arrange a project meeting, and maintain the related business conversation." },
-  { id: "where-it-goes", title: "Where it goes", body: "Your submission is sent to the private portfolio API and stored in Supabase. Cloudflare Turnstile processes the form security token. A redacted message may be sent to the configured NVIDIA AI service, and Resend processes the approved email reply. Hosting providers may process the network logs required to operate the site." },
+  { id: "where-it-goes", title: "Where it goes", body: "Inquiry submissions are sent to the private portfolio API and stored in Supabase. Booking details are sent to HighLevel to create the contact and appointment and deliver the related notifications. Cloudflare Turnstile processes the form security token. A redacted inquiry message may be sent to the configured NVIDIA AI service, and Resend processes the approved email reply. Hosting providers may process the network logs required to operate the site." },
   { id: "ai-and-human-review", title: "AI and human review", body: "Names, email addresses, company names, and obvious URLs are removed before AI analysis. AI may help summarize the request, classify intent, or prepare a draft. Artkin reviews every reply before it is sent." },
   { id: "retention", title: "Retention", body: "Inquiries are retained for up to 90 days by default. They may be kept longer when an active project conversation requires it, then deleted when no longer needed." },
   { id: "your-choices", title: "Your choices", body: "You may request access, correction, or deletion through the Contact page. Inquiry data is not sold, published, or used for unrelated marketing, and no AI-generated reply is sent automatically." },

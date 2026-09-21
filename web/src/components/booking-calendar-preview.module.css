@@ -233,6 +233,14 @@
   border-top: 0.5px solid var(--line);
 }
 
+.availabilityMessage {
+  min-height: 44px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
 .detailsGrid {
   display: grid;
   grid-template-columns: minmax(210px, .62fr) minmax(0, 1.38fr);
@@ -274,11 +282,37 @@
   accent-color: var(--accent);
 }
 
-.securityNote {
+.honeypot {
+  position: absolute;
+  left: -9999px;
+}
+
+.securityCheck {
+  width: 100%;
+  max-width: 420px;
   margin-top: 18px;
-  background: var(--paper-soft);
-  padding: 12px 14px;
+}
+
+.turnstile {
+  min-height: 65px;
+  margin-top: 10px;
+}
+
+.bookingStatus,
+.bookingError {
+  flex-basis: 100%;
+  margin: 0;
+  font-family: var(--font-geist-mono);
+  font-size: .625rem;
+  line-height: 1.5;
+}
+
+.bookingStatus {
   color: var(--muted);
+}
+
+.bookingError {
+  color: var(--danger);
 }
 
 .actions {
