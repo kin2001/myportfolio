@@ -3,12 +3,32 @@
   background: transparent;
 }
 
+.shell :global(.public-card-title) {
+  font-size: clamp(.9375rem, .78rem + .6cqw, 1.125rem);
+  line-height: 1.25;
+}
+
+.shell :global(.public-section-title) {
+  font-size: clamp(1.125rem, .85rem + 1cqw, 1.75rem);
+}
+
+.shell :global(.public-body) {
+  font-size: clamp(.75rem, .66rem + .3cqw, .875rem);
+  line-height: 1.5;
+}
+
+.shell :global(.mono-label),
+.shell :global(.mono-meta) {
+  font-size: clamp(.5625rem, .52rem + .12cqw, .625rem);
+  letter-spacing: .06em;
+}
+
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  padding: 0 0 clamp(24px, 3vw, 36px);
+  gap: 16px;
+  padding: 0 0 clamp(16px, 2.2cqw, 28px);
 }
 
 .headerCopy {
@@ -22,9 +42,9 @@
 }
 
 .step {
-  min-width: 32px;
+  min-width: 28px;
   border-bottom: 1px solid var(--line);
-  padding: 0 0 8px;
+  padding: 0 0 6px;
   color: var(--muted);
   text-align: center;
 }
@@ -41,7 +61,7 @@
 .scheduleGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(230px, .6fr);
-  gap: clamp(12px, 2vw, 24px);
+  gap: clamp(8px, 1.2cqw, 16px);
 }
 
 .calendarPane,
@@ -50,7 +70,7 @@
 .formPane,
 .completePane {
   min-width: 0;
-  padding: clamp(20px, 3vw, 32px);
+  padding: clamp(14px, 2cqw, 24px);
 }
 
 .calendarPane,
@@ -70,7 +90,7 @@
   min-height: 44px;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
 .monthControls {
@@ -115,13 +135,13 @@
 }
 
 .weekdayGrid {
-  margin-top: 22px;
+  margin-top: 16px;
   color: var(--muted);
   text-align: center;
 }
 
 .dateGrid {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .dateCell {
@@ -133,13 +153,14 @@
   background: transparent;
   color: var(--muted);
   cursor: default;
+  font-size: clamp(.6875rem, .64rem + .18cqw, .8125rem);
   font-variant-numeric: tabular-nums;
 }
 
 .dateCell::before {
   position: absolute;
   inset: 50% auto auto 50%;
-  width: min(40px, 100%);
+  width: min(34px, 100%);
   aspect-ratio: 1;
   border-radius: 50%;
   content: "";
@@ -177,8 +198,8 @@
 
 .timeList {
   display: grid;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 6px;
+  margin-top: 14px;
 }
 
 .timeButton {
@@ -187,6 +208,7 @@
   background: var(--paper-pure);
   color: var(--ink);
   cursor: pointer;
+  font-size: .8125rem;
   font-variant-numeric: tabular-nums;
   transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, translate 220ms cubic-bezier(.16, 1, .3, 1);
 }
@@ -196,14 +218,22 @@
   color: var(--accent);
 }
 
+.shell .mobileBack {
+  display: none;
+}
+
+.shell .mobileBack svg {
+  transform: rotate(180deg);
+}
+
 .continueButton {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 14px;
 }
 
 .timezone {
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 10px;
   border-top: 0.5px solid var(--line);
 }
 
@@ -214,19 +244,19 @@
 
 .summaryList {
   display: grid;
-  gap: 18px;
-  margin-top: 28px;
+  gap: 14px;
+  margin-top: 20px;
 }
 
 .summaryItem {
-  padding-bottom: 18px;
+  padding-bottom: 14px;
   border-bottom: 0.5px solid var(--line);
 }
 
 .formGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 18px;
 }
 
 .fullField {
@@ -237,8 +267,8 @@
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 18px;
 }
 
 .consent input {
@@ -249,9 +279,9 @@
 }
 
 .securityNote {
-  margin-top: 24px;
+  margin-top: 18px;
   background: var(--paper-soft);
-  padding: 14px 16px;
+  padding: 12px 14px;
   color: var(--muted);
 }
 
@@ -259,12 +289,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  margin-top: 28px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .completePane {
-  min-height: 360px;
+  min-height: 280px;
   display: grid;
   place-items: center;
   text-align: center;
@@ -298,6 +328,10 @@
   .dateSelected:hover::before {
     background: var(--accent);
   }
+
+  .shell .mobileBack:hover svg {
+    transform: translateX(-3px) rotate(180deg);
+  }
 }
 
 @media (max-width: 720px) {
@@ -325,7 +359,7 @@
 
   .calendarPane,
   .timePane {
-    padding: clamp(12px, 3vw, 18px);
+    padding: clamp(10px, 2.5vw, 14px);
   }
 
   .formPane {
@@ -338,7 +372,7 @@
   }
 
   .weekdayGrid {
-    margin-top: 16px;
+    margin-top: 12px;
   }
 
   .dateCell {
@@ -346,7 +380,7 @@
   }
 
   .dateCell::before {
-    width: min(34px, 100%);
+    width: min(30px, 100%);
   }
 
   .timePane :global(.public-body) {
@@ -356,26 +390,26 @@
 
   .timeList {
     gap: 6px;
-    margin-top: 16px;
+    margin-top: 12px;
   }
 
   .timeButton {
     min-height: 44px;
     padding-inline: 6px;
-    font-size: .75rem;
+    font-size: .6875rem;
   }
 
   .continueButton {
     gap: 5px;
-    margin-top: 16px;
+    margin-top: 12px;
     padding-inline: 8px;
     font-size: 9px;
     letter-spacing: .04em;
   }
 
   .timezone {
-    margin-top: 16px;
-    padding-top: 12px;
+    margin-top: 12px;
+    padding-top: 8px;
   }
 
   .formGrid {
@@ -392,11 +426,17 @@
 
   .calendarPane,
   .timePane {
-    padding: 20px;
+    padding: 14px;
   }
 
-  .timePane {
-    margin-top: 12px;
+  .scheduleGridDates .timePane,
+  .scheduleGridTimes .calendarPane {
+    display: none;
+  }
+
+  .shell .mobileBack {
+    display: inline-flex;
+    margin-bottom: 10px;
   }
 
   .weekdayGrid,
@@ -405,15 +445,15 @@
   }
 
   .dateCell::before {
-    width: min(40px, 100%);
+    width: min(34px, 100%);
   }
 
   .timeButton {
-    font-size: .875rem;
+    font-size: .75rem;
   }
 
   .continueButton {
-    font-size: 11px;
+    font-size: 9px;
     letter-spacing: .035em;
   }
 }

@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import styles from "@/components/booking-calendar-preview.module.css";
 
 type Step = "schedule" | "details" | "complete";
+type MobileScheduleView = "dates" | "times";
 
 const months = [
   { label: "September 2026", year: 2026, month: 8, days: 30, firstDay: 2 },
@@ -59,14 +60,18 @@ export function BookingCalendarPreview() {
   const [monthIndex, setMonthIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState("2026-09-23");
   const [selectedTime, setSelectedTime] = useState("");
+  const [mobileScheduleView, setMobileScheduleView] = useState<MobileScheduleView>("dates");
   const panelHeading = useRef<HTMLDivElement>(null);
+  const timeHeading = useRef<HTMLDivElement>(null);
   const hasChangedStep = useRef(false);
+  const hasChangedMobileView = useRef(false);
   const month = months[monthIndex];
 
   function changeMonth(nextMonthIndex: number) {
     setMonthIndex(nextMonthIndex);
     setSelectedDate(nextMonthIndex === 0 ? "2026-09-23" : "2026-10-01");
     setSelectedTime("");
+    setMobileScheduleView("dates");
   }
   const slots = availability[selectedDate] ?? [];
   const cells = useMemo(() => [
@@ -82,9 +87,19 @@ export function BookingCalendarPreview() {
     panelHeading.current?.focus();
   }, [step]);
 
+  useEffect(() => {
+    if (!hasChangedMobileView.current) {
+      hasChangedMobileView.current = true;
+      return;
+    }
+    if (!window.matchMedia("(max-width: 479px)").matches) return;
+    (mobileScheduleView === "times" ? timeHeading : panelHeading).current?.focus();
+  }, [mobileScheduleView]);
+
   function selectDate(value: string) {
     setSelectedDate(value);
     setSelectedTime("");
+    setMobileScheduleView("times");
   }
 
   function submitPreview(event: FormEvent<HTMLFormElement>) {
@@ -95,6 +110,7 @@ export function BookingCalendarPreview() {
   function reset() {
     setStep("schedule");
     setSelectedTime("");
+    setMobileScheduleView("dates");
   }
 
   return (
@@ -113,7 +129,7 @@ export function BookingCalendarPreview() {
       </div>
 
       {step === "schedule" ? (
-        <div className={`${styles.panel} ${styles.scheduleGrid}`} key={`schedule-${month.label}`}>
+        <div className={`${styles.panel} ${styles.scheduleGrid} ${mobileScheduleView === "dates" ? styles.scheduleGridDates : styles.scheduleGridTimes}`} key={`schedule-${month.label}`}>
           <div className={styles.calendarPane}>
             <div className={styles.monthBar}>
               <div ref={panelHeading} tabIndex={-1}>
@@ -153,8 +169,11 @@ export function BookingCalendarPreview() {
           </div>
 
           <div className={styles.timePane}>
+            <button className={`button-text ${styles.mobileBack}`} type="button" onClick={() => { setSelectedTime(""); setMobileScheduleView("dates"); }}>
+              <Icon name="arrow" /> Back to dates
+            </button>
             <div className={styles.selectionBar}>
-              <div>
+              <div ref={timeHeading} tabIndex={-1}>
                 <p className="mono-label">Available times</p>
                 <p className="public-body mt-2">{readableDate(selectedDate)}</p>
               </div>
