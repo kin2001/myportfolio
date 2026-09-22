@@ -86,7 +86,9 @@
 
 .portrait {
   position: relative;
-  animation: settle 720ms cubic-bezier(.16, 1, .3, 1) both;
+  background: linear-gradient(100deg, var(--paper-soft) 20%, color-mix(in srgb, var(--paper-soft) 76%, var(--accent)) 38%, var(--paper-soft) 56%);
+  background-size: 220% 100%;
+  animation: settle 720ms cubic-bezier(.16, 1, .3, 1) both, portrait-loading 1.4s ease-in-out 4;
 }
 
 /* Trace the photograph's circuit lines on entry, then return to the photo. */
@@ -321,8 +323,8 @@
 
 @media (max-width: 767px) {
   .hero {
-    grid-template-columns: minmax(0, 1.25fr) minmax(112px, .75fr);
-    column-gap: 10px;
+    grid-template-columns: 1fr;
+    row-gap: 14px;
     align-items: center;
   }
 
@@ -344,8 +346,8 @@
     font-size: var(--type-body);
     line-height: 1.65;
   }
-  .heroCopy { grid-column: 1; }
-  .hero .portrait { grid-row: 1 / span 2; align-self: start; max-width: 144px; margin-top: 14px; }
+  .heroCopy { grid-column: 1; grid-row: 3; }
+  .hero .portrait { grid-column: 1; grid-row: 2; align-self: start; justify-self: center; width: 100%; max-width: 164px; margin: 0 auto; }
   .hero .links { margin-top: 12px; }
   .hero .links :global(.button-primary) { padding-inline: 9px; gap: 6px; }
   .home > [data-home-surface="tint"] { padding: 16px 12px; }
@@ -444,6 +446,11 @@
 @keyframes settle {
   from { transform: translateY(12px); }
   to { transform: none; }
+}
+
+@keyframes portrait-loading {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

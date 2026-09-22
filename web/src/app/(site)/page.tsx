@@ -76,8 +76,7 @@ export default async function HomePage() {
         <div className={styles.heroCopy}>
           <p className="public-lead max-w-xl">I build GoHighLevel workflows and AI automations that connect your tools, capture leads, and keep follow-ups moving—so you spend less time managing systems and more time building client relationships.</p>
           <div className={`${styles.links} mt-6 flex flex-wrap items-center gap-x-6 gap-y-3`}>
-            <Link href="/work" className="button-primary">Explore my work <Icon name="arrow" className="h-4 w-4" /></Link>
-            <Link href="/contact" className="button-text">Let&apos;s talk <Icon name="arrow" className="h-4 w-4" /></Link>
+            <Link href="/contact" className="button-primary">Book a Call <Icon name="arrow" className="h-4 w-4" /></Link>
           </div>
         </div>
       </section>
@@ -125,7 +124,7 @@ export default async function HomePage() {
 
       <ApproachSection detailsHref="/about" index="03" />
 
-      <section data-reveal="cta" data-home-surface="tint" className={`${styles.sectionBand} ${styles.closingCta} flex flex-col items-center gap-8 pb-8 pt-12 text-center md:gap-10 md:pb-10 md:pt-16`} id="contact"><div className={`${styles.ctaCopy} max-w-2xl space-y-4`}><p className={`${styles.ctaLabel} mono-label tracking-[.3em] text-[var(--accent)]`}>04 — Project Inquiry</p><h2 className={`${styles.ctaTitle} public-section-title mx-auto`}>Need a cleaner way to manage leads, follow-up, or internal work?</h2></div><Link href="/contact" className={`${styles.action} ${styles.ctaAction} button-primary`}><ActionLabel>Start a project</ActionLabel></Link></section>
+      <section data-reveal="cta" data-home-surface="tint" className={`${styles.sectionBand} ${styles.closingCta} flex flex-col items-center gap-8 pb-8 pt-12 text-center md:gap-10 md:pb-10 md:pt-16`} id="contact"><div className={`${styles.ctaCopy} max-w-2xl space-y-4`}><p className={`${styles.ctaLabel} mono-label tracking-[.3em] text-[var(--accent)]`}>04 — Project Inquiry</p><h2 className={`${styles.ctaTitle} public-section-title mx-auto`}>Turn messy leads and follow-up into a system that runs itself.</h2></div><Link href="/contact" className={`${styles.action} ${styles.ctaAction} button-primary`}><ActionLabel>Book a Call</ActionLabel></Link></section>
 
     </div>
     </>
