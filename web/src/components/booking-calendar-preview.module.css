@@ -544,6 +544,10 @@
     font-size: .75rem;
   }
 
+  .timeList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .continueButton {
     font-size: 9px;
     letter-spacing: .035em;
