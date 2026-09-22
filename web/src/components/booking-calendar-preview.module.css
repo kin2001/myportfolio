@@ -620,7 +620,13 @@
   }
 
   .formPane textarea:global(.field) {
-    min-height: 88px;
+    min-height: 72px;
+  }
+
+  .formPane textarea:global(.field)::placeholder,
+  .consent :global(.public-body) {
+    font-size: .75rem;
+    line-height: 1.45;
   }
 
   .securityCheck,

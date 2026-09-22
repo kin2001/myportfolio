@@ -29,8 +29,8 @@ export default function ContactPage() {
     <div className="content-canvas">
       <BackButton />
       <header className="pb-12 md:pb-16" data-reveal="page-header">
-        <AnimatedHeading className="public-display" text="Let’s find a time to talk." />
-        <p className="public-lead mt-7">Choose a time for a focused 50-minute discovery call. We’ll review your workflow, project goals, and where GoHighLevel or AI automation may help.</p>
+        <AnimatedHeading className="public-display" text="Stop doing it manually. Let’s fix that." />
+        <p className="public-lead mt-7">Book a free call to walk through your current workflow and find where GoHighLevel or AI automation can save you the most time.</p>
       </header>
       <div data-reveal><BookingCalendarPreview /></div>
     </div>
