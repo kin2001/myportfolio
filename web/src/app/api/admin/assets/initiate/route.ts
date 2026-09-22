@@ -11,6 +11,7 @@ import {
 import { createPrivateUploadToken } from "@/lib/supabase/storage";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSameOrigin, readJsonObject, RequestBodyError } from "@/lib/request-security";
 
 function cleanFileName(value: unknown) {
   if (typeof value !== "string") return null;
@@ -21,6 +22,7 @@ function cleanFileName(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "origin_not_allowed" }, { status: 403 });
   const [admin, supabase] = await Promise.all([
     getAdminIdentity(),
     createSupabaseServerClient(),
@@ -34,11 +36,11 @@ export async function POST(request: Request) {
 
   let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
+    body = await readJsonObject(request, 4_096);
+  } catch (error) {
     return NextResponse.json(
       assetError("invalid_json", "Send a valid JSON request."),
-      { status: 400 },
+      { status: error instanceof RequestBodyError ? error.status : 400 },
     );
   }
 

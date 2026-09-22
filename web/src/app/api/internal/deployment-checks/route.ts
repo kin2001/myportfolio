@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { readBoundedText, RequestBodyError } from "@/lib/request-security";
 
 export const runtime = "nodejs";
 
@@ -210,13 +211,12 @@ export async function POST(request: Request) {
     return error("ingestion_not_configured", 503);
   }
 
-  const statedLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(statedLength) && statedLength > MAX_BODY_BYTES) {
-    return error("payload_too_large", 413);
-  }
-  const rawBody = await request.text();
-  if (Buffer.byteLength(rawBody, "utf8") > MAX_BODY_BYTES) {
-    return error("payload_too_large", 413);
+  let rawBody: string;
+  try {
+    rawBody = await readBoundedText(request, MAX_BODY_BYTES);
+  } catch (cause) {
+    return error(cause instanceof RequestBodyError ? cause.message : "invalid_payload",
+      cause instanceof RequestBodyError ? cause.status : 400);
   }
   if (!validSignature(rawBody, secret, request)) {
     return error("invalid_signature", 401);

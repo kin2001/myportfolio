@@ -12,6 +12,7 @@ import {
 } from "@/lib/supabase/storage";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSameOrigin } from "@/lib/request-security";
 
 type CleanupCandidate = {
   asset_id: string;
@@ -129,7 +130,8 @@ async function recoverStalePublicReverts(
   };
 }
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return Response.json({ error: "origin_not_allowed" }, { status: 403 });
   const [admin, supabase] = await Promise.all([
     getAdminIdentity(),
     createSupabaseServerClient(),

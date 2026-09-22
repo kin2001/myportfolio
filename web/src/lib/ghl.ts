@@ -5,7 +5,7 @@ const GHL_API_URL = "https://services.leadconnectorhq.com";
 type FreeSlotsResponse = Record<string, { slots?: unknown }>;
 
 type ContactResponse = {
-  contact?: { id?: string };
+  contact?: { id?: string; email?: string; locationId?: string };
 };
 
 type AppointmentResponse = {
@@ -26,11 +26,12 @@ function getGhlConfig() {
   return { token, locationId, calendarId };
 }
 
-async function ghlRequest<T>(path: string, init?: RequestInit) {
+async function ghlRequest<T>(path: string, init?: RequestInit, cacheSeconds = 0) {
   const { token } = getGhlConfig();
   const response = await fetch(`${GHL_API_URL}${path}`, {
     ...init,
-    cache: "no-store",
+    ...(cacheSeconds ? { next: { revalidate: cacheSeconds } } : { cache: "no-store" as const }),
+    signal: AbortSignal.timeout(10_000),
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
@@ -55,7 +56,7 @@ export function getMonthRange(month: string) {
   return { startDate, endDate: Date.parse(nextMonth) - 1 };
 }
 
-export async function getFreeSlots(month: string) {
+export async function getFreeSlots(month: string, cacheSeconds = 0) {
   const range = getMonthRange(month);
   if (!range) throw new Error("Invalid month");
   const { calendarId } = getGhlConfig();
@@ -66,6 +67,8 @@ export async function getFreeSlots(month: string) {
   });
   const response = await ghlRequest<FreeSlotsResponse>(
     `/calendars/${encodeURIComponent(calendarId)}/free-slots?${query}`,
+    undefined,
+    cacheSeconds,
   );
 
   return Object.fromEntries(
@@ -80,7 +83,7 @@ export async function getFreeSlots(month: string) {
   );
 }
 
-export async function upsertContact(input: {
+export async function getOrCreateContact(input: {
   firstName: string;
   lastName: string;
   email: string;
@@ -88,7 +91,15 @@ export async function upsertContact(input: {
   company: string;
 }) {
   const { locationId } = getGhlConfig();
-  const response = await ghlRequest<ContactResponse>("/contacts/upsert", {
+  const query = new URLSearchParams({ locationId, email: input.email });
+  const existing = await ghlRequest<ContactResponse>(`/contacts/search/duplicate?${query}`);
+  if (existing.contact?.id) {
+    if (existing.contact.email?.trim().toLowerCase() !== input.email.toLowerCase()
+      || existing.contact.locationId !== locationId) throw new Error("Contact identity mismatch");
+    // Public booking is not proof of identity: never overwrite an existing CRM record.
+    return existing.contact.id;
+  }
+  const response = await ghlRequest<ContactResponse>("/contacts/", {
     method: "POST",
     body: JSON.stringify({
       locationId,

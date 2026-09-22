@@ -21,11 +21,13 @@ import {
 } from "@/lib/supabase/storage";
 import { getAdminIdentity } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSameOrigin, readJsonObject, RequestBodyError } from "@/lib/request-security";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA256 = /^[0-9a-f]{64}$/i;
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "origin_not_allowed" }, { status: 403 });
   const [admin, supabase] = await Promise.all([
     getAdminIdentity(),
     createSupabaseServerClient(),
@@ -39,11 +41,11 @@ export async function POST(request: Request) {
 
   let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
+    body = await readJsonObject(request, 4_096);
+  } catch (error) {
     return NextResponse.json(
       assetError("invalid_json", "Send a valid JSON request."),
-      { status: 400 },
+      { status: error instanceof RequestBodyError ? error.status : 400 },
     );
   }
 

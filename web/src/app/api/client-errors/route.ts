@@ -1,24 +1,20 @@
 import { sendTelemetryError } from "@/lib/telemetry";
+import { allowRequest, isSameOrigin, rateLimitResponse, readJsonObject, RequestBodyError } from "@/lib/request-security";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const ownOrigin = new URL(request.url).origin;
-  const origin = request.headers.get("origin");
-  const fetchSite = request.headers.get("sec-fetch-site");
-  if (origin !== ownOrigin || (fetchSite && fetchSite !== "same-origin")) {
+  if (!isSameOrigin(request)) {
     return Response.json({ error: "origin_not_allowed" }, { status: 403 });
   }
-  const statedLength = Number(request.headers.get("content-length") ?? "0");
-  if (statedLength > 1_024) {
-    return Response.json({ error: "payload_too_large" }, { status: 413 });
-  }
+  if (!allowRequest(request, "telemetry", 10)) return rateLimitResponse();
 
   let body: Record<string, unknown>;
   try {
-    body = await request.json() as Record<string, unknown>;
-  } catch {
-    return Response.json({ error: "invalid_payload" }, { status: 400 });
+    body = await readJsonObject(request, 1_024);
+  } catch (error) {
+    return Response.json({ error: error instanceof RequestBodyError ? error.message : "invalid_payload" },
+      { status: error instanceof RequestBodyError ? error.status : 400 });
   }
   const name = typeof body.name === "string" ? body.name : "";
   const digest = typeof body.digest === "string" ? body.digest : undefined;
