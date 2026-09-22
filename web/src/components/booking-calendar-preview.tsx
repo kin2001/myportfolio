@@ -87,6 +87,16 @@ function readableDate(value: string) {
   }).format(new Date(`${value}T00:00:00+08:00`));
 }
 
+function readableDateCompact(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone,
+  }).format(new Date(`${value}T00:00:00+08:00`));
+}
+
 function readableTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     hour: "2-digit",
@@ -120,6 +130,7 @@ export function BookingCalendarPreview() {
   const turnstileContainer = useRef<HTMLDivElement>(null);
   const turnstileRegion = useRef<HTMLDivElement>(null);
   const turnstileWidgetId = useRef<string | null>(null);
+  const detailsHeading = useRef<HTMLDivElement>(null);
   const hasChangedStep = useRef(false);
   const hasChangedMobileView = useRef(false);
   const month = monthDetails(monthKey);
@@ -166,7 +177,7 @@ export function BookingCalendarPreview() {
       hasChangedStep.current = true;
       return;
     }
-    panelHeading.current?.focus();
+    (step === "details" ? detailsHeading : panelHeading).current?.focus();
   }, [step]);
 
   useEffect(() => {
@@ -394,19 +405,21 @@ export function BookingCalendarPreview() {
       {step === "details" ? (
         <div className={`${styles.panel} ${styles.detailsGrid}`} key="details">
           <aside className={styles.summaryPane} aria-label="Selected appointment">
-            <button className={`${styles.iconButton} ${styles.detailsBack}`} type="button" onClick={() => setStep("schedule")} aria-label="Back to schedule" title="Back to schedule">
-              <Icon name="arrow" />
-            </button>
-            <p className="mono-label">Your selection</p>
+            <div className={styles.summaryHeading} ref={detailsHeading} tabIndex={-1}>
+              <button className={`${styles.iconButton} ${styles.detailsBack}`} type="button" onClick={() => setStep("schedule")} aria-label="Back to schedule" title="Back to schedule">
+                <Icon name="arrow" />
+              </button>
+              <p className="mono-label">Your selection</p>
+            </div>
             <div className={styles.summaryList}>
-              <div className={styles.summaryItem}><p className="mono-meta muted">Date</p><p className="public-body mt-2">{readableDate(selectedDate)}</p></div>
-              <div className={styles.summaryItem}><p className="mono-meta muted">Time</p><p className="public-body mt-2">{readableTime(selectedTime)}–{endingTime(selectedTime)}</p></div>
+              <div className={styles.summaryItem}><p className="mono-meta muted">Date</p><p className="public-body mt-2">{readableDateCompact(selectedDate)}</p></div>
+              <div className={styles.summaryItem}><p className="mono-meta muted">Time</p><p className="public-body mt-2">{readableTime(selectedTime)} – {endingTime(selectedTime)}</p></div>
               <div className={styles.summaryItem}><p className="mono-meta muted">Format</p><p className="public-body mt-2">50-minute Google Meet call</p></div>
             </div>
           </aside>
 
           <form className={styles.formPane} onSubmit={submitBooking} aria-busy={bookingStatus === "sending"}>
-            <div ref={panelHeading} tabIndex={-1}>
+            <div>
               <p className="mono-label">Your details</p>
               <h4 className="public-card-title mt-3">Tell me enough to prepare.</h4>
             </div>
@@ -447,7 +460,7 @@ export function BookingCalendarPreview() {
           </div>
           <dl className={styles.completeSummary} aria-label="Confirmed appointment details">
             <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Date</dt><dd className="public-body">{readableDate(selectedDate)}</dd></div>
-            <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Time</dt><dd className="public-body">{readableTime(selectedTime)}–{endingTime(selectedTime)}</dd></div>
+            <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Time</dt><dd className="public-body">{readableTime(selectedTime)} – {endingTime(selectedTime)}</dd></div>
             <div className={styles.completeSummaryItem}><dt className="mono-meta muted">Format</dt><dd className="public-body">Google Meet · 50 minutes</dd></div>
           </dl>
           <button className={`button-text ${styles.completeAction}`} type="button" onClick={reset}>Book another time <Icon name="arrow" className="h-4 w-4" /></button>

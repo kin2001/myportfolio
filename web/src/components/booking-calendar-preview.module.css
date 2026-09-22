@@ -260,6 +260,10 @@
   transform: rotate(180deg);
 }
 
+.summaryHeading:focus {
+  outline: 0;
+}
+
 .summaryItem {
   padding-bottom: 14px;
   border-bottom: 0.5px solid var(--line);
@@ -543,6 +547,86 @@
   .continueButton {
     font-size: 9px;
     letter-spacing: .035em;
+  }
+
+  .summaryPane {
+    padding: 12px 14px;
+  }
+
+  .summaryHeading {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    scroll-margin-top: 76px;
+  }
+
+  .detailsBack {
+    margin-bottom: 0;
+  }
+
+  .summaryList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 14px;
+    margin-top: 10px;
+  }
+
+  .summaryItem {
+    min-width: 0;
+    padding: 10px 0 0;
+    border-top: 0.5px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .summaryItem:last-child {
+    display: none;
+  }
+
+  .summaryItem :global(.mt-2) {
+    margin-top: 4px;
+  }
+
+  .summaryItem :global(.public-body) {
+    line-height: 1.4;
+  }
+
+  .formPane {
+    margin-top: 8px;
+    padding: 14px;
+  }
+
+  .formPane :global(.mt-3) {
+    margin-top: 6px;
+  }
+
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+    margin-top: 14px;
+  }
+
+  .formGrid label {
+    min-width: 0;
+  }
+
+  .formPane :global(.field.mt-2) {
+    min-height: 44px;
+    margin-top: 4px;
+    padding-block: 8px;
+  }
+
+  .formPane textarea:global(.field) {
+    min-height: 88px;
+  }
+
+  .securityCheck,
+  .consent,
+  .actions {
+    margin-top: 14px;
+  }
+
+  .securityCheck {
+    gap: 8px;
   }
 }
 
